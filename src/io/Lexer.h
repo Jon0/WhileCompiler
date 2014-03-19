@@ -21,6 +21,7 @@ private:
 
 	Token getIdentifier();
 	Token getNumerical();
+	Token getString();
 	void skipWhiteSpace();
 };
 

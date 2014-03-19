@@ -8,12 +8,12 @@
 #ifndef TYPE_H_
 #define TYPE_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "SyntaxElem.h"
-#include "Var.h"
 
 namespace std {
 
@@ -23,10 +23,16 @@ public:
 
 	}
 
-	//virtual bool operator==( const Type &other ) const = 0;
+	//TODO subtyping
+	// virtual bool contains( const Type &other ) const = 0;
 
-	virtual bool isList() = 0;
-	virtual string nameStr() = 0;
+	//virtual ptr cast( const value &v ) const = 0;
+
+	virtual bool operator==( const Type &other ) const = 0;
+
+	virtual bool isList() const = 0;
+	virtual bool isRecord() const = 0;
+	virtual string nameStr() const = 0;
 };
 
 template<class T> class AtomicType: public Type {
@@ -41,15 +47,23 @@ public:
 
 	}
 
-//	bool operator==( const AtomicType &other ) const {
-//			return name == other.name; // TODO check types
-//	}
-
-	virtual bool isList() {
+	bool operator==( const Type &other ) const {
+		if ( !other.isList() && !other.isRecord() ) {
+			AtomicType &other_at = (AtomicType &)other;
+			return name == other_at.name; // TODO check types
+		}
 		return false;
 	}
 
-	virtual string nameStr() {
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	virtual string nameStr() const {
 		return name;
 	}
 
@@ -63,12 +77,28 @@ public:
 		elem_type = n;
 	}
 
-	virtual bool isList() {
+	virtual bool operator==( const Type &other ) const {
+		if ( other.isList() ) {
+			ListType &other_list = (ListType &)other;
+			return *elem_type == *other_list.elem_type;
+		}
+		return false;
+	}
+
+	virtual bool isList() const {
 		return true;
 	}
 
-	virtual string nameStr() {
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	virtual string nameStr() const {
 		return "[" + elem_type->nameStr() + "]";
+	}
+
+	shared_ptr<Type> innerType() {
+		return elem_type;
 	}
 
 
@@ -76,23 +106,38 @@ private:
 	shared_ptr<Type> elem_type;
 };
 
-class RecordType: public Type {
+template<class T> class AbstractType: public Type {
 public:
-	RecordType( vector<Var> n ) {
-		elem_type = n;
+	AbstractType( map<string, T> vv ) {
+		elem_type = vv;
 	}
 
-	virtual bool isList() {
+	virtual bool operator==( const Type &other ) const {
+		if ( other.isRecord() ) {
+			AbstractType<T> &other_list = (AbstractType<T> &)other;
+			return elem_type == other_list.elem_type; // TODO check types
+		}
+		return false;
+	}
+
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
 		return true;
 	}
 
-	virtual string nameStr() {
+	virtual string nameStr() const {
 		return "{record type}";
 	}
 
+	T memberType(string name) {
+		return elem_type[name];
+	}
 
 private:
-	vector<Var> elem_type;
+	map<string, T> elem_type;
 };
 
 } /* namespace std */

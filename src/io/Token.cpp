@@ -18,6 +18,13 @@ Token::~Token() {
 	// TODO Auto-generated destructor stub
 }
 
+bool Token::contains(char c) {
+	for (char cs: input_text) {
+		if (cs == c) return true;
+	}
+	return false;
+}
+
 string Token::text() const {
 	return input_text;
 }

@@ -40,8 +40,6 @@ void Func::execute( Stack &stack ) {
 	}
 
 	stmts->execute( stack, vars );
-
-	cout << "function " << name_str << " completed" << endl;
 }
 
 } /* namespace std */

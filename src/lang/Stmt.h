@@ -20,14 +20,14 @@ namespace std {
 class Stmt: public SyntaxElem {
 public:
 	virtual ~Stmt() {}
-	virtual void execute( Stack &, VarMap & ) = 0;
+	virtual StmtStatus execute( Stack &, VarMap & ) = 0;
 };
 
 class BlockStmt: public Stmt {
 public:
 	BlockStmt( vector<shared_ptr<Stmt>> );
 	virtual ~BlockStmt();
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 private:
 	vector<shared_ptr<Stmt>> block;
 };
@@ -38,7 +38,7 @@ public:
 	InitStmt( Var, shared_ptr<Expr> );
 	virtual ~InitStmt();
 
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 private:
 	Var var;
 	shared_ptr<Expr> expr;
@@ -49,7 +49,7 @@ public:
 	AssignStmt( Var, shared_ptr<Expr> );
 	virtual ~AssignStmt();
 
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 private:
 	Var var;
 	shared_ptr<Expr> expr;
@@ -60,11 +60,23 @@ public:
 	ListAssignStmt( Var, shared_ptr<Expr>, shared_ptr<Expr> );
 	virtual ~ListAssignStmt();
 
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 private:
 	Var var;
 	shared_ptr<Expr> expr;
 	shared_ptr<Expr> ind;
+};
+
+class RecordAssignStmt: public Stmt {
+public:
+	RecordAssignStmt( Var, shared_ptr<Expr>, string );
+	virtual ~RecordAssignStmt();
+
+	virtual StmtStatus execute( Stack &, VarMap & );
+private:
+	Var var;
+	shared_ptr<Expr> expr;
+	string member;
 };
 
 class IfStmt: public Stmt {
@@ -72,7 +84,7 @@ public:
 	IfStmt( shared_ptr<Expr>, shared_ptr<Stmt>, shared_ptr<Stmt> );
 	virtual ~IfStmt();
 
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -80,12 +92,24 @@ private:
 	shared_ptr<Stmt> alt;
 };
 
+class WhileStmt: public Stmt {
+public:
+	WhileStmt( shared_ptr<Expr>, shared_ptr<Stmt> );
+	virtual ~WhileStmt();
+
+	virtual StmtStatus execute( Stack &, VarMap & );
+
+private:
+	shared_ptr<Expr> expr;
+	shared_ptr<Stmt> body;
+};
+
 class PrintStmt: public Stmt {
 public:
 	PrintStmt( shared_ptr<Expr> );
 	virtual ~PrintStmt();
 
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -96,7 +120,7 @@ public:
 	ReturnStmt( shared_ptr<Expr> );
 	virtual ~ReturnStmt();
 
-	virtual void execute( Stack &, VarMap & );
+	virtual StmtStatus execute( Stack &, VarMap & );
 
 private:
 	shared_ptr<Expr> expr;

@@ -18,10 +18,14 @@ BlockStmt::BlockStmt( vector<shared_ptr<Stmt>> b ) {
 BlockStmt::~BlockStmt() {
 }
 
-void BlockStmt::execute( Stack &st, VarMap &m ) {
+StmtStatus BlockStmt::execute( Stack &st, VarMap &m ) {
 	for (shared_ptr<Stmt> &s: block) {
-		s->execute( st, m );
+		StmtStatus ss = s->execute( st, m );
+		if (ss.isReturn) {
+			return {true}; 	// propogate back
+		}
 	}
+	return {false};
 }
 
 InitStmt::InitStmt(Var v): var(v) {
@@ -34,8 +38,16 @@ InitStmt::InitStmt(Var v, shared_ptr<Expr> e): var(v) {
 InitStmt::~InitStmt() {
 }
 
-void InitStmt::execute( Stack &s, VarMap &m ) {
-	m.insert(VarMap::value_type(var, expr->eval( s, m )));
+StmtStatus InitStmt::execute( Stack &s, VarMap &m ) {
+	if (expr) {
+		m.insert(VarMap::value_type(var, expr->eval( s, m )));
+	}
+	else {
+
+
+		m.insert(VarMap::value_type(var, shared_ptr<Value>( new TypedValue<int>(var.type(), 0) )));
+	}
+	return {false};
 }
 
 AssignStmt::AssignStmt(Var v, shared_ptr<Expr> e): var(v) {
@@ -44,13 +56,14 @@ AssignStmt::AssignStmt(Var v, shared_ptr<Expr> e): var(v) {
 
 AssignStmt::~AssignStmt() {}
 
-void AssignStmt::execute( Stack &s, VarMap &m ) {
+StmtStatus AssignStmt::execute( Stack &s, VarMap &m ) {
 	if ( m.find(var) == m.end() ) { // m.count(var) == 0
 		throw runtime_error("variable not declared");
 	}
 	shared_ptr<Value> ev = expr->eval( s, m );
 	m.erase(var);
 	m.insert( VarMap::value_type(var, ev) );
+	return {false};
 }
 
 ListAssignStmt::ListAssignStmt(Var v, shared_ptr<Expr> e, shared_ptr<Expr> i): var(v) {
@@ -60,11 +73,27 @@ ListAssignStmt::ListAssignStmt(Var v, shared_ptr<Expr> e, shared_ptr<Expr> i): v
 
 ListAssignStmt::~ListAssignStmt() {}
 
-void ListAssignStmt::execute( Stack &s, VarMap &m ) {
+StmtStatus ListAssignStmt::execute( Stack &s, VarMap &m ) {
 	shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( m[var] );
 	shared_ptr<TypedValue<int>> i = static_pointer_cast<TypedValue<int>, Value>( ind->eval( s, m ) );
 
 	list->value().data()[ i->value() ] = expr->eval( s, m );
+	return {false};
+}
+
+RecordAssignStmt::RecordAssignStmt(Var v, shared_ptr<Expr> e, string m): var(v) {
+	expr = e;
+	member = m;
+}
+
+RecordAssignStmt::~RecordAssignStmt() {}
+
+StmtStatus RecordAssignStmt::execute( Stack &s, VarMap &m ) {
+	shared_ptr<TypedValue<ValueRecord>> list = static_pointer_cast<TypedValue<ValueRecord>, Value>( m[var] );
+
+
+	list->value()[ member ] = expr->eval( s, m );
+	return {false};
 }
 
 IfStmt::IfStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b, shared_ptr<Stmt> a) {
@@ -77,16 +106,43 @@ IfStmt::~IfStmt() {
 	// TODO Auto-generated destructor stub
 }
 
-void IfStmt::execute( Stack &s, VarMap &m ) {
+StmtStatus IfStmt::execute( Stack &s, VarMap &m ) {
 	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
 	if ( a->value() ) {
-		body->execute( s, m );
+		StmtStatus ss = body->execute( s, m );
+		if (ss.isReturn) {
+			return {true}; 	// propogate back
+		}
 	}
 
 	// check alt exists
 	else if (alt) {
-		alt->execute( s, m );
+		StmtStatus ss =alt->execute( s, m );
+		if (ss.isReturn) {
+			return {true}; 	// propogate back
+		}
 	}
+	return {false};
+}
+
+WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
+	expr = e;
+	body = b;
+}
+
+WhileStmt::~WhileStmt() {
+	// TODO Auto-generated destructor stub
+}
+
+StmtStatus WhileStmt::execute( Stack &s, VarMap &m ) {
+	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
+	while ( a->value() ) {
+		StmtStatus ss = body->execute( s, m );
+		if (ss.isReturn) {
+			return {true}; 	// propogate back
+		}
+	}
+	return {false};
 }
 
 PrintStmt::PrintStmt(shared_ptr<Expr> e) {
@@ -97,8 +153,9 @@ PrintStmt::~PrintStmt() {
 	// TODO Auto-generated destructor stub
 }
 
-void PrintStmt::execute( Stack &s, VarMap &m ) {
+StmtStatus PrintStmt::execute( Stack &s, VarMap &m ) {
 	cout << expr->eval( s, m )->asString() << endl;
+	return {false};
 }
 
 ReturnStmt::ReturnStmt(shared_ptr<Expr> e) {
@@ -109,12 +166,13 @@ ReturnStmt::~ReturnStmt() {
 	// TODO Auto-generated destructor stub
 }
 
-void ReturnStmt::execute( Stack &s, VarMap &m ) {
+StmtStatus ReturnStmt::execute( Stack &s, VarMap &m ) {
 	// put things on top of stack
 	shared_ptr<Value> ev = expr->eval( s, m );
 	s.push_back( ev );
 
-	// TODO escape current block
+	// escape current block
+	return {true};
 
 }
 

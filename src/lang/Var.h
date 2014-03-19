@@ -39,6 +39,8 @@ struct VarCompare {
 	}
 };
 
+typedef AbstractType<Var> RecordType;
+
 } /* namespace std */
 
 #endif /* VAR_H_ */

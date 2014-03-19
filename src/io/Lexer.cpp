@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdexcept>
 
 #include "Lexer.h"
@@ -28,8 +29,15 @@ queue<Token> Lexer::getTokens() {
 		else if ( isalpha(c) ) {
 			tokens.push( getIdentifier() );
 		}
-		else if ( isdigit(c) ) {
+		else if ( isdigit(c) || c == '-' ) {
 			tokens.push( getNumerical() );
+		}
+		else if ( c == '"') {
+			file.get();
+			tokens.push( Token(string(1, c)) );
+			tokens.push( getString() );
+			file.get(c);
+			tokens.push( Token(string(1, c)) );
 		}
 		else if ( ispunct(c) ) {
 			file.get(c);
@@ -42,9 +50,6 @@ queue<Token> Lexer::getTokens() {
 			file.get(c);
 			tokens.push( Token(string(1, c)) );
 		}
-
-		// TODO numbers
-
 	}
 
 	return tokens;
@@ -69,10 +74,31 @@ Token Lexer::getIdentifier() {
 
 Token Lexer::getNumerical() {
 	string s;
+	char c = file.peek();
+	if ( c == '-' ) {
+		s += c;
+		file.get();
+	}
+	while ( file.good() ) {
+		char c = file.peek();
+		if ( isdigit(c) || c == '.' ) {
+			s += c;
+			file.get();
+		}
+		else {
+			break;
+		}
+	}
+
+	return Token(s);
+}
+
+Token Lexer::getString() {
+	string s;
 	char c;
 	while ( file.good() ) {
 		char c = file.peek();
-		if ( isdigit(c) ) {
+		if ( !(c == '"') ) {
 			s += c;
 			file.get();
 		}

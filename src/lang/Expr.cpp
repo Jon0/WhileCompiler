@@ -31,7 +31,7 @@ shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap m ) {
 	func->execute( s );
 
 	// result return on stack top
-	if ( s.empty() ) { // m.count(var) == 0
+	if ( s.empty() ) {
 		throw runtime_error("empty stack: function expects return value");
 	}
 	shared_ptr<Value> result = s.back();

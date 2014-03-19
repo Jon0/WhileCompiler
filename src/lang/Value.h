@@ -35,6 +35,8 @@ private:
 
 typedef vector<shared_ptr<Value>> ValueList;
 
+typedef map<string, shared_ptr<Value>> ValueRecord;
+
 template<class T> class TypedValue: public Value {
 public:
 	TypedValue(shared_ptr<Type> t, T val): Value(t) {
@@ -66,6 +68,12 @@ private:
 		return to_string(s);
 	}
 
+	string str_conv(double s) {
+		char buf[64];
+		sprintf(buf, "%g", s);
+		return string(buf);
+	}
+
 	string str_conv(ValueList s) {
 		string result = "[";
 		int i = 0;
@@ -74,6 +82,20 @@ private:
 			if ( i++ < s.size()-1 ) result += ", ";
 		}
 		result += "]";
+
+		return result;
+	}
+
+	string str_conv(ValueRecord s) {
+		string result = "{";
+		int i = 0;
+		for (ValueRecord::value_type &v: s) {
+			result += v.first;
+			result += ":";
+			result += v.second->asString();
+			if ( i++ < s.size()-1 ) result += ",";
+		}
+		result += "}";
 
 		return result;
 	}

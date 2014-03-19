@@ -16,6 +16,10 @@
 
 namespace std {
 
+struct StmtStatus {
+	bool isReturn;
+};
+
 typedef vector<shared_ptr<Value>> Stack;
 typedef map<Var, shared_ptr<Value>, VarCompare> VarMap;
 

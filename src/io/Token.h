@@ -18,6 +18,7 @@ public:
 	Token(string);
 	virtual ~Token();
 
+	bool contains(char);
 	string text() const;
 	bool operator==(const Token &other) const;
 
