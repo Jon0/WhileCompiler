@@ -10,8 +10,10 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "SyntaxElem.h"
+#include "Var.h"
 
 namespace std {
 
@@ -76,7 +78,7 @@ private:
 
 class RecordType: public Type {
 public:
-	RecordType(shared_ptr<Type> n) {
+	RecordType( vector<Var> n ) {
 		elem_type = n;
 	}
 
@@ -85,12 +87,12 @@ public:
 	}
 
 	virtual string nameStr() {
-		return "{" + elem_type->nameStr() + "}";
+		return "{record type}";
 	}
 
 
 private:
-	shared_ptr<Type> elem_type;
+	vector<Var> elem_type;
 };
 
 } /* namespace std */

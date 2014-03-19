@@ -280,16 +280,22 @@ shared_ptr<Type> Parser::readType() {
 		return shared_ptr<Type>( new ListType(t) );
 	}
 	else if ( in.canMatch("{") ) {
-		// TODO record parsing
-		shared_ptr<Type> t = readType();
-		in.pop();
-		cout << in.pop().text() << endl;
+		// TODO can record be empty?
+		vector<Var> vars;
+		vars.push_back(Var(readType(), in.pop().text()));
+		while (in.canMatch(",")) {
+			vars.push_back(Var(readType(), in.pop().text()));
+		}
 		in.match("}");
-		return shared_ptr<Type>( new RecordType(t) );
+		return shared_ptr<Type>( new RecordType(vars) );
 	}
 	else if (dectypes.count(top) > 0) {
+		in.pop();
 		map<string, shared_ptr<Type>>::iterator i = dectypes.find(top);
 		return (*i).second;
+	}
+	else {
+		throw runtime_error("could not identify a type");
 	}
 }
 
