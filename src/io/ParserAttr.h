@@ -32,9 +32,9 @@ public:
 	}
 
 	void match(string s) {
-		string top = tokens.front().text();
-		if ( s != top ) {
-			throw runtime_error("mismatch "+top+", expected "+s);
+		Token top = tokens.front();
+		if ( s != top.text() ) {
+			throw TokenException(top, "mismatch "+top.text()+", expected "+s);
 		}
 		tokens.pop();
 	}
@@ -61,7 +61,7 @@ public:
 
 	Var copyVar(Token t) {
 		if (var_types.count(t) == 0) {
-			throw runtime_error(t.text()+" not a variable");
+			throw TokenException(t, t.text()+" not a variable");
 		}
 		return var_types[t];
 	}
@@ -72,7 +72,7 @@ public:
 
 	shared_ptr<Type> getType(Token t) {
 		if (var_types.count(t) == 0) {
-			throw runtime_error(t.text()+" not a variable");
+			throw TokenException(t, t.text()+" not a variable");
 		}
 		return var_types[t].type();
 	}

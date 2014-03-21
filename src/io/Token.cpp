@@ -9,9 +9,9 @@
 
 namespace std {
 
-Token::Token(string s) {
+Token::Token(string s, int l) {
 	input_text = s;
-
+	line_num = l;
 }
 
 Token::~Token() {
@@ -27,6 +27,10 @@ bool Token::contains(char c) {
 
 string Token::text() const {
 	return input_text;
+}
+
+int Token::lineNum() const {
+	return line_num;
 }
 
 bool Token::operator==(const Token &other) const {

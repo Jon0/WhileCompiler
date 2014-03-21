@@ -11,9 +11,11 @@
 #include <iostream>
 #include <string>
 
-#include "Common.h"
+
 #include "Type.h"
 #include "SyntaxElem.h"
+#include "Value.h"
+#include "Var.h"
 
 namespace std {
 
@@ -46,6 +48,25 @@ public:
 
 private:
 	shared_ptr<Value> const_value;
+
+};
+
+class IsTypeExpr: public Expr {
+public:
+	IsTypeExpr( shared_ptr<Expr> e, shared_ptr<Type> t): Expr( shared_ptr<Type>( new AtomicType<bool>("bool") )  ) {
+		to_check = e;
+		type = t;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+		shared_ptr<Type> subt = to_check->eval(s, m)->type();
+
+		return shared_ptr<Value>( new TypedValue<bool>( getType(), type->contains(*subt) ) );
+	}
+
+private:
+	shared_ptr<Expr> to_check;
+	shared_ptr<Type> type;
 
 };
 
@@ -89,7 +110,7 @@ private:
 class ListExpr: public Expr {
 public:
 	// TODO generate list type if int and bool are contained, type is bool|int
-	ListExpr( vector<shared_ptr<Expr>> l ): Expr( shared_ptr<Type>( new ListType( l[0]->getType() ) ) ) {
+	ListExpr( shared_ptr<Type> t, vector<shared_ptr<Expr>> l ): Expr( t ) {
 		list = l;
 	}
 
@@ -110,24 +131,64 @@ private:
 class ListLengthExpr: public Expr {
 public:
 	// TODO generate list type if int and bool are contained, type is bool|int
-	ListLengthExpr( Var v ): Expr( shared_ptr<Type>( new AtomicType<int>("int") ) ) {
-		var = v;
+	ListLengthExpr( shared_ptr<Expr> v ): Expr( shared_ptr<Type>( new AtomicType<int>("int") ) ) {
+		e = v;
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap m ) {
-		if ( m.count(var) == 0 ) {
-			throw runtime_error("error evaluating variable "+var.name()+": not available");
-		}
-		if ( !m[var]->type()->isList() ) {
-			throw runtime_error("error evaluating list "+var.name()+": not a list");
+		shared_ptr<Value> vl = e->eval(s, m);
+
+		if ( !vl->type()->isList() ) {
+			throw runtime_error("error evaluating list length: not a list");
 		}
 
-		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( m[var] );
+		shared_ptr<Value> rs = e->eval(s, m);
+		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( rs ); //m[var]
 		return shared_ptr<Value>( new TypedValue<int>( getType(), list->value().size() ) );
 	}
 
 private:
-	Var var;
+	shared_ptr<Expr> e;
+};
+
+template<class I> class ToList {
+public:
+	static shared_ptr<Value> func( shared_ptr<Value> v ) {
+		shared_ptr<TypedValue<I>> i = static_pointer_cast<TypedValue<I>, Value>( v );
+		shared_ptr<TypedValue<ValueList>> internal = i->asType();
+		return internal;
+	}
+};
+
+class ConcatExpr: public Expr {
+public:
+	// TODO generate list type if int and bool are contained, type is bool|int
+	ConcatExpr( shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( t ) { // result type is list
+		first = a;
+		second = b;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+		shared_ptr<TypedValue<ValueList>> list1 = static_pointer_cast<TypedValue<ValueList>, Value>( first->eval(s,m) );
+		ValueList newList = list1->value();
+
+		/*
+		 * concat with single value or list?
+		 */
+		if ( !second->getType()->isList() ) {
+			newList.push_back( second->eval(s,m) );
+		}
+		else {
+			shared_ptr<TypedValue<ValueList>> list2 = static_pointer_cast<TypedValue<ValueList>, Value>( second->eval(s,m) );
+			newList.insert(newList.end(), list2->value().begin(), list2->value().end());
+		}
+
+		return shared_ptr<Value>( new TypedValue<ValueList>( getType(), newList) );
+	}
+
+private:
+	shared_ptr<Expr> first;
+	shared_ptr<Expr> second;
 };
 
 /*
@@ -137,78 +198,30 @@ private:
  */
 class ListLookupExpr: public Expr {
 public:
-	ListLookupExpr( Var v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( t ), var(v) {
+	ListLookupExpr( shared_ptr<Expr> v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( t ) {
+		v_expr = v;
 		index = i;
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap m ) {
-		if ( m.count(var) == 0 ) {
-			throw runtime_error("error evaluating variable "+var.name()+": not available");
-		}
-		if ( !m[var]->type()->isList() ) {
-			throw runtime_error("error evaluating list "+var.name()+": not a list");
+		if ( !v_expr->getType()->isList() ) {
+			throw runtime_error("cannot lookup type "+v_expr->getType()->nameStr()+": not a list");
 		}
 
-		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( m[var] );
+		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( v_expr->eval( s, m ) );
 		shared_ptr<TypedValue<int>> i = static_pointer_cast<TypedValue<int>, Value>( index->eval( s, m ) );
 
 		if ( i->value() < 0 || list->value().size() <= i->value() ) {
-			throw runtime_error("error evaluating list "+var.name()+": index out of range");
+			throw runtime_error("error evaluating index "+to_string(i->value())+": index out of range");
 		}
 
 		shared_ptr<Value> result = list->value()[ i->value() ];
-
 		return result;
 	}
 
 private:
-	Var var;
+	shared_ptr<Expr> v_expr;
 	shared_ptr<Expr> index;
-};
-
-class StringLookupExpr: public Expr {
-public:
-	StringLookupExpr( Var v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( t ), var(v) {
-		index = i;
-	}
-
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
-		if ( m.count(var) == 0 ) {
-			throw runtime_error("error evaluating variable "+var.name()+": not available");
-		}
-
-		shared_ptr<TypedValue<string>> list = static_pointer_cast<TypedValue<string>, Value>( m[var] );
-		shared_ptr<TypedValue<int>> i = static_pointer_cast<TypedValue<int>, Value>( index->eval( s, m ) );
-
-		if ( i->value() < 0 || list->value().length() <= i->value() ) {
-			throw runtime_error("error evaluating list "+var.name()+": index out of range ("+to_string(i->value())+", "+to_string(list->value().length())+")");
-		}
-		return shared_ptr<Value>( new TypedValue<char>( getType(), list->value()[i->value()] ));
-	}
-
-private:
-	Var var;
-	shared_ptr<Expr> index;
-};
-
-class StringLengthExpr: public Expr {
-public:
-	// TODO generate list type if int and bool are contained, type is bool|int
-	StringLengthExpr( Var v ): Expr( shared_ptr<Type>( new AtomicType<int>("int") ) ) {
-		var = v;
-	}
-
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
-		if ( m.count(var) == 0 ) {
-			throw runtime_error("error evaluating variable "+var.name()+": not available");
-		}
-
-		shared_ptr<TypedValue<string>> list = static_pointer_cast<TypedValue<string>, Value>( m[var] );
-		return shared_ptr<Value>( new TypedValue<int>( getType(), list->value().length() ) );
-	}
-
-private:
-	Var var;
 };
 
 /*
@@ -218,19 +231,17 @@ private:
  */
 class RecordMemberExpr: public Expr {
 public:
-	RecordMemberExpr( Var v, shared_ptr<Type> t, string m_name ): Expr( t ), var(v) {
+	RecordMemberExpr( shared_ptr<Expr> v, shared_ptr<Type> t, string m_name ): Expr( t ) {
+		v_expr = v;
 		member_name = m_name;
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap m ) {
-		if ( m.count(var) == 0 ) {
-			throw runtime_error("error evaluating variable "+var.name()+": not available");
-		}
-		if ( !m[var]->type()->isRecord() ) {
-			throw runtime_error("error evaluating record "+var.name()+": not a record");
+		if ( !v_expr->getType()->isRecord() ) {
+			throw runtime_error("cannot lookup type "+v_expr->getType()->nameStr()+": not a record");
 		}
 
-		shared_ptr<TypedValue<ValueRecord>> record = static_pointer_cast<TypedValue<ValueRecord>, Value>( m[var] );
+		shared_ptr<TypedValue<ValueRecord>> record = static_pointer_cast<TypedValue<ValueRecord>, Value>( v_expr->eval( s, m ) );
 
 		if ( record->value().count(member_name) == 0 ) {
 			throw runtime_error("error evaluating record: "+member_name+" not defined");
@@ -240,7 +251,7 @@ public:
 	}
 
 private:
-	Var var;
+	shared_ptr<Expr> v_expr;
 	string member_name;
 };
 
@@ -255,6 +266,26 @@ private:
 	vector<shared_ptr<Expr>> args;
 };
 
+class BasicCastExpr: public Expr {
+public:
+	BasicCastExpr( shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( t ) {
+		expr = e;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+		shared_ptr<Value> v = expr->eval( s, m );
+
+		if ( !v->type()->castsTo(*getType()) ) {
+			throw runtime_error("invalid casting values");
+		}
+
+		return v->clone( getType() ) ;
+	}
+
+private:
+	shared_ptr<Expr> expr;
+};
+
 template<class R, class T> class CastExpr: public Expr {
 public:
 	CastExpr( shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( t ) {
@@ -262,8 +293,8 @@ public:
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap m ) {
-		if (getType()->isList() || getType()->isRecord()) {
-			throw runtime_error("list or record cast not yet supported");
+		if (getType()->isList() || getType()->isRecord() || getType()->isUnion()) {
+			throw runtime_error("union, list or record cast not yet supported");
 		}
 		shared_ptr<Value> v = expr->eval( s, m );
 
@@ -301,6 +332,12 @@ template<class T> struct DivOp {
 	}
 };
 
+template<class T> struct ModOp {
+	static T compute(T a, T b) {
+		return a % b;
+	}
+};
+
 struct AndOp {
 	static bool compute(bool a, bool b) {
 		return a == b;
@@ -310,6 +347,12 @@ struct AndOp {
 template<class T> struct EquivOp {
 	static T compute(T a, T b) {
 		return a == b;
+	}
+};
+
+template<class T> struct NotEquivOp {
+	static T compute(T a, T b) {
+		return a != b;
 	}
 };
 
@@ -345,6 +388,11 @@ template<class T> struct LessEqualOp {
  */
 template<class R, class T, class O> class OpExpr: public Expr {
 public:
+	OpExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
+		first = a;
+		second = b;
+	}
+
 	OpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( a->getType() ) {
 		first = a;
 		second = b;
@@ -353,7 +401,6 @@ public:
 	shared_ptr<Value> eval( Stack &s, VarMap m ) {
 		shared_ptr<TypedValue<T>> a = static_pointer_cast<TypedValue<T>, Value>( first->eval( s, m ) );
 		shared_ptr<TypedValue<T>> b = static_pointer_cast<TypedValue<T>, Value>( second->eval( s, m ) );
-
 		R result = O::compute(a->value(),  b->value());
 		return shared_ptr<Value>( new TypedValue<R>( first->getType(), result ) );
 	}

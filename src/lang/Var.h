@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 
+#include "Common.h"
 #include "Type.h"
 
 namespace std {
@@ -39,6 +40,7 @@ struct VarCompare {
 	}
 };
 
+typedef map<Var, shared_ptr<Value>, VarCompare> VarMap;
 typedef AbstractType<Var> RecordType;
 
 } /* namespace std */

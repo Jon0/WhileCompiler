@@ -16,27 +16,32 @@ FuncCallExpr::FuncCallExpr( shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Ex
 }
 
 shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap m ) {
-
 	// TODO check arg types
 
 	// push items in reverse order
 	vector<shared_ptr<Value>> temp;
 	for (shared_ptr<Expr> ep: args) {
-		temp.push_back( ep->eval(s, m) );
+		shared_ptr<Value> v = ep->eval(s, m) ;
+		temp.push_back( v );
 	}
-	for (shared_ptr<Value> vp: temp) {
-		s.push_back( vp );
+	while ( !temp.empty() ) {
+		s.push_back( temp.back() );
+		temp.pop_back();
 	}
-
 	func->execute( s );
 
 	// result return on stack top
-	if ( s.empty() ) {
-		throw runtime_error("empty stack: function expects return value");
+	if ( func->returnType()->nameStr() != "void" ) {
+		if (s.empty()) {
+			throw runtime_error("empty stack: function expects return value");
+		}
+		shared_ptr<Value> result = s.back();
+		s.pop_back();
+		return result;
 	}
-	shared_ptr<Value> result = s.back();
-	s.pop_back();
-	return result;
+
+	// need to have null returned
+	return shared_ptr<Value>( new NullValue( shared_ptr<Type>( new NullType() ) ) );
 }
 
 } /* namespace std */

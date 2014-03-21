@@ -25,12 +25,15 @@ private:
 	// TODO list global functions and types
 	FuncMap functions;
 	map<string, shared_ptr<Type>> dectypes;
+	map<string, shared_ptr<Expr>> constvals;
 
 	shared_ptr<Expr> readExpr(ParserContext &);
 	Func readFunc();
 	shared_ptr<Stmt> readStmt(ParserContext &);
-	vector<shared_ptr<Stmt>> readStmtList(ParserContext &);
 	shared_ptr<Type> readType();
+
+	shared_ptr<Expr> readConstExpr();
+	shared_ptr<Stmt> readVariableAssign(ParserContext &);
 };
 
 } /* namespace std */

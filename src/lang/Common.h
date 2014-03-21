@@ -11,17 +11,14 @@
 #include <map>
 #include <string>
 
-#include "Var.h"
-#include "Value.h"
-
 namespace std {
 
 struct StmtStatus {
 	bool isReturn;
+	bool isBreak;
 };
 
-typedef vector<shared_ptr<Value>> Stack;
-typedef map<Var, shared_ptr<Value>, VarCompare> VarMap;
+
 
 } /* namespace std */
 

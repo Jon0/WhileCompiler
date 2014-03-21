@@ -17,12 +17,16 @@ public:
 	queue<Token> getTokens();
 
 private:
+	int current_line;
 	ifstream file;
 
 	Token getIdentifier();
 	Token getNumerical();
 	Token getString();
+
 	void skipWhiteSpace();
+	void skipRestOfLine();
+	void skipRestOfComment();
 };
 
 } /* namespace std */

@@ -11,11 +11,13 @@
 #include <map>
 #include <string>
 
-#include "Common.h"
-#include "Expr.h"
 #include "SyntaxElem.h"
+#include "Var.h"
 
 namespace std {
+
+class Expr;
+class Type;
 
 class Stmt: public SyntaxElem {
 public:
@@ -104,6 +106,20 @@ private:
 	shared_ptr<Stmt> body;
 };
 
+class ForStmt: public Stmt {
+public:
+	ForStmt( shared_ptr<Stmt>, shared_ptr<Expr>, shared_ptr<Stmt>, shared_ptr<Stmt> );
+	virtual ~ForStmt();
+
+	virtual StmtStatus execute( Stack &, VarMap & );
+
+private:
+	shared_ptr<Stmt> init;
+	shared_ptr<Expr> expr;
+	shared_ptr<Stmt> inc;
+	shared_ptr<Stmt> body;
+};
+
 class PrintStmt: public Stmt {
 public:
 	PrintStmt( shared_ptr<Expr> );
@@ -115,8 +131,20 @@ private:
 	shared_ptr<Expr> expr;
 };
 
+class EvalStmt: public Stmt {
+public:
+	EvalStmt( shared_ptr<Expr> );
+	virtual ~EvalStmt();
+
+	virtual StmtStatus execute( Stack &, VarMap & );
+
+private:
+	shared_ptr<Expr> expr;
+};
+
 class ReturnStmt: public Stmt {
 public:
+	ReturnStmt();
 	ReturnStmt( shared_ptr<Expr> );
 	virtual ~ReturnStmt();
 
@@ -124,6 +152,31 @@ public:
 
 private:
 	shared_ptr<Expr> expr;
+};
+
+class BreakStmt: public Stmt {
+public:
+	BreakStmt();
+	virtual ~BreakStmt();
+
+	virtual StmtStatus execute( Stack &, VarMap & );
+
+private:
+	shared_ptr<Expr> expr;
+};
+
+class SwitchStmt: public Stmt {
+public:
+	SwitchStmt( shared_ptr<Expr>, map<shared_ptr<Expr>, shared_ptr<Stmt>>, shared_ptr<Stmt> );
+	virtual ~SwitchStmt();
+
+	virtual StmtStatus execute( Stack &, VarMap & );
+
+private:
+	shared_ptr<Expr> expr;
+	map<shared_ptr<Expr>, shared_ptr<Stmt>> list;
+	shared_ptr<Stmt> def_stmt;
+
 };
 
 } /* namespace std */

@@ -13,14 +13,14 @@
 #include <string>
 #include <vector>
 
-#include "Common.h"
-#include "Stmt.h"
 #include "SyntaxElem.h"
-#include "Type.h"
 #include "Var.h"
-#include "Value.h"
 
 namespace std {
+
+class Expr;
+class Stmt;
+class Type;
 
 class Func: public SyntaxElem {
 public:

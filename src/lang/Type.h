@@ -8,31 +8,137 @@
 #ifndef TYPE_H_
 #define TYPE_H_
 
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "SyntaxElem.h"
+#include "Value.h"
 
 namespace std {
 
-class Type: public SyntaxElem {
+/*
+ * in/out
+ */
+template<class I, class O> class Caster {
 public:
-	virtual ~Type() {
+	static O func( shared_ptr<Value> in ) { // shared_ptr<Type> type, shared_ptr<Value> v
+		shared_ptr<TypedValue<I>> iptr = static_pointer_cast<TypedValue<I>, Value>( in );
+		return (O) iptr->value();
+	}
+};
 
+/*
+ * switch function usig the highest level type, calls with templating as required
+ */
+template<template<class I, class O> class Func, class Return, class Source> class TypeSwitch {
+public:
+	static Return typeSwitch( shared_ptr<Type> type, Source in ) {
+
+		if (type->nameStr() == "char") {
+			return Func<char, Return>::func( in );
+		}
+		else if (type->nameStr() == "int") {
+			return Func<int, Return>::func( in );
+		}
+		else if (type->nameStr() == "real") {
+			return Func<double, Return>::func( in );
+		}
+		else if (type->nameStr() == "bool") {
+			return Func<bool, Return>::func( in );
+		}
+		else if (type->isList()) {
+			//return T<string>::func(type, in);
+		}
+	}
+};
+
+class VoidType: public Type {
+
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+		return v;
 	}
 
-	//TODO subtyping
-	// virtual bool contains( const Type &other ) const = 0;
+	virtual bool castsTo( const Type &other ) const {
+		return false;
+	}
 
-	//virtual ptr cast( const value &v ) const = 0;
+	virtual bool contains( const Type &other ) const {
+		return false;
+	}
 
-	virtual bool operator==( const Type &other ) const = 0;
+	virtual bool operator==( const Type &other ) const {
+		return false;
+	}
 
-	virtual bool isList() const = 0;
-	virtual bool isRecord() const = 0;
-	virtual string nameStr() const = 0;
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
+		return false;
+	}
+
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	virtual string nameStr() const {
+		return "void";
+	}
+};
+
+class NullType: public Type {
+
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+		return v;
+	}
+
+	virtual bool castsTo( const Type &other ) const {
+		return false;
+	}
+
+	virtual bool contains( const Type &other ) const {
+		return false;
+	}
+
+	virtual bool operator==( const Type &other ) const {
+		return other.isNull();
+	}
+
+	virtual bool isNull() const {
+		return true;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
+		return false;
+	}
+
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	virtual string nameStr() const {
+		return "null";
+	}
 };
 
 template<class T> class AtomicType: public Type {
@@ -47,11 +153,43 @@ public:
 
 	}
 
-	bool operator==( const Type &other ) const {
-		if ( !other.isList() && !other.isRecord() ) {
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+		T new_internal = TypeSwitch<Caster, T, shared_ptr<Value>>::typeSwitch( v->type(), v );
+
+		//shared_ptr<Type> t = shared_from_this();
+
+
+		//new TypedValue<T>(, new_internal);
+
+		return v;
+		//return shared_ptr<Value>( new TypedValue<T>(shared_from_this(), new_internal) );
+	}
+
+	virtual bool castsTo( const Type &other ) const {
+		return other.isAtomic();
+	}
+
+	virtual bool contains( const Type &other ) const {
+		return (*this) == other;
+	}
+
+	virtual bool operator==( const Type &other ) const {
+		if ( other.isAtomic() ) {
 			AtomicType &other_at = (AtomicType &)other;
 			return name == other_at.name; // TODO check types
 		}
+		return false;
+	}
+
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return true;
+	}
+
+	virtual bool isUnion() const {
 		return false;
 	}
 
@@ -73,15 +211,59 @@ private:
 
 class ListType: public Type {
 public:
+	ListType() {
+		elem_type = NULL;
+	}
+
 	ListType(shared_ptr<Type> n) {
 		elem_type = n;
+	}
+
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+		return v;
+	}
+
+	virtual bool castsTo( const Type &other ) const {
+		if ( other.isList() ) {
+			ListType &other_list = (ListType &)other;
+			return elem_type->castsTo(*other_list.elem_type);
+		}
+		return false;
+	}
+
+
+	virtual bool contains( const Type &other ) const {
+		if ( other.isList() ) {
+			ListType &other_list = (ListType &)other;
+
+			// consider nulls(empty list) a subtype
+			return other_list.elem_type == NULL || (*this) == other;
+		}
+		return false;
 	}
 
 	virtual bool operator==( const Type &other ) const {
 		if ( other.isList() ) {
 			ListType &other_list = (ListType &)other;
-			return *elem_type == *other_list.elem_type;
+			if ((elem_type == NULL || other_list.elem_type == NULL) && elem_type != other_list.elem_type) {
+				return false;
+			}
+
+			// nulls(empty list) should return false, unless both null
+			return (elem_type == NULL && other_list.elem_type == NULL) || *elem_type == *other_list.elem_type;
 		}
+		return false;
+	}
+
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
 		return false;
 	}
 
@@ -94,7 +276,12 @@ public:
 	}
 
 	virtual string nameStr() const {
-		return "[" + elem_type->nameStr() + "]";
+		if (elem_type) {
+			return "[" + elem_type->nameStr() + "]";
+		}
+		else {
+			return "[]";
+		}
 	}
 
 	shared_ptr<Type> innerType() {
@@ -112,11 +299,35 @@ public:
 		elem_type = vv;
 	}
 
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+		return v;
+	}
+
+	virtual bool castsTo( const Type &other ) const {
+		return false; // TODO can records be casted?
+	}
+
+	virtual bool contains( const Type &other ) const {
+		return (*this) == other;
+	}
+
 	virtual bool operator==( const Type &other ) const {
 		if ( other.isRecord() ) {
 			AbstractType<T> &other_list = (AbstractType<T> &)other;
-			return elem_type == other_list.elem_type; // TODO check types
+			return elem_type == other_list.elem_type;
 		}
+		return false;
+	}
+
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
 		return false;
 	}
 
@@ -138,6 +349,64 @@ public:
 
 private:
 	map<string, T> elem_type;
+};
+
+class UnionType: public Type {
+public:
+	UnionType( shared_ptr<Type> a, shared_ptr<Type> b ) {
+		type_a = a;
+		type_b = b;
+	}
+
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+		return v;
+	}
+
+	virtual bool castsTo( const Type &other ) const {
+		return type_a->castsTo(other) || type_b->castsTo(other);
+	}
+
+	virtual bool contains( const Type &other ) const {
+		return type_a->contains(other) || type_b->contains(other);
+	}
+
+	// TODO heirachy means sets of more than 2 could be inequal
+	virtual bool operator==( const Type &other ) const {
+		if ( other.isUnion() ) {
+			UnionType &o = (UnionType &)other;
+			return (*type_a == *o.type_a && *type_b == *o.type_b)
+					|| (*type_a == *o.type_b && *type_b == *o.type_a);
+		}
+		return false;
+	}
+
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
+		return true;
+	}
+
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	virtual string nameStr() const {
+		return type_a->nameStr()+"|"+type_b->nameStr();
+	}
+
+private:
+	shared_ptr<Type> type_a;
+	shared_ptr<Type> type_b;
 };
 
 } /* namespace std */
