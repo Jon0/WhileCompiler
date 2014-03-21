@@ -27,8 +27,12 @@ private:
 	map<string, shared_ptr<Type>> dectypes;
 	map<string, shared_ptr<Expr>> constvals;
 
-	shared_ptr<Expr> readExpr(ParserContext &);
 	Func readFunc();
+
+	shared_ptr<Expr> readExpr(ParserContext &);
+	shared_ptr<Expr> readExprExt(ParserContext &, shared_ptr<Expr>);
+
+	shared_ptr<Stmt> readStmtBlock(ParserContext &);
 	shared_ptr<Stmt> readStmt(ParserContext &);
 	shared_ptr<Type> readType();
 

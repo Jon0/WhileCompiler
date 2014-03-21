@@ -57,7 +57,7 @@ public:
 
 class VoidType: public Type {
 
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
 		return v;
 	}
 
@@ -100,7 +100,7 @@ class VoidType: public Type {
 
 class NullType: public Type {
 
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
 		return v;
 	}
 
@@ -153,16 +153,10 @@ public:
 
 	}
 
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
 		T new_internal = TypeSwitch<Caster, T, shared_ptr<Value>>::typeSwitch( v->type(), v );
 
-		//shared_ptr<Type> t = shared_from_this();
-
-
-		//new TypedValue<T>(, new_internal);
-
-		return v;
-		//return shared_ptr<Value>( new TypedValue<T>(shared_from_this(), new_internal) );
+		return shared_ptr<Value>( new TypedValue<T>(shared_from_this(), new_internal) );
 	}
 
 	virtual bool castsTo( const Type &other ) const {
@@ -219,8 +213,16 @@ public:
 		elem_type = n;
 	}
 
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
-		return v;
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> in ) {
+		shared_ptr<TypedValue<ValueList>> iptr = static_pointer_cast<TypedValue<ValueList>, Value>( in );
+
+		// cast each value in list
+		ValueList newList;
+		for ( shared_ptr<Value> sp: iptr->value() ) {
+			newList.push_back( elem_type->createValue(sp) );
+		}
+
+		return make_shared<TypedValue<ValueList>>( shared_from_this(), newList );
 	}
 
 	virtual bool castsTo( const Type &other ) const {
@@ -299,12 +301,17 @@ public:
 		elem_type = vv;
 	}
 
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
-		return v;
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> in ) {
+		return in;
 	}
 
 	virtual bool castsTo( const Type &other ) const {
-		return false; // TODO can records be casted?
+		// record cast must be exact
+		if ( other.isRecord() ) {
+			AbstractType<T> &other_list = (AbstractType<T> &)other;
+			return elem_type == other_list.elem_type;
+		}
+		return false;
 	}
 
 	virtual bool contains( const Type &other ) const {
@@ -358,7 +365,7 @@ public:
 		type_b = b;
 	}
 
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) const {
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
 		return v;
 	}
 
@@ -367,7 +374,9 @@ public:
 	}
 
 	virtual bool contains( const Type &other ) const {
-		return type_a->contains(other) || type_b->contains(other);
+		if (type_a->contains(other) || type_b->contains(other)) return true;
+		if ( *this == other ) return true;
+		return false;
 	}
 
 	// TODO heirachy means sets of more than 2 could be inequal

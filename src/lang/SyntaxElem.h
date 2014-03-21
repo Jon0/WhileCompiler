@@ -12,6 +12,8 @@ class Value;
 class SyntaxElem {
 public:
 	virtual ~SyntaxElem() {}
+
+	// TODO parent, children
 };
 
 class Type: public SyntaxElem, public enable_shared_from_this<Type> {
@@ -21,9 +23,12 @@ public:
 	}
 
 	/*
-	 * create a related value, casting where needed
+	 * create a related value, casting where needed.
+	 * The type of the output value is equal to the
+	 * type it is called on.
+	 *
 	 */
-	virtual shared_ptr<Value> createValue( shared_ptr<Value> ) const = 0;
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> ) = 0;
 
 	//TODO subtyping
 	virtual bool castsTo( const Type &other ) const = 0;
@@ -43,7 +48,7 @@ public:
 	virtual string nameStr() const = 0;
 };
 
-class Value: public SyntaxElem {
+class Value: public SyntaxElem, public enable_shared_from_this<Value> {
 public:
 	Value(shared_ptr<Type> t): type_in(t) {}
 
@@ -56,7 +61,7 @@ public:
 	/*
 	 * remove, doesnt support deep type changing
 	 */
-	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) const = 0;
+	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) = 0;
 
 	virtual string asString() const = 0;
 

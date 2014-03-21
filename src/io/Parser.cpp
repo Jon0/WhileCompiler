@@ -288,199 +288,229 @@ shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	// -----------------------------------
 	// optional continuation of expression
 	// -----------------------------------
+	bool read = true;
+	while (read) {
 
-	/*
-	 * list lookups
-	 */
-	shared_ptr<Type> intype = e->getType();
-	while (intype->isList() && in.canMatch("[")) {	// while to cover nested lists
-		ListType &lt = (ListType &)*intype;
-		shared_ptr<Type> inner_type = lt.innerType();
-		shared_ptr<Expr> index = readExpr(ctxt);
-		e = shared_ptr<Expr>(new ListLookupExpr(e, inner_type, index));
-		in.match("]");
-		intype = inner_type;
-	}
-	if (!intype->isList() && in.canMatch("[")) {
-		throw TokenException(t, "cannot get elements of non list types");
-	}
-
-	/*
-	 * record lookups
-	 */
-	if (in.canMatch(".")) {	// record member
-		if (!intype->isRecord()) {
-			throw TokenException(t, "cannot get members of non record types");
+		/*
+		 * list lookups
+		 */
+		shared_ptr<Type> intype = e->getType();
+		while (intype->isList() && in.canMatch("[")) {// while to cover nested lists
+			ListType &lt = (ListType &) *intype;
+			shared_ptr<Type> inner_type = lt.innerType();
+			shared_ptr<Expr> index = readExpr(ctxt);
+			e = shared_ptr<Expr>(new ListLookupExpr(e, inner_type, index));
+			in.match("]");
+			intype = inner_type;
+		}
+		if (!intype->isList() && in.canMatch("[")) {
+			throw TokenException(t, "cannot get elements of non list types");
 		}
 
-		string memb = in.pop().text();
-		RecordType &rt = (RecordType &) *intype;
-		shared_ptr<Type> inner_type = rt.memberType(memb).type();
-		e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb)); // TODO e thrown away in record case
-	}
+		/*
+		 * record lookups
+		 */
+		if (in.canMatch(".")) {	// record member
+			if (!intype->isRecord()) {
+				throw TokenException(t,
+						"cannot get members of non record types");
+			}
 
-	// type comparison
-	if (in.canMatch("is")) {
-		shared_ptr<Type> ty = readType();
-		e = shared_ptr<Expr>(new IsTypeExpr( e, ty ));
-	}
+			string memb = in.pop().text();
+			RecordType &rt = (RecordType &) *intype;
+			shared_ptr<Type> inner_type = rt.memberType(memb).type();
+			e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb)); // TODO e thrown away in record case
+		}
 
-	// first expr is list (++ concat)
-	else if (e->getType()->isList() && in.canMatch("+")) {
-		in.match("+"); // second +
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new ConcatExpr( e->getType(), e, second )); // TODO infer type from first term?
-	}
+		// type comparison
+		if (in.canMatch("is")) {
+			shared_ptr<Type> ty = readType();
+			e = shared_ptr<Expr>(new IsTypeExpr(e, ty));
+		}
 
-	// first expr is bool
-	else if (e->getType()->nameStr() == "bool" && in.canMatch("&")) {
-		in.match("&"); // second &
-
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, bool, AndOp>(e, second));
-	}
-	else if (e->getType()->nameStr() == "bool" && in.canMatch("=")) {
-		in.match("="); // second =
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, bool, EquivOp<bool>>(e, second));
-	}
-	else if (e->getType()->nameStr() == "bool" && in.canMatch("!")) {
-		in.match("="); // second =
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, bool, NotEquivOp<bool>>(e, second));
-	}
-
-	// first expr is char
-	else if ( e->getType()->nameStr() == "char" && in.canMatch("+")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<char, char, AddOp<char>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "char" && in.canMatch("-")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<char, char, SubOp<char>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "char" && in.canMatch("*")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<char, char, MulOp<char>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "char" && in.canMatch("/")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<char, char, DivOp<char>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "char" && in.canMatch("=") ) {
-		in.match("="); // second =
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, char, EquivOp<char>>((*dectypes.find("bool")).second, e, second));
-	}
-	else if ( e->getType()->nameStr() == "char" && in.canMatch("!") ) {
-		in.match("="); // second =
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, char, NotEquivOp<char>>((*dectypes.find("bool")).second, e, second));
-	}
-
-	// first expr is int
-	// TODO order of operations
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("+")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<int, int, AddOp<int>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("-")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<int, int, SubOp<int>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("*")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<int, int, MulOp<int>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("/")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<int, int, DivOp<int>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("%")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<int, int, ModOp<int>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("=") ) {
-		in.match("="); // second =
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, int, EquivOp<int>>((*dectypes.find("bool")).second, e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("!") ) {
-		in.match("="); // second =
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, int, NotEquivOp<int>>((*dectypes.find("bool")).second, e, second));
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch(">")) {
-		if (in.canMatch("=")) {
+		// first expr is list (++ concat)
+		else if (e->getType()->isList() && in.canMatch("+")) {
+			in.match("+"); // second +
 			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, int, GreaterEqualOp<int>>((*dectypes.find("bool")).second, e, second));
+			e = shared_ptr<Expr>(new ConcatExpr(e->getType(), e, second)); // TODO infer type from first term?
 		}
-		else {
+
+		// first expr is bool
+		else if (e->getType()->nameStr() == "bool" && in.canMatch("&")) {
+			in.match("&"); // second &
+
 			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, int, GreaterOp<int>>((*dectypes.find("bool")).second, e, second));
+			e = shared_ptr<Expr>(new AndExpr(e, second));
 		}
-	}
-	else if ( e->getType()->nameStr() == "int" && in.canMatch("<")) {
-		if (in.canMatch("=")) {
+		else if (e->getType()->nameStr() == "bool" && in.canMatch("|")) {
+			in.match("|"); // second |
+
 			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, int, LessEqualOp<int>>((*dectypes.find("bool")).second, e, second));
+			e = shared_ptr<Expr>(new OrExpr(e, second));
 		}
-		else {
+		else if (e->getType()->nameStr() == "bool" && in.canMatch("=")) {
+			in.match("="); // second =
 			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, int, LessOp<int>>((*dectypes.find("bool")).second, e, second));
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, bool, EquivOp<bool>>(e, second));
+		} else if (e->getType()->nameStr() == "bool" && in.canMatch("!")) {
+			in.match("="); // second =
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, bool, NotEquivOp<bool>>(e, second));
+		}
+
+		// first expr is char
+		else if (e->getType()->nameStr() == "char" && in.canMatch("+")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<char, char, AddOp<char>>(e, second));
+		} else if (e->getType()->nameStr() == "char" && in.canMatch("-")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<char, char, SubOp<char>>(e, second));
+		} else if (e->getType()->nameStr() == "char" && in.canMatch("*")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<char, char, MulOp<char>>(e, second));
+		} else if (e->getType()->nameStr() == "char" && in.canMatch("/")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<char, char, DivOp<char>>(e, second));
+		} else if (e->getType()->nameStr() == "char" && in.canMatch("=")) {
+			in.match("="); // second =
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, char, EquivOp<char>>(
+							(*dectypes.find("bool")).second, e, second));
+		} else if (e->getType()->nameStr() == "char" && in.canMatch("!")) {
+			in.match("="); // second =
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, char, NotEquivOp<char>>(
+							(*dectypes.find("bool")).second, e, second));
+		}
+
+		// first expr is int
+		// TODO order of operations
+		else if (e->getType()->nameStr() == "int" && in.canMatch("+")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new OpExpr<int, int, AddOp<int>>(e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("-")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new OpExpr<int, int, SubOp<int>>(e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("*")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new OpExpr<int, int, MulOp<int>>(e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("/")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new OpExpr<int, int, DivOp<int>>(e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("%")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new OpExpr<int, int, ModOp<int>>(e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("=")) {
+			in.match("="); // second =
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, int, EquivOp<int>>(
+							(*dectypes.find("bool")).second, e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("!")) {
+			in.match("="); // second =
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, int, NotEquivOp<int>>(
+							(*dectypes.find("bool")).second, e, second));
+		} else if (e->getType()->nameStr() == "int" && in.canMatch(">")) {
+			if (in.canMatch("=")) {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, int, GreaterEqualOp<int>>(
+								(*dectypes.find("bool")).second, e, second));
+			} else {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, int, GreaterOp<int>>(
+								(*dectypes.find("bool")).second, e, second));
+			}
+		} else if (e->getType()->nameStr() == "int" && in.canMatch("<")) {
+			if (in.canMatch("=")) {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, int, LessEqualOp<int>>(
+								(*dectypes.find("bool")).second, e, second));
+			} else {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, int, LessOp<int>>(
+								(*dectypes.find("bool")).second, e, second));
+			}
+		}
+
+		// first expr is real
+		else if (e->getType()->nameStr() == "real" && in.canMatch("+")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<double, double, AddOp<double>>(e, second));
+		} else if (e->getType()->nameStr() == "real" && in.canMatch("-")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<double, double, SubOp<double>>(e, second));
+		} else if (e->getType()->nameStr() == "real" && in.canMatch("*")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<double, double, MulOp<double>>(e, second));
+		} else if (e->getType()->nameStr() == "real" && in.canMatch("/")) {
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<double, double, DivOp<double>>(e, second));
+		} else if (e->getType()->nameStr() == "real" && in.canMatch("=")) {
+			in.match("="); // second =
+
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, double, EquivOp<double>>(
+							(*dectypes.find("bool")).second, e, second));
+		} else if (e->getType()->nameStr() == "real" && in.canMatch("!")) {
+			in.match("="); // second =
+
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(
+					new OpExpr<bool, double, NotEquivOp<double>>(
+							(*dectypes.find("bool")).second, e, second));
+		} else if (e->getType()->nameStr() == "real" && in.canMatch(">")) {
+			if (in.canMatch("=")) {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, double, GreaterEqualOp<double>>(
+								(*dectypes.find("bool")).second, e, second));
+			} else {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, double, GreaterOp<double>>(
+								(*dectypes.find("bool")).second, e, second));
+			}
+		} else if (e->getType()->nameStr() == "real" && in.canMatch("<")) {
+			if (in.canMatch("=")) {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, double, LessEqualOp<double>>(
+								(*dectypes.find("bool")).second, e, second));
+			} else {
+				shared_ptr<Expr> second = readExpr(ctxt);
+				e = shared_ptr<Expr>(
+						new OpExpr<bool, double, LessOp<double>>(
+								(*dectypes.find("bool")).second, e, second));
+			}
+		} else {
+			read = false;
 		}
 	}
 
-	// first expr is real
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("+")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<double, double, AddOp<double>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("-")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<double, double, SubOp<double>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("*")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<double, double, MulOp<double>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("/")) {
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<double, double, DivOp<double>>(e, second));
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("=") ) {
-		in.match("="); // second =
+	return e;
+}
 
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, double, EquivOp<double>>((*dectypes.find("bool")).second, e, second));
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("!") ) {
-		in.match("="); // second =
-
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OpExpr<bool, double, NotEquivOp<double>>((*dectypes.find("bool")).second, e, second));
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch(">")) {
-		if (in.canMatch("=")) {
-			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, double, GreaterEqualOp<double>>((*dectypes.find("bool")).second, e, second));
-		}
-		else {
-			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, double, GreaterOp<double>>((*dectypes.find("bool")).second, e, second));
-		}
-	}
-	else if ( e->getType()->nameStr() == "real" && in.canMatch("<")) {
-		if (in.canMatch("=")) {
-			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, double, LessEqualOp<double>>((*dectypes.find("bool")).second, e, second));
-		}
-		else {
-			shared_ptr<Expr> second = readExpr(ctxt);
-			e = shared_ptr<Expr>(new OpExpr<bool, double, LessOp<double>>((*dectypes.find("bool")).second, e, second));
-		}
-	}
-
+shared_ptr<Expr> readExprExt(ParserContext &, shared_ptr<Expr> e) {
+	// TODO
 	return e;
 }
 
@@ -507,35 +537,38 @@ Func Parser::readFunc() {
 		}
 	}
 
-	Func f( name.text(), t, args, readStmt(ctxt) );
+	Func f( name.text(), t, args, readStmtBlock(ctxt) );
 	return f;
 }
 
-shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
-	shared_ptr<Stmt> stmt;
-	Token top = in.peek();
-
-	//cout << "stmt " << top.text() << endl;
-
+shared_ptr<Stmt> Parser::readStmtBlock(ParserContext &ctxt) {
 	if (in.canMatch("{")) {
 		vector<shared_ptr<Stmt>> stmts;
 		while (!in.canMatch("}")) {
 			stmts.push_back( readStmt(ctxt) );
 		}
-		return shared_ptr<Stmt>(new BlockStmt( stmts )); // no ; after
+		return shared_ptr<Stmt>(new BlockStmt( stmts ));
 	}
+	else return readStmt(ctxt);
+}
+
+shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
+	shared_ptr<Stmt> stmt;
+	Token top = in.peek();
+	//cout << "stmt " << top.text() << endl;
+
 	// variables
-	else if ( dectypes.count( top.text() ) > 0 || top.text() == "[" || ctxt.isVar(top) ) {	// undeclared list types begin with [
+	if ( dectypes.count( top.text() ) > 0 || top.text() == "[" || top.text() == "{" || ctxt.isVar(top) ) {	// undeclared list types begin with [
 		stmt = readVariableAssign(ctxt);
 	}
 	else if (in.canMatch("if")) {
 		in.match("(");
 		shared_ptr<Expr> e = readExpr(ctxt);
 		in.match(")");
-		shared_ptr<Stmt> list = readStmt(ctxt);
+		shared_ptr<Stmt> list = readStmtBlock(ctxt);
 		shared_ptr<Stmt> alt;
 		if (in.canMatch("else")) {
-			alt = readStmt(ctxt);
+			alt = readStmtBlock(ctxt);
 		}
 		return shared_ptr<Stmt>(new IfStmt(e, list, alt));
 	}
@@ -543,7 +576,7 @@ shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 		in.match("(");
 		shared_ptr<Expr> e = readExpr(ctxt);
 		in.match(")");
-		shared_ptr<Stmt> list = readStmt(ctxt);
+		shared_ptr<Stmt> list = readStmtBlock(ctxt);
 		return shared_ptr<Stmt>(new WhileStmt(e, list));
 	}
 	else if (in.canMatch("for")) {
@@ -558,7 +591,7 @@ shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 		}
 		if (!in.canMatch(";")) inc = readVariableAssign(ctxt);
 		in.match(")");
-		shared_ptr<Stmt> list = readStmt(ctxt);
+		shared_ptr<Stmt> list = readStmtBlock(ctxt);
 		return shared_ptr<Stmt>(new ForStmt(init, cond, inc, list));
 	}
 	else if (in.canMatch("switch")) {
@@ -614,35 +647,22 @@ shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 	}
 	else {
 		stmt = shared_ptr<Stmt>(new EvalStmt(readExpr(ctxt)));	// last option, try read an expr
+
+		// TODO init/assign vars moved here as extended reading
 	}
 	in.match(";");
 	return stmt;
-
-	// TODO assign vars moved here
 }
 
 shared_ptr<Stmt> Parser::readVariableAssign(ParserContext &ctxt) {
 	Token top = in.peek();
-	if ( dectypes.count( top.text() ) > 0 || top.text() == "[" ) {	// undeclared list types begin with [
-		shared_ptr<Type> type = readType();
-		Token name = in.pop();
-		ctxt.initialise(type, name);
-		Var v = ctxt.copyVar(name);
-		if (in.canMatch("=")) { // ok to skip initial assignment
-			shared_ptr<Expr> e = readExpr(ctxt);
-			if ( !type->contains(*e->getType()) ) {
-				throw TokenException(top, type->nameStr() + " cannot be assigned with "+ e->getType()->nameStr());
-			}
-			return shared_ptr<Stmt>(new InitStmt(v, e));
-		}
-		else {
-			return shared_ptr<Stmt>(new InitStmt(v));
-		}
-	}
+
 	// assignment
-	else if ( ctxt.isVar(top) ) {
+	if ( ctxt.isVar(top) ) {
 		Var v = ctxt.copyVar(top);
 		in.pop();
+
+
 
 		if (in.canMatch("[")) {
 			ListType &lt = (ListType &)*v.type();
@@ -675,6 +695,27 @@ shared_ptr<Stmt> Parser::readVariableAssign(ParserContext &ctxt) {
 				throw TokenException(top, v.type()->nameStr()+" cannot be assigned with "+e->getType()->nameStr());
 			}
 			return shared_ptr<Stmt>(new AssignStmt(v, e));
+		}
+	}
+
+	/*
+	 * initial assignment.
+	 * first reads a type
+	 */
+	else if ( dectypes.count( top.text() ) > 0 || top.text() == "[" || top.text() == "{" ) {	// undeclared list types begin with [
+		shared_ptr<Type> type = readType();
+		Token name = in.pop();
+		ctxt.initialise(type, name);
+		Var v = ctxt.copyVar(name);
+		if (in.canMatch("=")) { // ok to skip initial assignment
+			shared_ptr<Expr> e = readExpr(ctxt);
+			if ( !type->contains(*e->getType()) ) {
+				throw TokenException(top, type->nameStr() + " cannot be assigned with "+ e->getType()->nameStr());
+			}
+			return shared_ptr<Stmt>(new InitStmt(v, e));
+		}
+		else {
+			return shared_ptr<Stmt>(new InitStmt(v));
 		}
 	}
 }

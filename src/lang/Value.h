@@ -22,7 +22,7 @@ class NullValue: public Value {
 public:
 	NullValue(shared_ptr<Type> t): Value( t ) {}
 
-	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) const {
+	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) {
 		return shared_ptr<Value>( new NullValue(t) );
 	}
 
@@ -47,8 +47,9 @@ public:
 		return internal_type;
 	}
 
-	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) const {
-		return shared_ptr<Value>( new TypedValue<T>(t, internal_type) );
+	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) {
+		return t->createValue( shared_from_this() );
+		//return shared_ptr<Value>( new TypedValue<T>(t, internal_type) );
 	}
 
 	virtual string asString() const {
@@ -120,7 +121,7 @@ private:
 
 	string conv(double s) const {
 		char buf[64];
-		sprintf(buf, "%g", s);
+		sprintf(buf, "%.2f", s); // %g
 		return string(buf);
 	}
 

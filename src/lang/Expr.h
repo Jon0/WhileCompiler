@@ -60,7 +60,6 @@ public:
 
 	shared_ptr<Value> eval( Stack &s, VarMap m ) {
 		shared_ptr<Type> subt = to_check->eval(s, m)->type();
-
 		return shared_ptr<Value>( new TypedValue<bool>( getType(), type->contains(*subt) ) );
 	}
 
@@ -276,7 +275,7 @@ public:
 		shared_ptr<Value> v = expr->eval( s, m );
 
 		if ( !v->type()->castsTo(*getType()) ) {
-			throw runtime_error("invalid casting values");
+			throw runtime_error("invalid casting values: "+v->type()->nameStr()+" to "+getType()->nameStr());
 		}
 
 		return v->clone( getType() ) ;
@@ -335,12 +334,6 @@ template<class T> struct DivOp {
 template<class T> struct ModOp {
 	static T compute(T a, T b) {
 		return a % b;
-	}
-};
-
-struct AndOp {
-	static bool compute(bool a, bool b) {
-		return a == b;
 	}
 };
 
@@ -403,6 +396,66 @@ public:
 		shared_ptr<TypedValue<T>> b = static_pointer_cast<TypedValue<T>, Value>( second->eval( s, m ) );
 		R result = O::compute(a->value(),  b->value());
 		return shared_ptr<Value>( new TypedValue<R>( first->getType(), result ) );
+	}
+
+private:
+	shared_ptr<Expr> first;
+	shared_ptr<Expr> second;
+};
+
+class AndExpr: public Expr {
+public:
+	AndExpr(shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( a->getType() ) {
+		first = a;
+		second = b;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( first->eval( s, m ) );
+		bool result;
+		if ( !a->value() ) {
+			result = false;
+		}
+		else {
+			shared_ptr<TypedValue<bool>> b = static_pointer_cast<TypedValue<bool>, Value>( second->eval( s, m ) );
+			if ( !b->value() ) {
+				result = false;
+			}
+			else {
+				result = true;
+			}
+		}
+		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
+	}
+
+private:
+	shared_ptr<Expr> first;
+	shared_ptr<Expr> second;
+};
+
+class OrExpr: public Expr {
+public:
+	OrExpr(shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( a->getType() ) {
+		first = a;
+		second = b;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( first->eval( s, m ) );
+		bool result;
+		if ( a->value() ) {
+			result = true;
+		}
+		else {
+			shared_ptr<TypedValue<bool>> b = static_pointer_cast<TypedValue<bool>, Value>( second->eval( s, m ) );
+			if ( b->value() ) {
+				result = true;
+			}
+			else {
+				result = false;
+			}
+		}
+		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
 	}
 
 private:
