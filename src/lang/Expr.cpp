@@ -15,7 +15,7 @@ FuncCallExpr::FuncCallExpr( shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Ex
 	args = a;
 }
 
-shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap m ) {
+shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 	// TODO check arg types
 
 	// push items in reverse order

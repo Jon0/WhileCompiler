@@ -235,11 +235,11 @@ public:
 
 
 	virtual bool contains( const Type &other ) const {
-		if ( other.isList() ) {
+		if ( elem_type && other.isList() ) {
 			ListType &other_list = (ListType &)other;
 
 			// consider nulls(empty list) a subtype
-			return other_list.elem_type == NULL || (*this) == other;
+			return other_list.elem_type == NULL || elem_type->contains(*other_list.elem_type);
 		}
 		return false;
 	}

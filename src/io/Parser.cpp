@@ -149,7 +149,6 @@ shared_ptr<Expr> Parser::readConstExpr() {
 shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	Token t = in.peek();
 	shared_ptr<Expr> e;
-	//cout << "expr " << t.text() << endl;
 
 	if (in.canMatch("(")) {
 		Token next = in.peek();
@@ -246,9 +245,7 @@ shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	 * evaluate variable types
 	 */
 	else if (ctxt.isVar(t)) {
-		Var v = ctxt.copyVar(t);
-		e = shared_ptr<Expr>(new VariableExpr(v));
-		in.pop();
+		e = readAssignExpr(ctxt);
 	}
 	else if (functions.count( t.text() ) > 0) {
 		in.pop(); // name
@@ -290,37 +287,6 @@ shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	// -----------------------------------
 	bool read = true;
 	while (read) {
-
-		/*
-		 * list lookups
-		 */
-		shared_ptr<Type> intype = e->getType();
-		while (intype->isList() && in.canMatch("[")) {// while to cover nested lists
-			ListType &lt = (ListType &) *intype;
-			shared_ptr<Type> inner_type = lt.innerType();
-			shared_ptr<Expr> index = readExpr(ctxt);
-			e = shared_ptr<Expr>(new ListLookupExpr(e, inner_type, index));
-			in.match("]");
-			intype = inner_type;
-		}
-		if (!intype->isList() && in.canMatch("[")) {
-			throw TokenException(t, "cannot get elements of non list types");
-		}
-
-		/*
-		 * record lookups
-		 */
-		if (in.canMatch(".")) {	// record member
-			if (!intype->isRecord()) {
-				throw TokenException(t,
-						"cannot get members of non record types");
-			}
-
-			string memb = in.pop().text();
-			RecordType &rt = (RecordType &) *intype;
-			shared_ptr<Type> inner_type = rt.memberType(memb).type();
-			e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb)); // TODO e thrown away in record case
-		}
 
 		// type comparison
 		if (in.canMatch("is")) {
@@ -509,8 +475,46 @@ shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	return e;
 }
 
-shared_ptr<Expr> readExprExt(ParserContext &, shared_ptr<Expr> e) {
-	// TODO
+shared_ptr<Expr> Parser::readAssignExpr(ParserContext &ctxt) {
+	Token t = in.peek();
+	Var v = ctxt.copyVar(t);
+	shared_ptr<Expr> e = shared_ptr<Expr>(new VariableExpr(v));
+	in.pop();
+
+	bool read = true;
+	while (read) {
+
+		/*
+		 * list lookups
+		 */
+		shared_ptr<Type> intype = e->getType();
+		if (intype->isList() && in.canMatch("[")) {// while to cover nested lists
+			ListType &lt = (ListType &) *intype;
+			shared_ptr<Type> inner_type = lt.innerType();
+			shared_ptr<Expr> index = readExpr(ctxt);
+			e = shared_ptr<Expr>(new ListLookupExpr(e, inner_type, index));
+			in.match("]");
+			intype = inner_type;
+		}
+
+		/*
+		 * record lookups
+		 */
+		else if (in.canMatch(".")) {	// record member
+			if (!intype->isRecord()) {
+				throw TokenException(t,
+						"cannot get members of non record types");
+			}
+
+			string memb = in.pop().text();
+			RecordType &rt = (RecordType &) *intype;
+			shared_ptr<Type> inner_type = rt.memberType(memb).type();
+			e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb)); // TODO e thrown away in record case
+		}
+		else {
+			read = false;
+		}
+	}
 	return e;
 }
 
@@ -555,13 +559,8 @@ shared_ptr<Stmt> Parser::readStmtBlock(ParserContext &ctxt) {
 shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 	shared_ptr<Stmt> stmt;
 	Token top = in.peek();
-	//cout << "stmt " << top.text() << endl;
 
-	// variables
-	if ( dectypes.count( top.text() ) > 0 || top.text() == "[" || top.text() == "{" || ctxt.isVar(top) ) {	// undeclared list types begin with [
-		stmt = readVariableAssign(ctxt);
-	}
-	else if (in.canMatch("if")) {
+	if (in.canMatch("if")) {
 		in.match("(");
 		shared_ptr<Expr> e = readExpr(ctxt);
 		in.match(")");
@@ -645,9 +644,11 @@ shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 	else if (in.canMatch("print")) {
 		stmt = shared_ptr<Stmt>(new PrintStmt(readExpr(ctxt)));
 	}
+	else if (functions.count(top.text()) > 0) {
+		stmt = shared_ptr<Stmt>(new EvalStmt( readExpr(ctxt) ));	// function calls
+	}
 	else {
-		stmt = shared_ptr<Stmt>(new EvalStmt(readExpr(ctxt)));	// last option, try read an expr
-
+		stmt = readVariableAssign(ctxt);
 		// TODO init/assign vars moved here as extended reading
 	}
 	in.match(";");
@@ -657,67 +658,38 @@ shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 shared_ptr<Stmt> Parser::readVariableAssign(ParserContext &ctxt) {
 	Token top = in.peek();
 
-	// assignment
-	if ( ctxt.isVar(top) ) {
-		Var v = ctxt.copyVar(top);
-		in.pop();
-
-
-
-		if (in.canMatch("[")) {
-			ListType &lt = (ListType &)*v.type();
-			shared_ptr<Type> inner_type = lt.innerType();
-			shared_ptr<Expr> index = readExpr(ctxt);
-			in.match("]");
-			in.match("=");
-			shared_ptr<Expr> e = readExpr(ctxt);
-			if ( !inner_type->contains(*e->getType()) ) {
-				throw TokenException(top, v.type()->nameStr()+" cannot be assigned with "+e->getType()->nameStr());
-			}
-			return shared_ptr<Stmt>(new ListAssignStmt(v, e, index));
-		}
-		else if (in.canMatch(".")) {
-			string member = in.pop().text();
-			RecordType &rt = (RecordType &)*v.type();
-			shared_ptr<Type> member_type = rt.memberType(member).type();
-
-			in.match("=");
-			shared_ptr<Expr> e = readExpr(ctxt);
-			if ( !member_type->contains(*e->getType()) ) {
-				throw TokenException(top, member_type->nameStr()+" cannot be assigned with "+e->getType()->nameStr());
-			}
-			return shared_ptr<Stmt>(new RecordAssignStmt(v, e, member));
-		}
-		else {
-			in.match("=");
-			shared_ptr<Expr> e = readExpr(ctxt);
-			if ( !v.type()->contains(*e->getType()) ) {
-				throw TokenException(top, v.type()->nameStr()+" cannot be assigned with "+e->getType()->nameStr());
-			}
-			return shared_ptr<Stmt>(new AssignStmt(v, e));
-		}
-	}
-
 	/*
 	 * initial assignment.
 	 * first reads a type
 	 */
-	else if ( dectypes.count( top.text() ) > 0 || top.text() == "[" || top.text() == "{" ) {	// undeclared list types begin with [
+	if (dectypes.count(top.text()) > 0 || top.text() == "["
+			|| top.text() == "{") {	// undeclared list types begin with [
 		shared_ptr<Type> type = readType();
 		Token name = in.pop();
 		ctxt.initialise(type, name);
 		Var v = ctxt.copyVar(name);
 		if (in.canMatch("=")) { // ok to skip initial assignment
 			shared_ptr<Expr> e = readExpr(ctxt);
-			if ( !type->contains(*e->getType()) ) {
-				throw TokenException(top, type->nameStr() + " cannot be assigned with "+ e->getType()->nameStr());
+			if (!type->contains(*e->getType())) {
+				throw TokenException(top, type->nameStr() + " cannot be assigned with " + e->getType()->nameStr());
 			}
+
 			return shared_ptr<Stmt>(new InitStmt(v, e));
-		}
-		else {
+		} else {
 			return shared_ptr<Stmt>(new InitStmt(v));
 		}
 	}
+	else {
+		shared_ptr<Expr> lhs = readAssignExpr(ctxt);
+
+		if ( in.canMatch("=") ) {
+			return shared_ptr<Stmt>(new AssignStmt(lhs, readExpr(ctxt)));
+		}
+//		else {
+//			return shared_ptr<Stmt>(new EvalStmt(lhs));	// last option, try read an expr
+//		}
+	}
+
 }
 
 shared_ptr<Type> Parser::readType() {

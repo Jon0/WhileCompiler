@@ -54,19 +54,23 @@ StmtStatus InitStmt::execute( Stack &s, VarMap &m ) {
 	return {false, false};
 }
 
-AssignStmt::AssignStmt(Var v, shared_ptr<Expr> e): var(v) {
-	expr = e;
+AssignStmt::AssignStmt(shared_ptr<Expr> l, shared_ptr<Expr> r) {
+	lhs = l;
+	rhs = r;
 }
 
 AssignStmt::~AssignStmt() {}
 
 StmtStatus AssignStmt::execute( Stack &s, VarMap &m ) {
-	if ( m.find(var) == m.end() ) { // m.count(var) == 0
-		throw runtime_error("variable not declared");
+	shared_ptr<Value> *assignable = NULL;
+	lhs->eval( s, m, &assignable );
+	if (!assignable) {
+		throw runtime_error("lhs not assignable");
 	}
-	shared_ptr<Value> ev = expr->eval( s, m );
-	m.erase(var);
-	m.insert( VarMap::value_type(var, ev) );
+
+	shared_ptr<Value> ev = rhs->eval( s, m );
+	*assignable = ev;
+
 	return {false, false};
 }
 
@@ -124,7 +128,7 @@ StmtStatus IfStmt::execute( Stack &s, VarMap &m ) {
 
 	// check alt exists
 	else if (alt) {
-		StmtStatus ss =alt->execute( s, m );
+		StmtStatus ss = alt->execute( s, m );
 		if (ss.isReturn) {
 			return {true, false}; 	// propogate back
 		}
@@ -265,17 +269,18 @@ StmtStatus SwitchStmt::execute( Stack &s, VarMap &m ) {
 	shared_ptr<Value> ev = expr->eval( s, m );
 	for ( map<shared_ptr<Expr>, shared_ptr<Stmt>>::value_type ex: list ) {
 		shared_ptr<Value> cv = ex.first->eval( s, m );
+
 		if (*cv == *ev) {
 			StmtStatus ss = ex.second->execute( s, m );
-			return {ss.isReturn}; 	// propogate back
+			return {ss.isReturn, false}; 	// propogate back
 		}
 	}
 
 	if (def_stmt) {
 		StmtStatus ss = def_stmt->execute( s, m );
-		return {ss.isReturn}; 	// propogate back
+		return {ss.isReturn, false}; 	// propogate back
 	}
-	return {false};
+	return {false, false};
 }
 
 

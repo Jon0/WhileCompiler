@@ -48,13 +48,13 @@ private:
 
 class AssignStmt: public Stmt {
 public:
-	AssignStmt( Var, shared_ptr<Expr> );
+	AssignStmt( shared_ptr<Expr>, shared_ptr<Expr> );
 	virtual ~AssignStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 private:
-	Var var;
-	shared_ptr<Expr> expr;
+	shared_ptr<Expr> lhs;
+	shared_ptr<Expr> rhs;
 };
 
 class ListAssignStmt: public Stmt {

@@ -29,7 +29,11 @@ public:
 		return type;
 	}
 
-	virtual shared_ptr<Value> eval( Stack &, VarMap m ) = 0;
+	virtual shared_ptr<Value> eval( Stack &, VarMap &m, shared_ptr<Value> **p ) = 0;
+
+	shared_ptr<Value> eval( Stack &s, VarMap &m ) {
+		return eval( s, m, NULL );
+	}
 
 private:
 	shared_ptr<Type> type;
@@ -42,7 +46,7 @@ public:
 		const_value = c;
 	}
 
-	shared_ptr<Value> eval( Stack &, VarMap m ) {
+	shared_ptr<Value> eval( Stack &, VarMap &m, shared_ptr<Value> **p ) {
 		return const_value;
 	}
 
@@ -58,7 +62,7 @@ public:
 		type = t;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<Type> subt = to_check->eval(s, m)->type();
 		return shared_ptr<Value>( new TypedValue<bool>( getType(), type->contains(*subt) ) );
 	}
@@ -73,9 +77,12 @@ class VariableExpr: public Expr {
 public:
 	VariableExpr(Var v): Expr( v.type() ), var(v) {}
 
-	shared_ptr<Value> eval( Stack &, VarMap m ) {
+	shared_ptr<Value> eval( Stack &, VarMap &m, shared_ptr<Value> **p ) {
 		if ( m.count(var) == 0 ) { //
 			throw runtime_error("error evaluating variable "+var.name()+": not available");
+		}
+		if (p) {
+			*p = &m[var];
 		}
 		return m[var];
 	}
@@ -92,7 +99,7 @@ public:
 		rec = r;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		// evaluate each item, return list of values
 		ValueRecord eval_list;
 		for ( map<string, shared_ptr<Expr>>::value_type ex: rec ) {
@@ -113,7 +120,7 @@ public:
 		list = l;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		// evaluate each item, return list of values
 		ValueList eval_list;
 		for ( shared_ptr<Expr> ex: list ) {
@@ -134,7 +141,7 @@ public:
 		e = v;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<Value> vl = e->eval(s, m);
 
 		if ( !vl->type()->isList() ) {
@@ -150,15 +157,6 @@ private:
 	shared_ptr<Expr> e;
 };
 
-template<class I> class ToList {
-public:
-	static shared_ptr<Value> func( shared_ptr<Value> v ) {
-		shared_ptr<TypedValue<I>> i = static_pointer_cast<TypedValue<I>, Value>( v );
-		shared_ptr<TypedValue<ValueList>> internal = i->asType();
-		return internal;
-	}
-};
-
 class ConcatExpr: public Expr {
 public:
 	// TODO generate list type if int and bool are contained, type is bool|int
@@ -167,7 +165,7 @@ public:
 		second = b;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<TypedValue<ValueList>> list1 = static_pointer_cast<TypedValue<ValueList>, Value>( first->eval(s,m) );
 		ValueList newList = list1->value();
 
@@ -202,7 +200,7 @@ public:
 		index = i;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		if ( !v_expr->getType()->isList() ) {
 			throw runtime_error("cannot lookup type "+v_expr->getType()->nameStr()+": not a list");
 		}
@@ -214,8 +212,10 @@ public:
 			throw runtime_error("error evaluating index "+to_string(i->value())+": index out of range");
 		}
 
-		shared_ptr<Value> result = list->value()[ i->value() ];
-		return result;
+		if (p) {
+			*p = &list->value()[ i->value() ];
+		}
+		return list->value()[ i->value() ];
 	}
 
 private:
@@ -235,7 +235,7 @@ public:
 		member_name = m_name;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		if ( !v_expr->getType()->isRecord() ) {
 			throw runtime_error("cannot lookup type "+v_expr->getType()->nameStr()+": not a record");
 		}
@@ -245,8 +245,11 @@ public:
 		if ( record->value().count(member_name) == 0 ) {
 			throw runtime_error("error evaluating record: "+member_name+" not defined");
 		}
-		shared_ptr<Value> result = record->value()[ member_name ];
-		return result;
+
+		if (p) {
+			*p = &record->value()[ member_name ];
+		}
+		return record->value()[ member_name ];
 	}
 
 private:
@@ -258,7 +261,7 @@ class FuncCallExpr: public Expr {
 public:
 	FuncCallExpr( shared_ptr<Func> f, vector<shared_ptr<Expr>> a );
 
-	shared_ptr<Value> eval( Stack &, VarMap m );
+	shared_ptr<Value> eval( Stack &, VarMap &m, shared_ptr<Value> **p );
 
 private:
 	shared_ptr<Func> func;
@@ -271,7 +274,7 @@ public:
 		expr = e;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<Value> v = expr->eval( s, m );
 
 		if ( !v->type()->castsTo(*getType()) ) {
@@ -291,7 +294,7 @@ public:
 		expr = e;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		if (getType()->isList() || getType()->isRecord() || getType()->isUnion()) {
 			throw runtime_error("union, list or record cast not yet supported");
 		}
@@ -391,7 +394,7 @@ public:
 		second = b;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<TypedValue<T>> a = static_pointer_cast<TypedValue<T>, Value>( first->eval( s, m ) );
 		shared_ptr<TypedValue<T>> b = static_pointer_cast<TypedValue<T>, Value>( second->eval( s, m ) );
 		R result = O::compute(a->value(),  b->value());
@@ -410,7 +413,7 @@ public:
 		second = b;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( first->eval( s, m ) );
 		bool result;
 		if ( !a->value() ) {
@@ -440,7 +443,7 @@ public:
 		second = b;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( first->eval( s, m ) );
 		bool result;
 		if ( a->value() ) {
@@ -469,7 +472,7 @@ public:
 		first = a;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap m ) {
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( first->eval( s, m ) );
 
 		bool result = !a->value();

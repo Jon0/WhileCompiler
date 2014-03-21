@@ -30,7 +30,7 @@ private:
 	Func readFunc();
 
 	shared_ptr<Expr> readExpr(ParserContext &);
-	shared_ptr<Expr> readExprExt(ParserContext &, shared_ptr<Expr>);
+	shared_ptr<Expr> readAssignExpr(ParserContext &);
 
 	shared_ptr<Stmt> readStmtBlock(ParserContext &);
 	shared_ptr<Stmt> readStmt(ParserContext &);
