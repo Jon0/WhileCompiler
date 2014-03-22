@@ -12,8 +12,6 @@ class Value;
 class SyntaxElem {
 public:
 	virtual ~SyntaxElem() {}
-
-	// TODO parent, children
 };
 
 class Type: public SyntaxElem, public enable_shared_from_this<Type> {

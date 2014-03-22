@@ -136,7 +136,6 @@ private:
 
 class ListLengthExpr: public Expr {
 public:
-	// TODO generate list type if int and bool are contained, type is bool|int
 	ListLengthExpr( shared_ptr<Expr> v ): Expr( shared_ptr<Type>( new AtomicType<int>("int") ) ) {
 		e = v;
 	}
@@ -159,7 +158,6 @@ private:
 
 class ConcatExpr: public Expr {
 public:
-	// TODO generate list type if int and bool are contained, type is bool|int?
 	ConcatExpr( shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( t ) { // result type is list
 		first = a;	// TODO check first is a list type
 		second = b;
@@ -297,28 +295,6 @@ public:
 private:
 	shared_ptr<Expr> expr;
 };
-
-template<class R, class T> class CastExpr: public Expr {
-public:
-	CastExpr( shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( t ) {
-		expr = e;
-	}
-
-	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
-		if (getType()->isList() || getType()->isRecord() || getType()->isUnion()) {	// TODO ??
-			throw runtime_error("union, list or record cast not yet supported");
-		}
-		shared_ptr<Value> v = expr->eval( s, m );
-
-		shared_ptr<TypedValue<T>> i = static_pointer_cast<TypedValue<T>, Value>( v );
-
-		return shared_ptr<Value>( new TypedValue<R>(getType(), (R)i->value() ) );
-	}
-
-private:
-	shared_ptr<Expr> expr;
-};
-
 
 template<class T> struct AddOp {
 	static T compute(T a, T b) {

@@ -114,6 +114,7 @@ public:
 	virtual StmtStatus execute( Stack &, VarMap & );
 
 private:
+	bool checkCond( Stack &, VarMap & );
 	shared_ptr<Stmt> init;
 	shared_ptr<Expr> expr;
 	shared_ptr<Stmt> inc;

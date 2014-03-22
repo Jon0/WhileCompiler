@@ -16,9 +16,7 @@ Lexer::Lexer(const char *filename):
 	current_line = 1;
 }
 
-Lexer::~Lexer() {
-	// TODO Auto-generated destructor stub
-}
+Lexer::~Lexer() {}
 
 queue<Token> Lexer::getTokens() {
 	queue<Token> tokens;

@@ -13,9 +13,7 @@ Program::Program( FuncMap f ) {
 	funcs = f;
 }
 
-Program::~Program() {
-	// TODO Auto-generated destructor stub
-}
+Program::~Program() {}
 
 void Program::run() {
 	Stack s;

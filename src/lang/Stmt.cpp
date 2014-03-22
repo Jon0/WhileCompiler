@@ -80,9 +80,7 @@ IfStmt::IfStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b, shared_ptr<Stmt> a) {
 	alt = a;
 }
 
-IfStmt::~IfStmt() {
-	// TODO Auto-generated destructor stub
-}
+IfStmt::~IfStmt() {}
 
 StmtStatus IfStmt::execute( Stack &s, VarMap &m ) {
 	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
@@ -114,9 +112,7 @@ WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
 	body = b;
 }
 
-WhileStmt::~WhileStmt() {
-	// TODO Auto-generated destructor stub
-}
+WhileStmt::~WhileStmt() {}
 
 StmtStatus WhileStmt::execute( Stack &s, VarMap &m ) {
 	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
@@ -146,12 +142,21 @@ ForStmt::~ForStmt() {
 
 }
 
+bool ForStmt::checkCond( Stack &s, VarMap &m ) {
+	if (expr) {
+		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>(expr->eval(s, m));
+		return a->value();
+	}
+	else {
+		return true; // when no condition eg. "for(;;){}"
+	}
+}
+
 StmtStatus ForStmt::execute( Stack &s, VarMap &m ) {
 	// init
 	if (init) init->execute(s, m);
 
-	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );	// TODO when no condition eg. "for(;;){}"
-	while ( a->value() ) {
+	while ( checkCond( s, m ) ) {
 		StmtStatus ss = body->execute( s, m );
 		if (ss.isReturn) {
 			return {true, false}; 	// propogate back
@@ -162,7 +167,6 @@ StmtStatus ForStmt::execute( Stack &s, VarMap &m ) {
 
 		// inc and reevaluate loop condition
 		if (inc) inc->execute(s, m);
-		a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
 	}
 	return {false, false};
 }
@@ -171,9 +175,7 @@ PrintStmt::PrintStmt(shared_ptr<Expr> e) {
 	expr = e;
 }
 
-PrintStmt::~PrintStmt() {
-	// TODO Auto-generated destructor stub
-}
+PrintStmt::~PrintStmt() {}
 
 StmtStatus PrintStmt::execute( Stack &s, VarMap &m ) {
 	cout << expr->eval( s, m )->asString() << endl;
@@ -184,9 +186,7 @@ EvalStmt::EvalStmt(shared_ptr<Expr> e) {
 	expr = e;
 }
 
-EvalStmt::~EvalStmt() {
-	// TODO Auto-generated destructor stub
-}
+EvalStmt::~EvalStmt() {}
 
 StmtStatus EvalStmt::execute( Stack &s, VarMap &m ) {
 	expr->eval( s, m );

@@ -14,9 +14,7 @@ Token::Token(string s, int l) {
 	line_num = l;
 }
 
-Token::~Token() {
-	// TODO Auto-generated destructor stub
-}
+Token::~Token() {}
 
 bool Token::contains(char c) {
 	for (char cs: input_text) {

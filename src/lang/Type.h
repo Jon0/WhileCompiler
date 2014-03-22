@@ -50,9 +50,10 @@ public:
 		else if (type->nameStr() == "bool") {
 			return Func<bool, Return>::func( in );
 		}
-		else if (type->isList()) {
-			//return T<string>::func(type, in);
+		else {
+			throw runtime_error("could not match a type");
 		}
+
 	}
 };
 
@@ -372,7 +373,18 @@ public:
 	}
 
 	virtual string nameStr() const {
-		return "{record type}";
+		string s = "{";
+
+		// cast each value in record
+		int i = 0;
+		for ( auto entry : elem_type ) {
+			s += entry.second.type()->nameStr();
+			s += ":";
+			s += entry.first;
+			if (i < elem_type.size() - 1) s += ",";
+		}
+		s += "}";
+		return s;
 	}
 
 	T memberType(string name) {

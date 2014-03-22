@@ -25,8 +25,9 @@ public:
 	string name() const;
 	shared_ptr<Type> type() const;
 
+	// TODO type check breaks casting
 	bool operator==( const Var &other ) const {
-			return name() == other.name(); // TODO check types
+			return name() == other.name(); //  && *type() == *other.type()
 	}
 
 private:

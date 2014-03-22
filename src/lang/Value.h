@@ -77,13 +77,11 @@ public:
 				if ( va.size() != vb.size() ) return false;
 				for (ValueRecord::value_type t: va) {
 					if (vb.count(t.first) == 0 ||
-							!( (*vb.find(t.first)).second == t.second) ) return false;
+							!( *(*vb.find(t.first)).second == *t.second) ) return false;
 				}
 				return true;
-				// TODO record matching testing
-
 			}
-			// TODO: union types
+			// union types should not occur in instances except lists
 		}
 		return false;
 	}

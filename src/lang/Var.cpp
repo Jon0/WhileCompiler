@@ -17,9 +17,7 @@ Var::Var(shared_ptr<Type> t, string n): type_info(t) {
 	name_str = n;
 }
 
-Var::~Var() {
-	// TODO Auto-generated destructor stub
-}
+Var::~Var() {}
 
 string Var::name() const {
 	return name_str;

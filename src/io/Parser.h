@@ -99,7 +99,7 @@ public:
 private:
 	ParserInput in;
 
-	// TODO list global functions and types
+	// list global functions and types
 	FuncMap functions;
 	map<string, shared_ptr<Type>> dectypes;
 	map<string, shared_ptr<Expr>> constvals;

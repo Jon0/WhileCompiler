@@ -5,13 +5,8 @@
 
 namespace std {
 
-// TODO template switch case over types, to match stirng name
-
 Parser::Parser(Lexer &lexer) :
 		in(lexer) {
-
-	// TODO template value tpyes or map string to class
-	// make type list static? lookup by sting
 
 	// initialise atomic types
 	vector<shared_ptr<Type>> initial_types {
@@ -150,13 +145,12 @@ shared_ptr<Expr> Parser::readConstExpr() {
 
 shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	shared_ptr<Expr> e = readExprPrimary(ctxt);
-	return readExprExt(ctxt, e);
+	return readExprExt(ctxt, e);	// some basic order of operations
 }
 
 shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 	Token t = in.peek();
 	shared_ptr<Expr> e;
-	//cout << "expr " << t.text() << endl;
 
 	if (in.canMatch("(")) {
 		Token next = in.peek();
@@ -169,20 +163,6 @@ shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 			in.match(")");
 			shared_ptr<Expr> inner = readExpr(ctxt);
 			e = shared_ptr<Expr>(new BasicCastExpr(type, inner));
-//
-//			if (type->isList()) {
-//				e = shared_ptr<Expr>( new BasicCastExpr(type, inner) );
-//			}
-////			else if (type->nameStr() == "real" && inner->getType()->nameStr() == "int")
-////				e = shared_ptr<Expr>(new CastExpr<double, int>(type, inner));
-////			else if (type->nameStr() == "int" && inner->getType()->nameStr() == "real")
-////				e = shared_ptr<Expr>(new CastExpr<int, double>(type, inner));
-//			else if (inner->getType()->contains(*type)) {
-//				e = shared_ptr<Expr>(new BasicCastExpr(type, inner));
-//			}
-//			else {
-//				throw TokenException(t, type->nameStr()+" to "+inner->getType()->nameStr()+" casting not supported");
-//			}
 		}
 
 		/*
@@ -213,8 +193,6 @@ shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 		e = shared_ptr<Expr>(new ListExpr(type, list));
 	}
 	else if (in.canMatch("|")) {
-		//Token var = in.pop();
-		//Var v = ctxt.copyVar( var ); // TODO: could have expresion inside?
 		shared_ptr<Expr> exp = readExpr(ctxt);
 		in.match("|");
 
@@ -338,7 +316,6 @@ shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 		/*
 		 * Math Operations
 		 */
-		// TODO order of operations
 		else if (e->getType()->isAtomic() && in.canMatch("*")) {
 			ExprPair ep = ExprPair(e, readExprPrimary(ctxt));
 			e = TypeSwitch<MulParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
@@ -428,14 +405,13 @@ shared_ptr<Expr> Parser::readAssignExpr(ParserContext &ctxt) {
 		 */
 		else if (in.canMatch(".")) {	// record member
 			if (!intype->isRecord()) {
-				throw TokenException(t,
-						"cannot get members of non record types");
+				throw TokenException(t, "cannot get members of non record types");
 			}
 
 			string memb = in.pop().text();
 			RecordType &rt = (RecordType &) *intype;
 			shared_ptr<Type> inner_type = rt.memberType(memb).type();
-			e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb)); // TODO e thrown away in record case
+			e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb));
 		}
 		else {
 			read = false;
@@ -575,7 +551,6 @@ shared_ptr<Stmt> Parser::readStmt(ParserContext &ctxt) {
 	}
 	else {
 		stmt = readVariableAssign(ctxt);
-		// TODO init/assign vars moved here as extended reading
 	}
 	in.match(";");
 	return stmt;
@@ -607,13 +582,12 @@ shared_ptr<Stmt> Parser::readVariableAssign(ParserContext &ctxt) {
 	}
 	else {
 		shared_ptr<Expr> lhs = readAssignExpr(ctxt);
-
 		if ( in.canMatch("=") ) {
 			return shared_ptr<Stmt>(new AssignStmt(lhs, readExpr(ctxt)));
 		}
-//		else {
-//			return shared_ptr<Stmt>(new EvalStmt(lhs));	// last option, try read an expr
-//		}
+		else {
+			return shared_ptr<Stmt>(new EvalStmt( lhs ));	// does nothing
+		}
 	}
 
 }
@@ -628,7 +602,6 @@ shared_ptr<Type> Parser::readType() {
 		retType = shared_ptr<Type>( new ListType(t) );
 	}
 	else if ( in.canMatch("{") ) {
-		// TODO can record be empty?
 		map<string, Var> vars;
 
 		if (!in.canMatch("}")) {

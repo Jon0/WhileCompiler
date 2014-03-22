@@ -18,9 +18,7 @@ Func::Func( string name, shared_ptr<Type> t, vector<Var> a, shared_ptr<Stmt> s )
 	stmts = s;
 }
 
-Func::~Func() {
-	// TODO Auto-generated destructor stub
-}
+Func::~Func() {}
 
 string Func::name() const {
 	return name_str;
