@@ -16,4 +16,4 @@ add_executable (WhileCompilerMain ${SRC_FILES})
 target_link_libraries (WhileCompilerMain)
 
 # copy tests to binary folder
-file( COPY "${PROJECT_SOURCE_DIR}/tests/" DESTINATION "${PROJECT_BINARY_DIR}/tests/")
+# file( COPY "${PROJECT_SOURCE_DIR}/tests/" DESTINATION "${PROJECT_BINARY_DIR}/tests/")

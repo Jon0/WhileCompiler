@@ -91,8 +91,6 @@ private:
 	Var var;
 };
 
-
-
 class RecordExpr: public Expr {
 public:
 	RecordExpr( shared_ptr<Type> t, map<string, shared_ptr<Expr>> r ): Expr(t) {
