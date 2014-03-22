@@ -32,6 +32,7 @@ public:
 
 /*
  * switch function usig the highest level type, calls with templating as required
+ * only atomic types are supported
  */
 template<template<class I, class O> class Func, class Return, class Source> class TypeSwitch {
 public:
@@ -109,7 +110,7 @@ class NullType: public Type {
 	}
 
 	virtual bool contains( const Type &other ) const {
-		return false;
+		return other.isNull();
 	}
 
 	virtual bool operator==( const Type &other ) const {
@@ -206,12 +207,20 @@ private:
 class ListType: public Type {
 public:
 	ListType() {
+		is_string = false;
 		elem_type = NULL;
 	}
 
 	ListType(shared_ptr<Type> n) {
+		is_string = false;
 		elem_type = n;
 	}
+
+	ListType(shared_ptr<Type> n, bool isStr) {
+		is_string = isStr;
+		elem_type = n;
+	}
+
 
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> in ) {
 		shared_ptr<TypedValue<ValueList>> iptr = static_pointer_cast<TypedValue<ValueList>, Value>( in );
@@ -241,7 +250,7 @@ public:
 			// consider nulls(empty list) a subtype
 			return other_list.elem_type == NULL || elem_type->contains(*other_list.elem_type);
 		}
-		return false;
+		return *this == other;
 	}
 
 	virtual bool operator==( const Type &other ) const {
@@ -278,6 +287,9 @@ public:
 	}
 
 	virtual string nameStr() const {
+		if (is_string) {
+			return "string";
+		}
 		if (elem_type) {
 			return "[" + elem_type->nameStr() + "]";
 		}
@@ -290,8 +302,13 @@ public:
 		return elem_type;
 	}
 
+	bool isString() {
+		return is_string;
+	}
+
 
 private:
+	bool is_string;
 	shared_ptr<Type> elem_type;
 };
 
@@ -302,7 +319,15 @@ public:
 	}
 
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> in ) {
-		return in;
+		shared_ptr<TypedValue<ValueRecord>> iptr = static_pointer_cast<TypedValue<ValueRecord>, Value>( in );
+
+		// cast each value in record
+		ValueRecord newRecord;
+		for ( auto entry : elem_type ) {
+			shared_ptr<Value> newEntry = entry.second.type()->createValue( iptr->value()[entry.first] );
+			newRecord.insert( ValueRecord::value_type(entry.first, newEntry) );
+		}
+		return make_shared<TypedValue<ValueRecord>>( shared_from_this(), newRecord );
 	}
 
 	virtual bool castsTo( const Type &other ) const {
@@ -366,6 +391,9 @@ public:
 	}
 
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
+		if ( v->type()->isUnion() ) {
+			throw runtime_error("union should not occur on value instance");
+		}
 		return v;
 	}
 

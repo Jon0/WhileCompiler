@@ -45,7 +45,7 @@ InitStmt::~InitStmt() {
 
 StmtStatus InitStmt::execute( Stack &s, VarMap &m ) {
 	if (expr) {
-		m.insert(VarMap::value_type(var, expr->eval( s, m )));
+		m.insert(VarMap::value_type( var, expr->eval( s, m )->clone( var.type() ) ));	// always clone rhs on assignment
 	}
 	else {
 		m.insert(VarMap::value_type(var, shared_ptr<Value>( new TypedValue<int>(var.type(), 0) )));
@@ -63,44 +63,14 @@ AssignStmt::~AssignStmt() {}
 
 StmtStatus AssignStmt::execute( Stack &s, VarMap &m ) {
 	shared_ptr<Value> *assignable = NULL;
+
 	lhs->eval( s, m, &assignable );
 	if (!assignable) {
 		throw runtime_error("lhs not assignable");
 	}
-
-	shared_ptr<Value> ev = rhs->eval( s, m );
+	shared_ptr<Value> ev = rhs->eval( s, m )->clone( lhs->getType() ); // always clone rhs on assignment
 	*assignable = ev;
 
-	return {false, false};
-}
-
-ListAssignStmt::ListAssignStmt(Var v, shared_ptr<Expr> e, shared_ptr<Expr> i): var(v) {
-	expr = e;
-	ind = i;
-}
-
-ListAssignStmt::~ListAssignStmt() {}
-
-StmtStatus ListAssignStmt::execute( Stack &s, VarMap &m ) {
-	shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( m[var] );
-	shared_ptr<TypedValue<int>> i = static_pointer_cast<TypedValue<int>, Value>( ind->eval( s, m ) );
-
-	list->value().data()[ i->value() ] = expr->eval( s, m );
-	return {false, false};
-}
-
-RecordAssignStmt::RecordAssignStmt(Var v, shared_ptr<Expr> e, string m): var(v) {
-	expr = e;
-	member = m;
-}
-
-RecordAssignStmt::~RecordAssignStmt() {}
-
-StmtStatus RecordAssignStmt::execute( Stack &s, VarMap &m ) {
-	shared_ptr<TypedValue<ValueRecord>> list = static_pointer_cast<TypedValue<ValueRecord>, Value>( m[var] );
-
-
-	list->value()[ member ] = expr->eval( s, m );
 	return {false, false};
 }
 

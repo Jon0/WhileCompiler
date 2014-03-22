@@ -21,7 +21,7 @@ shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p
 	// push items in reverse order
 	vector<shared_ptr<Value>> temp;
 	for (shared_ptr<Expr> ep: args) {
-		shared_ptr<Value> v = ep->eval(s, m) ;
+		shared_ptr<Value> v = ep->eval(s, m);
 		temp.push_back( v );
 	}
 	while ( !temp.empty() ) {

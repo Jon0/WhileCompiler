@@ -9,6 +9,13 @@
 
 namespace std {
 
+/*
+ *	break a file into a stream of tokens
+ *
+ *	punctuation is returned as single char tokens
+ *
+ *	comments are removed from output
+ */
 class Lexer {
 public:
 	Lexer(const char *);

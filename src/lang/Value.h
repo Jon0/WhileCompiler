@@ -23,7 +23,7 @@ public:
 	NullValue(shared_ptr<Type> t): Value( t ) {}
 
 	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) {
-		return shared_ptr<Value>( new NullValue(t) );
+		return t->createValue( shared_from_this() );
 	}
 
 	virtual string asString() const {
@@ -49,7 +49,6 @@ public:
 
 	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) {
 		return t->createValue( shared_from_this() );
-		//return shared_ptr<Value>( new TypedValue<T>(t, internal_type) );
 	}
 
 	virtual string asString() const {
@@ -63,7 +62,7 @@ public:
 			if ( type()->isAtomic() ) {
 				return internal_type == other_v.value();
 			}
-			else if ( type()->isList() ) {
+			else if ( type()->isList() && other.type()->isList() ) {
 				ValueList &va = (ValueList &)internal_type;
 				ValueList &vb = ((TypedValue<ValueList> &)other).value();
 				if ( va.size() != vb.size() ) return false;
@@ -72,7 +71,7 @@ public:
 				}
 				return true;
 			}
-			else if ( type()->isRecord() ) {
+			else if ( type()->isRecord() && other.type()->isRecord() ) {
 				ValueRecord &va = (ValueRecord &)internal_type;
 				ValueRecord &vb = ((TypedValue<ValueRecord> &)other).value();
 				if ( va.size() != vb.size() ) return false;
@@ -84,10 +83,7 @@ public:
 				// TODO record matching testing
 
 			}
-			else if ( type()->isUnion() ) {
-				// TODO union matching
-			}
-
+			// TODO: union types
 		}
 		return false;
 	}
@@ -121,13 +117,18 @@ private:
 
 	string conv(double s) const {
 		char buf[64];
-		sprintf(buf, "%.2f", s); // %g
-		return string(buf);
+		sprintf(buf, "%g", s); // %.2f
+		string str_result(buf);
+		if (str_result.find(".") == string::npos
+				&& str_result.find("e") == string::npos) {
+			str_result += ".0";
+		}
+		return str_result;
 	}
 
 	string conv(ValueList s) const {
 		string result = "";
-		if (type()->nameStr() == "[char]") {
+		if (type()->nameStr() == "string") {
 			for (shared_ptr<Value> v : s) {
 				result += v->asString();
 			}
@@ -159,10 +160,11 @@ private:
 		return result;
 	}
 
-//	template<class T> string str_conv(T s) {
-//		return to_string(s);
-//	}
 };
+
+template<class T> shared_ptr<Value> makeValue(shared_ptr<Type> t, T in) {
+	return shared_ptr<Value>(new TypedValue<T>( t, in ));
+}
 
 } /* namespace std */
 

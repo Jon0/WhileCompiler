@@ -30,14 +30,8 @@ public:
 	 */
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> ) = 0;
 
-	//TODO subtyping
 	virtual bool castsTo( const Type &other ) const = 0;
 	virtual bool contains( const Type &other ) const = 0;
-
-	//virtual ptr cast( const value &v ) const = 0;
-
-	//virtual bool element_equals( const value &v ) const = 0;
-
 	virtual bool operator==( const Type &other ) const = 0;
 
 	virtual bool isNull() const =  0;
@@ -58,14 +52,19 @@ public:
 		return type_in;
 	}
 
-	/*
-	 * remove, doesnt support deep type changing
-	 */
 	virtual shared_ptr<Value> clone( shared_ptr<Type> t ) = 0;
+
+	virtual shared_ptr<Value> clone() {
+		return clone(type_in);
+	}
 
 	virtual string asString() const = 0;
 
 	virtual bool operator==( const Value &other ) const = 0;
+
+	virtual bool operator!=( const Value &other ) const {
+		return !(*this == other);
+	}
 
 private:
 	shared_ptr<Type> type_in;

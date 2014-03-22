@@ -35,7 +35,7 @@ void Func::execute( Stack &stack ) {
 
 	// TODO check arg types
 	for (Var &v: args) {
-		shared_ptr<Value> ev = stack.back();
+		shared_ptr<Value> ev = stack.back()->clone( v.type() ); // clone as type of arg
 		stack.pop_back();
 		vars.insert( VarMap::value_type(v, ev) );
 	}

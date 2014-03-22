@@ -149,7 +149,7 @@ public:
 		}
 
 		shared_ptr<Value> rs = e->eval(s, m);
-		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( rs ); //m[var]
+		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( rs );
 		return shared_ptr<Value>( new TypedValue<int>( getType(), list->value().size() ) );
 	}
 
@@ -159,14 +159,14 @@ private:
 
 class ConcatExpr: public Expr {
 public:
-	// TODO generate list type if int and bool are contained, type is bool|int
+	// TODO generate list type if int and bool are contained, type is bool|int?
 	ConcatExpr( shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( t ) { // result type is list
-		first = a;
+		first = a;	// TODO check first is a list type
 		second = b;
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
-		shared_ptr<TypedValue<ValueList>> list1 = static_pointer_cast<TypedValue<ValueList>, Value>( first->eval(s,m) );
+		shared_ptr<TypedValue<ValueList>> list1 = static_pointer_cast<TypedValue<ValueList>, Value>( first->eval(s,m)->clone() );
 		ValueList newList = list1->value();
 
 		/*
@@ -176,8 +176,18 @@ public:
 			newList.push_back( second->eval(s,m) );
 		}
 		else {
-			shared_ptr<TypedValue<ValueList>> list2 = static_pointer_cast<TypedValue<ValueList>, Value>( second->eval(s,m) );
-			newList.insert(newList.end(), list2->value().begin(), list2->value().end());
+			// hack to make strings work
+			if (getType()->nameStr() == "string") {
+				string insert = second->eval(s,m)->asString();
+				shared_ptr<Type> inner_type = shared_ptr<Type>(new AtomicType<char>("char"));
+				for (char c: insert) {
+					newList.push_back( makeValue<char>(inner_type, c) );
+				}
+			}
+			else {
+				shared_ptr<TypedValue<ValueList>> list2 = static_pointer_cast<TypedValue<ValueList>, Value>( second->eval(s,m)->clone() );
+				newList.insert(newList.end(), list2->value().begin(), list2->value().end());
+			}
 		}
 
 		return shared_ptr<Value>( new TypedValue<ValueList>( getType(), newList) );
@@ -295,7 +305,7 @@ public:
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
-		if (getType()->isList() || getType()->isRecord() || getType()->isUnion()) {
+		if (getType()->isList() || getType()->isRecord() || getType()->isUnion()) {	// TODO ??
 			throw runtime_error("union, list or record cast not yet supported");
 		}
 		shared_ptr<Value> v = expr->eval( s, m );
@@ -336,19 +346,7 @@ template<class T> struct DivOp {
 
 template<class T> struct ModOp {
 	static T compute(T a, T b) {
-		return a % b;
-	}
-};
-
-template<class T> struct EquivOp {
-	static T compute(T a, T b) {
-		return a == b;
-	}
-};
-
-template<class T> struct NotEquivOp {
-	static T compute(T a, T b) {
-		return a != b;
+		return (int)a % (int)b;
 	}
 };
 
@@ -406,9 +404,43 @@ private:
 	shared_ptr<Expr> second;
 };
 
+class EquivOp: public Expr {
+public:
+	EquivOp(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
+		first = a;
+		second = b;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
+		bool result = *first->eval( s, m ) == *second->eval( s, m );
+		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
+	}
+
+private:
+	shared_ptr<Expr> first;
+	shared_ptr<Expr> second;
+};
+
+class NotEquivOp: public Expr {
+public:
+	NotEquivOp(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
+		first = a;
+		second = b;
+	}
+
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
+		bool result = *first->eval( s, m ) != *second->eval( s, m );
+		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
+	}
+
+private:
+	shared_ptr<Expr> first;
+	shared_ptr<Expr> second;
+};
+
 class AndExpr: public Expr {
 public:
-	AndExpr(shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( a->getType() ) {
+	AndExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
 		first = a;
 		second = b;
 	}
@@ -428,7 +460,7 @@ public:
 				result = true;
 			}
 		}
-		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
+		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
 	}
 
 private:
@@ -438,7 +470,7 @@ private:
 
 class OrExpr: public Expr {
 public:
-	OrExpr(shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( a->getType() ) {
+	OrExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
 		first = a;
 		second = b;
 	}
@@ -458,7 +490,7 @@ public:
 				result = false;
 			}
 		}
-		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
+		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
 	}
 
 private:
@@ -476,7 +508,7 @@ public:
 		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( first->eval( s, m ) );
 
 		bool result = !a->value();
-		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
+		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
 	}
 
 private:
