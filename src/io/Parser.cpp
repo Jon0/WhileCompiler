@@ -593,6 +593,25 @@ shared_ptr<Stmt> Parser::readVariableAssign(ParserContext &ctxt) {
 }
 
 shared_ptr<Type> Parser::readType() {
+	vector<shared_ptr<Type>> types;
+	types.push_back( readTypeInner() );
+
+	// union types
+	while (in.canMatch("|")) {
+		types.push_back( readTypeInner() );
+
+	}
+
+
+	if (types.size() == 1) {
+		return types[0];
+	}
+	else {
+		return shared_ptr<Type>( new UnionType(types) );
+	}
+}
+
+shared_ptr<Type> Parser::readTypeInner() {
 	string top = in.peek().text();
 	shared_ptr<Type> retType;
 
@@ -625,12 +644,6 @@ shared_ptr<Type> Parser::readType() {
 	else {
 		throw runtime_error("could not identify a type from "+top);
 	}
-
-	// union types
-	if (in.canMatch("|")) {
-		retType = shared_ptr<Type>( new UnionType(retType, readType()) );
-	}
-
 	return retType;
 }
 

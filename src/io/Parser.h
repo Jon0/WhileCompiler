@@ -114,6 +114,7 @@ private:
 	shared_ptr<Stmt> readStmtBlock(ParserContext &);
 	shared_ptr<Stmt> readStmt(ParserContext &);
 	shared_ptr<Type> readType();
+	shared_ptr<Type> readTypeInner();
 
 	shared_ptr<Expr> readConstExpr();
 	shared_ptr<Stmt> readVariableAssign(ParserContext &);

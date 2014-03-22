@@ -397,34 +397,41 @@ private:
 
 class UnionType: public Type {
 public:
-	UnionType( shared_ptr<Type> a, shared_ptr<Type> b ) {
-		type_a = a;
-		type_b = b;
+	UnionType( vector<shared_ptr<Type>> t ) {
+		types = t;
 	}
 
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
 		if ( v->type()->isUnion() ) {
-			throw runtime_error("union should not occur on value instance");
+			throw runtime_error("union type should not occur on value instance");
 		}
 		return v;
 	}
 
 	virtual bool castsTo( const Type &other ) const {
-		return type_a->castsTo(other) || type_b->castsTo(other);
+		bool result = false;
+		for (auto a: types) result |= a->castsTo(other);
+		return result;
 	}
 
 	virtual bool contains( const Type &other ) const {
-		if (type_a->contains(other) || type_b->contains(other)) return true;
-		if ( *this == other ) return true;
-		return false;
+		bool result = (*this == other);
+		for (auto a: types) result |= a->contains(other);
+		return result;
 	}
 
-	// TODO heirachy means sets of more than 2 could be inequal
 	virtual bool operator==( const Type &other ) const {
 		if ( other.isUnion() ) {
 			UnionType &o = (UnionType &)other;
-			return (*type_a == *o.type_a && *type_b == *o.type_b)
-					|| (*type_a == *o.type_b && *type_b == *o.type_a);
+
+			// each value must equal a value in other
+			bool matches_all = true;
+			for (auto a: types) {
+				bool matches_one = false;
+				for (auto b: o.types) matches_one |= (*a == *b);
+				matches_all &= matches_one;
+			}
+			return matches_all;
 		}
 		return false;
 	}
@@ -450,12 +457,18 @@ public:
 	}
 
 	virtual string nameStr() const {
-		return type_a->nameStr()+"|"+type_b->nameStr();
+		string str = "";
+		int i = 0;
+		for (auto a: types) {
+			str += a->nameStr();
+			if (i < types.size() - 1) str += "|";
+		}
+		return str;
 	}
 
 private:
-	shared_ptr<Type> type_a;
-	shared_ptr<Type> type_b;
+	vector<shared_ptr<Type>> types;
+
 };
 
 } /* namespace std */
