@@ -66,10 +66,6 @@ public:
 		return var_types[t];
 	}
 
-//	bool isType(Token t) {
-//		return t.text() == "bool";
-//	}
-
 	shared_ptr<Type> getType(Token t) {
 		if (var_types.count(t) == 0) {
 			throw TokenException(t, t.text()+" not a variable");

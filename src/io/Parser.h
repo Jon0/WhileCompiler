@@ -107,16 +107,23 @@ private:
 	Func readFunc();
 
 	shared_ptr<Expr> readExpr(ParserContext &);
+	shared_ptr<Expr> readExprCmpr(ParserContext &);
+	shared_ptr<Expr> readExprList(ParserContext &);
+
+	shared_ptr<Expr> readExprAdd(ParserContext &);
+	shared_ptr<Expr> readExprMul(ParserContext &);
+	shared_ptr<Expr> readExprTerm(ParserContext &);
+	shared_ptr<Expr> readExprTermInner(ParserContext &);
+
 	shared_ptr<Expr> readExprPrimary(ParserContext &);
-	shared_ptr<Expr> readExprExt(ParserContext &, shared_ptr<Expr> );
-	shared_ptr<Expr> readAssignExpr(ParserContext &);
+	shared_ptr<Expr> readConstExpr();
 
 	shared_ptr<Stmt> readStmtBlock(ParserContext &);
 	shared_ptr<Stmt> readStmt(ParserContext &);
 	shared_ptr<Type> readType();
 	shared_ptr<Type> readTypeInner();
 
-	shared_ptr<Expr> readConstExpr();
+
 	shared_ptr<Stmt> readVariableAssign(ParserContext &);
 
 	/*

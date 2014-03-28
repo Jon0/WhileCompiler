@@ -222,7 +222,6 @@ public:
 		elem_type = n;
 	}
 
-
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> in ) {
 		shared_ptr<TypedValue<ValueList>> iptr = static_pointer_cast<TypedValue<ValueList>, Value>( in );
 
