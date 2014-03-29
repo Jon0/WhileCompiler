@@ -17,17 +17,25 @@ namespace std {
 
 class Token {
 public:
-	Token(string, int);
+	Token();
+	Token(string, string, int, string, int);
 	virtual ~Token();
 
 	bool contains(char);
 	string text() const;
+	string file() const;
 	int lineNum() const;
+	string lineText() const;
+	int charNum() const;
+
 	bool operator==(const Token &other) const;
 
 private:
 	string input_text;
+	string filename;
 	int line_num;
+	string line_copy;
+	int char_num;
 };
 
 struct TokenHash {
@@ -42,9 +50,11 @@ struct TokenCompare {
 	}
 };
 
+string makeErrorMsg(Token, string);
+
 class TokenException: public runtime_error {
 public:
-	TokenException(Token t, string s): runtime_error("Line "+to_string(t.lineNum())+": "+s) {}
+	TokenException(Token t, string s): runtime_error(makeErrorMsg(t, s)) {}
 };
 
 } /* namespace std */

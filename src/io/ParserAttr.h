@@ -31,12 +31,12 @@ public:
 		return t;
 	}
 
-	void match(string s) {
+	Token match(string s) {
 		Token top = tokens.front();
 		if ( s != top.text() ) {
 			throw TokenException(top, "mismatch "+top.text()+", expected "+s);
 		}
-		tokens.pop();
+		return pop();
 	}
 
 	bool canMatch(string s) {
@@ -75,7 +75,7 @@ public:
 
 	void initialise(shared_ptr<Type> t, Token name) {
 		vars.insert(name);
-		var_types[name] = Var(t, name.text());
+		var_types[name] = Var(t, name);
 	}
 
 private:

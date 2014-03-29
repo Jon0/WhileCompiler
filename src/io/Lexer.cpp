@@ -1,44 +1,56 @@
 #include <iostream>
+#include <iterator>
+#include <sstream>
 #include <stdexcept>
 
 #include "Lexer.h"
 
 namespace std {
 
-Lexer::Lexer(const char *filename):
-		file(filename)
+Lexer::Lexer(const char *fn):
+		file(fn)
 {
+	vector<string> elems;
+	stringstream ss(fn);
+	string item;
+	while (getline(ss, item, '/')) {
+		elems.push_back(item);
+	}
+	filename = elems[elems.size()-1];
+
+
 	if (!file) {
 		string error_str = string("cannot find ").append(filename);
 		throw invalid_argument(error_str);
 	}
 
 	current_line = 1;
+	getline(file, current_line_str);
+	current_line_char = 0;
 }
 
 Lexer::~Lexer() {}
 
 queue<Token> Lexer::getTokens() {
 	queue<Token> tokens;
-	while ( file.good() ) {
-		char c = file.peek();
+	while ( canRead() ) {
+		char c = peekChar();
 
 		if (c == EOF) {
 			break;
 		}
 		else if ( c == '/' ) {
-			file.get();
-			char second = file.peek();
+			popChar();
+			char second = peekChar();
 			if (second == '/') {
-				file.get();
-				skipRestOfLine();
+				incLine();
 			}
 			else if (second == '*') {
-				file.get();
+				popChar();
 				skipRestOfComment();
 			}
 			else {
-				tokens.push( Token(string(1, c), current_line) );
+				tokens.push( makeToken(string(1, c)) );
 			}
 		}
 		else if ( isalpha(c) ) {
@@ -48,111 +60,135 @@ queue<Token> Lexer::getTokens() {
 			tokens.push( getNumerical() );
 		}
 		else if ( c == '"') {
-			file.get();
-			tokens.push( Token(string(1, c), current_line) );
+			popChar();
+			tokens.push( makeToken(string(1, c)) );
 			tokens.push( getString() );
-			file.get(c);
-			tokens.push( Token(string(1, c), current_line) );
+			c = popChar();
+			tokens.push( makeToken(string(1, c)) );
 		}
 		else if ( c == '\'') {
-			tokens.push( Token(string(1, c), current_line) );
-			file.get();
-			file.get(c);
-			tokens.push( Token(string(1, c), current_line) );
-			file.get(c);
+			popChar();
+			tokens.push( makeToken(string(1, c)) );
+			c = popChar();
+			tokens.push( makeToken(string(1, c)) );
+			c = popChar();
 			if (c != '\'') {
-				throw invalid_argument("char reading failed");
+				throw invalid_argument("lexer: char reading failed");
 			}
-			tokens.push( Token(string(1, c), current_line) );
+			tokens.push( makeToken(string(1, c)) );
 		}
 		else if ( ispunct(c) ) {
-			file.get(c);
-			tokens.push( Token(string(1, c), current_line) );
+			c = popChar();
+			char n = peekChar();
+			if (c == '+' && n == '+') {
+				popChar();
+				string s = "++";
+				tokens.push( makeToken(s) );
+			}
+			else {
+				tokens.push( makeToken(string(1, c)) );
+			}
 		}
 		else if ( isspace(c) ) {
-			if (c == '\n') current_line++;
-			file.get();
+			popChar();
 		}
 		else {
-			file.get(c);
-			tokens.push( Token(string(1, c), current_line) );
+			c = popChar();
+			tokens.push( makeToken(string(1, c)) );
 		}
 	}
 
 	return tokens;
 }
 
+bool Lexer::canRead() {
+	return file.good() || current_line_char < current_line_str.length();
+}
+
+char Lexer::popChar() {
+	char r = peekChar();
+
+	current_line_char++;
+	if (current_line_char > current_line_str.length() && file.good()) {
+		incLine();
+	}
+	return r;
+}
+
+char Lexer::peekChar() {
+	char r;
+	if (current_line_char == current_line_str.length()) {
+		r = '\n';
+	}
+	else {
+		r = current_line_str[current_line_char];
+	}
+	return r;
+}
+
+Token Lexer::makeToken(string s) {
+	return Token(s, filename, current_line, current_line_str, current_line_char);
+}
+
+void Lexer::incLine() {
+	getline(file, current_line_str);
+	current_line_char = 0;
+	current_line++;
+}
+
 Token Lexer::getIdentifier() {
 	string s;
-	char c;
-	while ( file.good() ) {
-		char c = file.peek();
+	while ( canRead() ) {
+		char c = peekChar();
 		if ( isalnum(c) || c == '_' ) {
 			s += c;
-			file.get();
+			popChar();
 		}
 		else {
 			break;
 		}
 	}
 
-	return Token(s, current_line);
+	return makeToken(s);
 }
 
 Token Lexer::getNumerical() {
 	string s;
-	char c = file.peek();
-	while ( file.good() ) {
-		char c = file.peek();
+	while ( canRead() ) {
+		char c = peekChar();
 		if ( isdigit(c) || c == '.' ) {
 			s += c;
-			file.get();
+			popChar();
 		}
 		else {
 			break;
 		}
 	}
 
-	return Token(s, current_line);
+	return makeToken(s);
 }
 
 Token Lexer::getString() {
 	string s;
-	char c;
-	while ( file.good() ) {
-		char c = file.peek();
+	while ( canRead() ) {
+		char c = peekChar();
 		if ( !(c == '"') ) {
 			s += c;
-			file.get();
+			popChar();
 		}
 		else {
 			break;
 		}
 	}
 
-	return Token(s, current_line);
-}
-
-void Lexer::skipWhiteSpace() {
-
-}
-
-void Lexer::skipRestOfLine() {
-	while ( file.good() ) {
-		char c;
-		file.get(c);
-		if ( c == '\n' ) {
-			break;
-		}
-	}
+	return makeToken(s);
 }
 
 void Lexer::skipRestOfComment() {
-	while ( file.good() ) {
-		char c;
-		file.get(c);
+	while ( canRead() ) {
+		char c = popChar();
 		if ( c == '*' ) {
-			file.get(c);
+			c = popChar();
 			if (c == '/') {
 				break;
 			}

@@ -40,6 +40,14 @@ Parser::Parser(Lexer &lexer) :
 	nullvalue = shared_ptr<Value>(new NullValue( nulltype ));
 	truevalue = shared_ptr<Value>(new TypedValue<bool>( booltype, true ));
 	falsevalue = shared_ptr<Value>(new TypedValue<bool>( booltype, false ));
+
+
+	/*
+	 * define null, true and false as constants
+	 */
+	constvals.insert( map<string, shared_ptr<Expr>>::value_type("null", shared_ptr<Expr>(new ConstExpr(nullvalue))) );
+	constvals.insert( map<string, shared_ptr<Expr>>::value_type("true", shared_ptr<Expr>(new ConstExpr(truevalue))) );
+	constvals.insert( map<string, shared_ptr<Expr>>::value_type("false", shared_ptr<Expr>(new ConstExpr(falsevalue))) );
 }
 
 Parser::~Parser() {
@@ -68,7 +76,7 @@ Program Parser::read() {
 		}
 	} catch (exception &e) {
 		cout << e.what() << endl;
-		//throw runtime_error("failed to parse program");
+		throw runtime_error("failed to parse program");
 	}
 
 	Program p(functions);
@@ -77,31 +85,33 @@ Program Parser::read() {
 
 shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	shared_ptr<Expr> e = readExprCmpr(ctxt);
+	Token tok = in.peek();
 
 	/*
 	 * Boolean operations
 	 */
-	if (*e->getType() == *booltype && in.canMatch("&")) {
+	if (in.canMatch("&")) {
 		in.match("&"); // second &
 		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new AndExpr(booltype, e, second));
+		e = shared_ptr<Expr>( new AndExpr(tok, booltype, e, second) );
 	}
-	else if (*e->getType() == *booltype && in.canMatch("|")) {
+	else if (in.canMatch("|")) {
 		in.match("|"); // second |
 		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>(new OrExpr(booltype, e, second));
+		e = shared_ptr<Expr>( new OrExpr(tok, booltype, e, second) );
 	}
 
 	// type comparison
 	else if (in.canMatch("is")) {
 		shared_ptr<Type> ty = readType();
-		e = shared_ptr<Expr>(new IsTypeExpr(e, ty));
+		e = shared_ptr<Expr>(new IsTypeExpr(tok, e, ty));
 	}
 	return e;
 }
 
 shared_ptr<Expr> Parser::readExprCmpr(ParserContext &ctxt) {
 	shared_ptr<Expr> e = readExprList(ctxt);
+	Token tok = in.peek();
 
 	/*
 	 * Equality on any values
@@ -109,14 +119,14 @@ shared_ptr<Expr> Parser::readExprCmpr(ParserContext &ctxt) {
 	if (in.canMatch("=")) {
 		in.match("="); // second =
 		shared_ptr<Expr> second = readExprList(ctxt);
-		e = shared_ptr<Expr>(new EquivOp(booltype, e, second));
+		e = shared_ptr<Expr>(new EquivOp(tok, booltype, e, second));
 	}
 	else if (in.canMatch("!")) {
 		in.match("="); // second =
 		shared_ptr<Expr> second = readExprList(ctxt);
-		e = shared_ptr<Expr>(new NotEquivOp(booltype, e, second));
+		e = shared_ptr<Expr>(new NotEquivOp(tok, booltype, e, second));
 	}
-	else if (e->getType()->isAtomic() && in.canMatch(">")) {
+	else if (in.canMatch(">")) {
 		if (in.canMatch("=")) {
 			ExprPair ep = ExprPair(e, readExprList(ctxt));
 			e = TypeSwitch<GreaterEqualParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
@@ -124,7 +134,7 @@ shared_ptr<Expr> Parser::readExprCmpr(ParserContext &ctxt) {
 			ExprPair ep = ExprPair(e, readExprList(ctxt));
 			e = TypeSwitch<GreaterParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
 		}
-	} else if (e->getType()->isAtomic() && in.canMatch("<")) {
+	} else if (in.canMatch("<")) {
 		if (in.canMatch("=")) {
 			ExprPair ep = ExprPair(e, readExprList(ctxt));
 			e = TypeSwitch<LessEqualParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
@@ -138,12 +148,12 @@ shared_ptr<Expr> Parser::readExprCmpr(ParserContext &ctxt) {
 
 shared_ptr<Expr> Parser::readExprList(ParserContext &ctxt) {
 	shared_ptr<Expr> e = readExprAdd(ctxt);
+	Token tok = in.peek();
 
 	// first expr is list (++ concat)
-	if (e->getType()->isList() && in.canMatch("+")) {
-		in.match("+"); // second +
+	if (in.canMatch("++")) {
 		shared_ptr<Expr> second = readExprList(ctxt);
-		e = shared_ptr<Expr>(new ConcatExpr(e->getType(), e, second)); // TODO infer type from first term?
+		e = shared_ptr<Expr>(new ConcatExpr(tok, e->getType(), e, second)); // TODO infer type from first term?
 	}
 	return e;
 }
@@ -153,12 +163,12 @@ shared_ptr<Expr> Parser::readExprAdd(ParserContext &ctxt) {
 
 	bool read = true;
 	while (read) {
-		if (e->getType()->isAtomic() && in.canMatch("+")) {
-			ExprPair ep = ExprPair(e, readExprPrimary(ctxt));
+		if (in.canMatch("+")) {
+			ExprPair ep = ExprPair(e, readExprMul(ctxt));
 			e = TypeSwitch<AddParser, shared_ptr<Expr>, ExprPair>::typeSwitch(
 					e->getType(), ep);
-		} else if (e->getType()->isAtomic() && in.canMatch("-")) {
-			ExprPair ep = ExprPair(e, readExprPrimary(ctxt));
+		} else if (in.canMatch("-")) {
+			ExprPair ep = ExprPair(e, readExprMul(ctxt));
 			e = TypeSwitch<SubParser, shared_ptr<Expr>, ExprPair>::typeSwitch(
 					e->getType(), ep);
 		} else {
@@ -175,14 +185,14 @@ shared_ptr<Expr> Parser::readExprMul(ParserContext &ctxt) {
 	/*
 	 * Math Operations
 	 */
-	if (e->getType()->isAtomic() && in.canMatch("*")) {
+	if (in.canMatch("*")) {
 		ExprPair ep = ExprPair(e, readExprTerm(ctxt));
 		e = TypeSwitch<MulParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
-	} else if (e->getType()->isAtomic() && in.canMatch("/")) {
+	} else if (in.canMatch("/")) {
 		ExprPair ep = ExprPair(e, readExprTerm(ctxt));
 		e = TypeSwitch<DivParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
 	}
-	else if (e->getType()->isAtomic() && in.canMatch("%")) {
+	else if (in.canMatch("%")) {
 		ExprPair ep = ExprPair(e, readExprTerm(ctxt));
 		e = TypeSwitch<ModParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
 	}
@@ -192,6 +202,7 @@ shared_ptr<Expr> Parser::readExprMul(ParserContext &ctxt) {
 
 shared_ptr<Expr> Parser::readExprTerm(ParserContext &ctxt) {
 	shared_ptr<Expr> e = readExprTermInner(ctxt);
+	Token tok = in.peek();
 
 	bool read = true;
 	while (read) {
@@ -204,7 +215,7 @@ shared_ptr<Expr> Parser::readExprTerm(ParserContext &ctxt) {
 			ListType &lt = (ListType &) *intype;
 			shared_ptr<Type> inner_type = lt.innerType();
 			shared_ptr<Expr> index = readExprAdd(ctxt);
-			e = shared_ptr<Expr>(new ListLookupExpr(e, inner_type, index));
+			e = shared_ptr<Expr>(new ListLookupExpr(tok, e, inner_type, index));
 			in.match("]");
 			intype = inner_type;
 		}
@@ -216,7 +227,7 @@ shared_ptr<Expr> Parser::readExprTerm(ParserContext &ctxt) {
 			string memb = in.pop().text();
 			RecordType &rt = (RecordType &) *intype;
 			shared_ptr<Type> inner_type = rt.memberType(memb).type();
-			e = shared_ptr<Expr>(new RecordMemberExpr(e, inner_type, memb));
+			e = shared_ptr<Expr>(new RecordMemberExpr(tok, e, inner_type, memb));
 		}
 		else {
 			read = false;
@@ -239,7 +250,7 @@ shared_ptr<Expr> Parser::readExprTermInner(ParserContext &ctxt) {
 			shared_ptr<Type> type = readType();
 			in.match(")");
 			shared_ptr<Expr> inner = readExpr(ctxt);
-			e = shared_ptr<Expr>(new BasicCastExpr(type, inner));
+			e = shared_ptr<Expr>(new BasicCastExpr(t, type, inner));
 		}
 
 		/*
@@ -250,24 +261,44 @@ shared_ptr<Expr> Parser::readExprTermInner(ParserContext &ctxt) {
 			in.match(")");
 		}
 	}
+
+
+	/*
+	 *  const, variables and functions - only these begin with alphabetic character
+	 *  rule out any const value first (which may not be alphabetic)
+	 */
 	else if (constvals.count( t.text() ) > 0) {
 		e = (*constvals.find( t.text() )).second;
 		in.pop();
 	}
-	else if (functions.count( t.text() ) > 0) {
-		in.pop(); // name
-		in.match("(");
+	else if ( isalpha(t.text()[0]) ) {
+		Token name = in.pop();
 
-		FuncMap::iterator i = functions.find( t.text() );
-		vector<shared_ptr<Expr>> args;
-		if ( !in.canMatch(")") ) {
-			args.push_back(readExpr(ctxt));
-			while ( !in.canMatch(")") ) {
-				in.match(",");
+		if (in.canMatch("(")) {
+			vector<shared_ptr<Expr>> args;
+			if ( !in.canMatch(")") ) {
 				args.push_back(readExpr(ctxt));
+				while ( !in.canMatch(")") ) {
+					in.match(",");
+					args.push_back(readExpr(ctxt));
+				}
+			}
+			FuncMap::iterator i = functions.find( t.text() );
+			if (i == functions.end()) {
+				throw TokenException(name, "unordered function declarations not implemented");
+				//e = shared_ptr<Expr>( new FuncCallExpr(shared_ptr<Func>(new Func((*i).second)), args) );
+			}
+			else {
+				e = shared_ptr<Expr>( new FuncCallExpr(t, shared_ptr<Func>(new Func((*i).second)), args) );
 			}
 		}
-		e = shared_ptr<Expr>( new FuncCallExpr(shared_ptr<Func>(new Func((*i).second)), args) );
+		else if ( ctxt.isVar(t) ) {
+			Var v = ctxt.copyVar(t);
+			e = shared_ptr<Expr>( new VariableExpr( t, shared_ptr<Var>(new Var(v) ) ) );
+		}
+		else {
+			e = shared_ptr<Expr>( new VariableExpr( t, unresolvedVar(name) ) );
+		}
 	}
 	else if (in.canMatch("[")) {
 		vector<shared_ptr<Expr>> list;
@@ -286,7 +317,7 @@ shared_ptr<Expr> Parser::readExprTermInner(ParserContext &ctxt) {
 		else {
 			type = shared_ptr<Type>( new ListType( list[0]->getType() ) );
 		}
-		e = shared_ptr<Expr>(new ListExpr(type, list));
+		e = shared_ptr<Expr>(new ListExpr( t, type, list));
 	}
 
 	/*
@@ -308,35 +339,30 @@ shared_ptr<Expr> Parser::readExprTermInner(ParserContext &ctxt) {
 		}
 
 		shared_ptr<Value> v = shared_ptr<Value>(new TypedValue<ValueList>( stringtype, values ));
-		e = shared_ptr<Expr>(new ConstExpr(v));
+		e = shared_ptr<Expr>(new ConstExpr(t, v));
 	}
 	else if (in.canMatch("{")) {
 		map<string, Var> rec_type;
 		map<string, shared_ptr<Expr>> vars;
 
 		if (!in.canMatch("}")) {
-			string name = in.pop().text();
+			Token name = in.pop();
 			in.match(":");
 			shared_ptr<Expr> elem = readExpr(ctxt);
-			rec_type.insert( map<string, Var>::value_type(name, Var(elem->getType(), name)) );
-			vars.insert( map<string, shared_ptr<Expr>>::value_type(name, elem) );
+			rec_type.insert( map<string, Var>::value_type(name.text(), Var(elem->getType(), name)) );
+			vars.insert( map<string, shared_ptr<Expr>>::value_type(name.text(), elem) );
 			while (!in.canMatch("}")) {
 				in.match(",");
-				string name = in.pop().text();
+				Token name = in.pop();
 				in.match(":");
 				shared_ptr<Expr> elem = readExpr(ctxt);
-				rec_type.insert( map<string, Var>::value_type(name, Var(elem->getType(), name)) );
-				vars.insert( map<string, shared_ptr<Expr>>::value_type(name, elem) );
+				rec_type.insert( map<string, Var>::value_type(name.text(), Var(elem->getType(), name)) );
+				vars.insert( map<string, shared_ptr<Expr>>::value_type(name.text(), elem) );
 			}
 		}
 
 		shared_ptr<Type> type = shared_ptr<Type>( new RecordType(rec_type) );
-		e = shared_ptr<Expr>( new RecordExpr(type, vars) );
-	}
-	else if ( ctxt.isVar(t) ) {
-		Var v = ctxt.copyVar(t);
-		e = shared_ptr<Expr>(new VariableExpr(v));
-		in.pop();
+		e = shared_ptr<Expr>( new RecordExpr( t, type, vars) );
 	}
 	else {
 		return readExprPrimary(ctxt);
@@ -356,19 +382,19 @@ shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 		if (!exp->getType()->isList()) {
 			throw TokenException(t, "cannot get length of non list");
 		}
-		e = shared_ptr<Expr>(new ListLengthExpr(exp));
+		e = shared_ptr<Expr>(new ListLengthExpr( t, exp));
 	}
 	else if (in.canMatch("!")) {
-		shared_ptr<Expr> second = readExprTermInner(ctxt);
-		e = shared_ptr<Expr>(new NotExpr(second));
+		shared_ptr<Expr> second = readExprCmpr(ctxt);
+		e = shared_ptr<Expr>(new NotExpr( t, second));
 	}
 	else if (in.canMatch("-")) {
-		shared_ptr<Expr> inner = readExprTermInner(ctxt);
+		shared_ptr<Expr> inner = readExprTerm(ctxt);
 		ExprPair ep = ExprPair(intzero, inner);	// TODO real zero?
 		e = TypeSwitch<SubParser, shared_ptr<Expr>, ExprPair>::typeSwitch( inner->getType(), ep );
 	}
 	else {
-		e = readConstExpr();
+		return readConstExpr();
 	}
 
 	// basic order of operation control
@@ -379,33 +405,20 @@ shared_ptr<Expr> Parser::readConstExpr() {
 	Token t = in.peek();
 	shared_ptr<Expr> e;
 
-	if (t.text() == "true") {
-		in.pop();
-		e = shared_ptr<Expr>(new ConstExpr(truevalue));
-	}
-	else if (t.text() == "false") {
-		in.pop();
-		e = shared_ptr<Expr>(new ConstExpr(falsevalue));
-	}
-	else if (t.text() == "null") {
-		in.pop();
-		e = shared_ptr<Expr>(new ConstExpr(nullvalue));
-	}
-
 	/*
 	 * non-negative numrical values
 	 */
-	else if ( isdigit(t.text()[0]) ) {
+	if ( isdigit(t.text()[0]) ) {
 		if (t.contains('.')) {
 			double int_value = atof(in.pop().text().c_str());
 			shared_ptr<Value> v = shared_ptr<Value>(
 					new TypedValue<double>((*dectypes.find("real")).second, int_value));
-			e = shared_ptr<Expr>(new ConstExpr(v));
+			e = shared_ptr<Expr>(new ConstExpr(t, v));
 		} else {
 			int int_value = atoi(in.pop().text().c_str());
 			shared_ptr<Value> v = shared_ptr<Value>(
 					new TypedValue<int>((*dectypes.find("int")).second, int_value));
-			e = shared_ptr<Expr>(new ConstExpr(v));
+			e = shared_ptr<Expr>(new ConstExpr(t, v));
 		}
 	}
 	else if (in.canMatch("'")) {
@@ -413,7 +426,7 @@ shared_ptr<Expr> Parser::readConstExpr() {
 
 		shared_ptr<Value> v = shared_ptr<Value>(
 				new TypedValue<char>( (*i).second, in.pop().text()[0]));
-		e = shared_ptr<Expr>(new ConstExpr(v));
+		e = shared_ptr<Expr>(new ConstExpr(t, v));
 		in.match("'");
 	}
 	else {
@@ -421,6 +434,13 @@ shared_ptr<Expr> Parser::readConstExpr() {
 	}
 
 	return e;
+}
+
+shared_ptr<Var> Parser::unresolvedVar(Token n) {
+	shared_ptr<Type> t = shared_ptr<Type>(new UnknownType());
+	shared_ptr<Var> v = shared_ptr<Var>(new Var(t, n));
+	unresolved.push_back(v);
+	return v;
 }
 
 Func Parser::readFunc() {
@@ -574,10 +594,6 @@ shared_ptr<Stmt> Parser::readVariableAssign(ParserContext &ctxt) {
 		Var v = ctxt.copyVar(name);
 		if (in.canMatch("=")) { // ok to skip initial assignment
 			shared_ptr<Expr> e = readExpr(ctxt);
-			if (!type->contains(*e->getType())) {
-				throw TokenException(top, type->nameStr() + " cannot be assigned with " + e->getType()->nameStr());
-			}
-
 			return shared_ptr<Stmt>(new InitStmt(v, e));
 		} else {
 			return shared_ptr<Stmt>(new InitStmt(v));
@@ -628,14 +644,14 @@ shared_ptr<Type> Parser::readTypeInner() {
 
 		if (!in.canMatch("}")) {
 			shared_ptr<Type> t = readType();
-			string nm = in.pop().text();
-			vars.insert( map<string, Var>::value_type(nm, Var(t, nm)) );
+			Token nm = in.pop();
+			vars.insert( map<string, Var>::value_type(nm.text(), Var(t, nm)) );
 		}
 		while (!in.canMatch("}")) {
 			in.match(",");
 			shared_ptr<Type> t = readType();
-			string nm = in.pop().text();
-			vars.insert( map<string, Var>::value_type(nm, Var(t, nm)) );
+			Token nm = in.pop();
+			vars.insert( map<string, Var>::value_type(nm.text(), Var(t, nm)) );
 		}
 		retType = shared_ptr<Type>( new RecordType(vars) );
 	}

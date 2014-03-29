@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include "../io/Token.h"
+
 namespace std {
 
 class Type;
@@ -11,7 +13,28 @@ class Value;
 
 class SyntaxElem {
 public:
+	SyntaxElem() {}
 	virtual ~SyntaxElem() {}
+
+	void addToken(Token t) {
+		tok.push_back(t);
+	}
+
+	Token &getToken(int i) {
+		if (0 <= i && i < tok.size()) {
+			return tok[i];
+		}
+		else {
+			throw runtime_error("token lookup out of range");
+		}
+	}
+
+	void copyTokens(SyntaxElem &other) {
+		tok.insert(tok.end(), other.tok.begin(), other.tok.end());
+	}
+
+private:
+	vector<Token> tok;
 };
 
 class Type: public SyntaxElem, public enable_shared_from_this<Type> {
@@ -31,6 +54,9 @@ public:
 	virtual bool castsTo( const Type &other ) const = 0;
 	virtual bool contains( const Type &other ) const = 0;
 	virtual bool operator==( const Type &other ) const = 0;
+	virtual bool operator!=( const Type &other ) const {
+		return !(*this == other);
+	}
 
 	virtual bool isNull() const =  0;
 	virtual bool isAtomic() const = 0;

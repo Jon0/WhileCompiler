@@ -9,18 +9,18 @@
 
 namespace std {
 
-Var::Var() {
+Var::Var() {}
 
-}
-
-Var::Var(shared_ptr<Type> t, string n): type_info(t) {
-	name_str = n;
-}
+Var::Var(shared_ptr<Type> t, Token n): type_info(t), in_token(n) {}
 
 Var::~Var() {}
 
 string Var::name() const {
-	return name_str;
+	return in_token.text();
+}
+
+Token Var::token() const {
+	return in_token;
 }
 
 shared_ptr<Type> Var::type() const {

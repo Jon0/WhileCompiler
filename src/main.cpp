@@ -11,9 +11,13 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 
-	Lexer lex(argv[1]);
-	Parser parser(lex);
-
-	Program p = parser.read();
-	p.run();
+	try {
+		Lexer lex(argv[1]);
+		Parser parser(lex);
+		Program p = parser.read();
+		p.typeCheck();
+		p.run();
+	} catch (exception &e) {
+			cout << e.what() << endl;
+	}
 }

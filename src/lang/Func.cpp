@@ -24,7 +24,7 @@ string Func::name() const {
 	return name_str;
 }
 
-shared_ptr<Type> Func::returnType() {
+shared_ptr<Type> Func::returnType() const {
 	return r_type;
 }
 
@@ -39,6 +39,21 @@ void Func::execute( Stack &stack ) {
 	}
 
 	stmts->execute( stack, vars );
+}
+
+void Func::typeCheck() {
+	CheckState cs;
+	cs.to_return = r_type;
+	cs.returned = false;
+
+	for (Var &v: args) {
+		AssignState as;
+		as.defAssign = true;
+		as.type = v.type();
+		cs.assigned.insert( map<string, AssignState>::value_type(v.name(), as) );
+	}
+
+	stmts->typeCheck(cs);
 }
 
 } /* namespace std */

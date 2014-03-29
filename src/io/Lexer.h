@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <queue>
 
 #include "Token.h"
@@ -24,15 +25,24 @@ public:
 	queue<Token> getTokens();
 
 private:
+	string filename;
 	int current_line;
+	string current_line_str;
+	int current_line_char;
 	ifstream file;
+
+	bool canRead();
+	char popChar();
+	char peekChar();
+	void incLine();
+
+	Token makeToken(string);
 
 	Token getIdentifier();
 	Token getNumerical();
 	Token getString();
 
-	void skipWhiteSpace();
-	void skipRestOfLine();
+
 	void skipRestOfComment();
 };
 

@@ -10,13 +10,12 @@
 
 namespace std {
 
-FuncCallExpr::FuncCallExpr( shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Expr( f->returnType() ) {
+FuncCallExpr::FuncCallExpr( Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Expr( tok, f->returnType() ) {
 	func = f;
 	args = a;
 }
 
 shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
-	// TODO check arg types
 
 	// push items in reverse order
 	vector<shared_ptr<Value>> temp;
@@ -42,6 +41,13 @@ shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p
 
 	// need to have null returned
 	return shared_ptr<Value>( new NullValue( shared_ptr<Type>( new NullType() ) ) );
+}
+
+void FuncCallExpr::typeCheck( CheckState &cs ) {
+	for (shared_ptr<Expr> ep: args) {
+		ep->typeCheck(cs);
+	}
+	// TODO check arg types match function
 }
 
 } /* namespace std */

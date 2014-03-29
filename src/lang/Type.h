@@ -19,6 +19,8 @@
 
 namespace std {
 
+class UnknownType;
+
 /*
  * in/out
  */
@@ -37,7 +39,6 @@ public:
 template<template<class I, class O> class Func, class Return, class Source> class TypeSwitch {
 public:
 	static Return typeSwitch( shared_ptr<Type> type, Source in ) {
-
 		if (type->nameStr() == "char") {
 			return Func<char, Return>::func( in );
 		}
@@ -51,9 +52,51 @@ public:
 			return Func<bool, Return>::func( in );
 		}
 		else {
-			throw runtime_error("could not match a type");
+			return Func<int, Return>::func( in );
 		}
+	}
+};
 
+class UnknownType: public Type {
+
+	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
+		return v;
+	}
+
+	virtual bool castsTo( const Type &other ) const {
+		return false;
+	}
+
+	virtual bool contains( const Type &other ) const {
+		return false;
+	}
+
+	virtual bool operator==( const Type &other ) const {
+		return false;
+	}
+
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
+		return false;
+	}
+
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	virtual string nameStr() const {
+		return "unknown";
 	}
 };
 
@@ -378,7 +421,7 @@ public:
 		int i = 0;
 		for ( auto entry : elem_type ) {
 			s += entry.second.type()->nameStr();
-			s += ":";
+			s += " ";
 			s += entry.first;
 			if (i < elem_type.size() - 1) s += ",";
 		}
@@ -461,6 +504,7 @@ public:
 		for (auto a: types) {
 			str += a->nameStr();
 			if (i < types.size() - 1) str += "|";
+			i++;
 		}
 		return str;
 	}

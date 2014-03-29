@@ -16,42 +16,42 @@ typedef pair<shared_ptr<Expr>, shared_ptr<Expr>> ExprPair;
 
 template<class I, class O> class AddParser {
 public:
-	static O func( ExprPair in ) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func( ExprPair in ) {
 		return shared_ptr<Expr>( new OpExpr<I, I, AddOp<I>>(in.first, in.second) );
 	}
 };
 
 template<class I, class O> class SubParser {
 public:
-	static O func( ExprPair in ) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func( ExprPair in ) {
 		return shared_ptr<Expr>( new OpExpr<I, I, SubOp<I>>(in.first, in.second) );
 	}
 };
 
 template<class I, class O> class MulParser {
 public:
-	static O func( ExprPair in ) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func( ExprPair in ) {
 		return shared_ptr<Expr>( new OpExpr<I, I, MulOp<I>>(in.first, in.second) );
 	}
 };
 
 template<class I, class O> class DivParser {
 public:
-	static O func( ExprPair in ) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func( ExprPair in ) {
 		return shared_ptr<Expr>( new OpExpr<I, I, DivOp<I>>(in.first, in.second) );
 	}
 };
 
 template<class I, class O> class ModParser {
 public:
-	static O func( ExprPair in ) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func( ExprPair in ) {
 		return shared_ptr<Expr>( new OpExpr<I, I, ModOp<I>>(in.first, in.second) );
 	}
 };
 
 template<class I, class O> class GreaterParser {
 public:
-	static O func(ExprPair in) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func(ExprPair in) {
 		return shared_ptr<Expr>(
 				new OpExpr<bool, I, GreaterOp<I>>(
 						shared_ptr<Type>(new AtomicType<bool>("bool")),
@@ -61,7 +61,7 @@ public:
 
 template<class I, class O> class GreaterEqualParser {
 public:
-	static O func(ExprPair in) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func(ExprPair in) {
 		return shared_ptr<Expr>(
 				new OpExpr<bool, I, GreaterEqualOp<I>>(
 						shared_ptr<Type>(new AtomicType<bool>("bool")),
@@ -71,7 +71,7 @@ public:
 
 template<class I, class O> class LessParser {
 public:
-	static O func(ExprPair in) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func(ExprPair in) {
 		return shared_ptr<Expr>(
 				new OpExpr<bool, I, LessOp<I>>(
 						shared_ptr<Type>(new AtomicType<bool>("bool")),
@@ -81,7 +81,7 @@ public:
 
 template<class I, class O> class LessEqualParser {
 public:
-	static O func(ExprPair in) { // shared_ptr<Type> type, shared_ptr<Value> v
+	static O func(ExprPair in) {
 		return shared_ptr<Expr>(
 				new OpExpr<bool, I, LessEqualOp<I>>(
 						shared_ptr<Type>(new AtomicType<bool>("bool")),
@@ -104,6 +104,8 @@ private:
 	map<string, shared_ptr<Type>> dectypes;
 	map<string, shared_ptr<Expr>> constvals;
 
+	vector<shared_ptr<Var>> unresolved;
+
 	Func readFunc();
 
 	shared_ptr<Expr> readExpr(ParserContext &);
@@ -116,7 +118,12 @@ private:
 	shared_ptr<Expr> readExprTermInner(ParserContext &);
 
 	shared_ptr<Expr> readExprPrimary(ParserContext &);
+
+	// char and numerical parsing
 	shared_ptr<Expr> readConstExpr();
+
+	// creates unresolved var type
+	shared_ptr<Var> unresolvedVar(Token);
 
 	shared_ptr<Stmt> readStmtBlock(ParserContext &);
 	shared_ptr<Stmt> readStmt(ParserContext &);

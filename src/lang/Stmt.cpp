@@ -33,7 +33,14 @@ StmtStatus BlockStmt::execute( Stack &st, VarMap &m ) {
 	return {false, false};
 }
 
+void BlockStmt::typeCheck( CheckState &cks ) {
+	for (shared_ptr<Stmt> &s: block) {
+		s->typeCheck(cks);
+	}
+}
+
 InitStmt::InitStmt(Var v): var(v) {
+	expr = NULL;
 }
 
 InitStmt::InitStmt(Var v, shared_ptr<Expr> e): var(v) {
@@ -54,6 +61,17 @@ StmtStatus InitStmt::execute( Stack &s, VarMap &m ) {
 	return {false, false};
 }
 
+void InitStmt::typeCheck( CheckState &cs ) {
+	if (expr) {
+		expr->typeCheck(cs);
+		if (!var.type()->contains(*expr->getType())) {
+			throw runtime_error( var.type()->nameStr() + " cannot be assigned with " + expr->getType()->nameStr());
+		}
+	}
+	AssignState as{expr != NULL, var.type()};
+	cs.assigned.insert( map<string, AssignState>::value_type(var.name(), as) );
+}
+
 AssignStmt::AssignStmt(shared_ptr<Expr> l, shared_ptr<Expr> r) {
 	lhs = l;
 	rhs = r;
@@ -66,12 +84,27 @@ StmtStatus AssignStmt::execute( Stack &s, VarMap &m ) {
 
 	lhs->eval( s, m, &assignable );
 	if (!assignable) {
-		throw runtime_error("lhs not assignable");
+		throw runtime_error("interpreter error: lhs not assignable");
 	}
 	shared_ptr<Value> ev = rhs->eval( s, m )->clone( lhs->getType() ); // always clone rhs on assignment
 	*assignable = ev;
 
 	return {false, false};
+}
+
+void AssignStmt::typeCheck( CheckState &cs ) {
+	shared_ptr<Var> var = lhs->assignable(cs);
+	if (!var) {
+		throw runtime_error("lhs not assignable");
+	}
+	rhs->typeCheck(cs);
+	if (!lhs->getType()->contains( *rhs->getType() )) {
+		throw TokenException(rhs->getToken(0),
+				"expected type " + lhs->getType()->nameStr() + ", found "
+						+ rhs->getType()->nameStr());
+	}
+	map<string, AssignState>::iterator it = cs.assigned.find( var->name() );
+	(*it).second.defAssign = true;
 }
 
 IfStmt::IfStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b, shared_ptr<Stmt> a) {
@@ -107,6 +140,30 @@ StmtStatus IfStmt::execute( Stack &s, VarMap &m ) {
 	return {false, false};
 }
 
+void IfStmt::typeCheck( CheckState &cs ) {
+	expr->typeCheck(cs);
+
+	CheckState csbody = cs;
+	body->typeCheck(csbody);
+
+	CheckState csalt = cs;
+	if (alt) {
+		alt->typeCheck(csalt);
+	}
+
+	// find intersection
+	for (map<string, AssignState>::value_type &as: cs.assigned) {
+		map<string, AssignState>::iterator bit = csbody.assigned.find(as.first);
+		map<string, AssignState>::iterator ait = csalt.assigned.find(as.first);
+
+		as.second.defAssign |= (csbody.returned || (*bit).second.defAssign)
+				&& (csalt.returned || (*ait).second.defAssign);
+
+		// TODO intersection of types
+
+	}
+}
+
 WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
 	expr = e;
 	body = b;
@@ -130,6 +187,12 @@ StmtStatus WhileStmt::execute( Stack &s, VarMap &m ) {
 	}
 	return {false, false};
 }
+
+void WhileStmt::typeCheck( CheckState &cs ) {
+	expr->typeCheck(cs);
+	body->typeCheck(cs);
+}
+
 
 ForStmt::ForStmt( shared_ptr<Stmt> i, shared_ptr<Expr> c, shared_ptr<Stmt> u, shared_ptr<Stmt> b ) {
 	init = i;
@@ -171,6 +234,13 @@ StmtStatus ForStmt::execute( Stack &s, VarMap &m ) {
 	return {false, false};
 }
 
+void ForStmt::typeCheck( CheckState &cs ) {
+	init->typeCheck(cs);
+	expr->typeCheck(cs);
+	inc->typeCheck(cs);
+	body->typeCheck(cs);
+}
+
 PrintStmt::PrintStmt(shared_ptr<Expr> e) {
 	expr = e;
 }
@@ -182,6 +252,10 @@ StmtStatus PrintStmt::execute( Stack &s, VarMap &m ) {
 	return {false, false};
 }
 
+void PrintStmt::typeCheck( CheckState &cs ) {
+	expr->typeCheck(cs);
+}
+
 EvalStmt::EvalStmt(shared_ptr<Expr> e) {
 	expr = e;
 }
@@ -191,6 +265,10 @@ EvalStmt::~EvalStmt() {}
 StmtStatus EvalStmt::execute( Stack &s, VarMap &m ) {
 	expr->eval( s, m );
 	return {false, false};
+}
+
+void EvalStmt::typeCheck( CheckState & ) {
+	throw runtime_error("type check not implemented");
 }
 
 ReturnStmt::ReturnStmt() {
@@ -216,6 +294,23 @@ StmtStatus ReturnStmt::execute( Stack &s, VarMap &m ) {
 
 }
 
+void ReturnStmt::typeCheck( CheckState &s ) {
+	if (expr) {
+		expr->typeCheck(s);
+		if (!s.to_return->contains(*expr->getType())) {
+			throw TokenException(expr->getToken(0),
+					"expected type " + s.to_return->nameStr() + ", found "
+							+ expr->getType()->nameStr());
+		}
+	}
+	else {
+		if (s.to_return->nameStr() != "void") {
+			throw runtime_error("return type required");
+		}
+	}
+	s.returned = true;
+}
+
 BreakStmt::BreakStmt() {}
 
 BreakStmt::~BreakStmt() {}
@@ -223,9 +318,11 @@ BreakStmt::~BreakStmt() {}
 StmtStatus BreakStmt::execute( Stack &s, VarMap &m ) {
 	// escape current block
 	return {false, true};
-
 }
 
+void BreakStmt::typeCheck( CheckState & ) {
+	throw runtime_error("type check not implemented");
+}
 
 SwitchStmt::SwitchStmt( shared_ptr<Expr> e, map<shared_ptr<Expr>, shared_ptr<Stmt>> l, shared_ptr<Stmt> d ) {
 	expr = e;
@@ -251,6 +348,10 @@ StmtStatus SwitchStmt::execute( Stack &s, VarMap &m ) {
 		return {ss.isReturn, false}; 	// propogate back
 	}
 	return {false, false};
+}
+
+void SwitchStmt::typeCheck( CheckState & ) {
+	throw runtime_error("type check not implemented");
 }
 
 

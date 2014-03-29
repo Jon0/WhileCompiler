@@ -25,11 +25,11 @@ public:
 	virtual ~Program();
 
 	void run();
+	void typeCheck();
 
 private:
 	FuncMap funcs;
 
-	Stack stack;
 };
 
 } /* namespace std */

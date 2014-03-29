@@ -23,6 +23,7 @@ class Stmt: public SyntaxElem {
 public:
 	virtual ~Stmt() {}
 	virtual StmtStatus execute( Stack &, VarMap & ) = 0;
+	virtual void typeCheck( CheckState & ) = 0;
 };
 
 class BlockStmt: public Stmt {
@@ -30,6 +31,7 @@ public:
 	BlockStmt( vector<shared_ptr<Stmt>> );
 	virtual ~BlockStmt();
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 private:
 	vector<shared_ptr<Stmt>> block;
 };
@@ -41,6 +43,7 @@ public:
 	virtual ~InitStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 private:
 	Var var;
 	shared_ptr<Expr> expr;
@@ -52,6 +55,7 @@ public:
 	virtual ~AssignStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 private:
 	shared_ptr<Expr> lhs;
 	shared_ptr<Expr> rhs;
@@ -63,6 +67,7 @@ public:
 	virtual ~ListAssignStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 private:
 	Var var;
 	shared_ptr<Expr> expr;
@@ -75,6 +80,7 @@ public:
 	virtual ~RecordAssignStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 private:
 	Var var;
 	shared_ptr<Expr> expr;
@@ -87,6 +93,7 @@ public:
 	virtual ~IfStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -100,6 +107,7 @@ public:
 	virtual ~WhileStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -112,6 +120,7 @@ public:
 	virtual ~ForStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	bool checkCond( Stack &, VarMap & );
@@ -127,6 +136,7 @@ public:
 	virtual ~PrintStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -138,6 +148,7 @@ public:
 	virtual ~EvalStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -150,6 +161,7 @@ public:
 	virtual ~ReturnStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -161,6 +173,7 @@ public:
 	virtual ~BreakStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;
@@ -172,6 +185,7 @@ public:
 	virtual ~SwitchStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
+	virtual void typeCheck( CheckState & );
 
 private:
 	shared_ptr<Expr> expr;

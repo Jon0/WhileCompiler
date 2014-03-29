@@ -19,7 +19,18 @@ void Program::run() {
 	Stack s;
 
 	FuncMap::iterator i = funcs.find( "main" );
-	(*i).second.execute(s);
+	if (i == funcs.end()) {
+		throw runtime_error("no main function found");
+	}
+	else {
+		(*i).second.execute(s);
+	}
+}
+
+void Program::typeCheck() {
+	for (FuncMap::value_type &f: funcs) {
+		f.second.typeCheck();
+	}
 }
 
 } /* namespace std */

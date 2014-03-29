@@ -11,28 +11,33 @@
 #include <memory>
 #include <string>
 
+#include "../io/Token.h"
 #include "Common.h"
 #include "Type.h"
 
 namespace std {
 
+/*
+ * a type and name
+ */
 class Var {
 public:
 	Var();
-	Var(shared_ptr<Type>, string);
+	Var(shared_ptr<Type>, Token);
 	virtual ~Var();
 
 	string name() const;
+	Token token() const;
 	shared_ptr<Type> type() const;
 
 	// TODO type check breaks casting
 	bool operator==( const Var &other ) const {
-			return name() == other.name(); //  && *type() == *other.type()
+			return name() == other.name() && *type() == *other.type();
 	}
 
 private:
 	shared_ptr<Type> type_info;
-	string name_str;
+	Token in_token;
 };
 
 struct VarCompare {

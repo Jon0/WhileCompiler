@@ -28,8 +28,10 @@ public:
 	virtual ~Func();
 
 	string name() const;
-	shared_ptr<Type> returnType();
+	shared_ptr<Type> returnType() const;
+
 	void execute( Stack & );
+	void typeCheck();
 
 private:
 	// Type return_type;
