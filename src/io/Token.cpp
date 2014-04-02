@@ -5,6 +5,8 @@
  *      Author: remnanjona
  */
 
+#include <iostream>
+
 #include "Token.h"
 
 namespace std {
@@ -52,7 +54,7 @@ bool Token::operator==(const Token &other) const {
 	return (input_text == other.input_text);
 }
 
-string makeErrorMsg(Token t, string s) {
+string makeErrorMsg(Token &t, string s) {
 	string result;
 	result += t.file();
 	result += ":";
@@ -63,9 +65,40 @@ string makeErrorMsg(Token t, string s) {
 	result += t.lineText();
 	result += "\n";
 
-	int pos = t.charNum() - 1;
-	for (int i = 0; i < pos; ++i) result += " ";
-	result += "^";
+	int spos = t.charNum() - t.text().length();
+	int epos = t.charNum();
+	for (int i = 0; i < spos; ++i) result += " ";
+	for (int i = spos; i < epos; ++i) result += "^";
+
+	return result;
+}
+
+string makeErrorMsgA(vector<Token> &toks, string s) {
+	if (toks.size() == 0) {
+		return "cannot find tokens";
+	}
+	Token &t = toks[0];
+	string result;
+	result += t.file();
+	result += ":";
+	result += to_string(t.lineNum());
+	result += ": ";
+	result += s;
+	result += "\n";
+	result += t.lineText();
+	result += "\n";
+
+
+
+
+	int spos = t.charNum() - t.text().length();
+	int epos = t.charNum();
+	for (Token &tt: toks) {
+		if (tt.charNum() - tt.text().length() < spos) spos = tt.charNum() - tt.text().length();
+		if (tt.charNum() > epos) epos = tt.charNum();
+	}
+	for (int i = 0; i < spos; ++i) result += " ";
+	for (int i = spos; i < epos; ++i) result += "^";
 
 	return result;
 }

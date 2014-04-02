@@ -18,7 +18,10 @@
 
 namespace std {
 
+class Expr;
 class Func;
+
+void boolCheck(shared_ptr<Expr>);
 
 class Expr: public SyntaxElem {
 public:
@@ -86,8 +89,8 @@ public:
 		return shared_ptr<Value>( new TypedValue<bool>( getType(), type->contains(*subt) ) );
 	}
 
-	void typeCheck( CheckState & ) {
-		throw runtime_error("is expr type check not implemented");
+	void typeCheck( CheckState &cs ) {
+		to_check->typeCheck(cs);
 	}
 
 private:
@@ -115,7 +118,7 @@ public:
 	void typeCheck( CheckState &cs ) {
 		map<string, AssignState>::iterator i = cs.assigned.find( var->name() );
 		if ( i == cs.assigned.end() || !(*i).second.defAssign ) {
-			throw TokenException(getToken(0), "variable "+var->name()+" is not definitely assigned");
+			throw TokenException(getTokens(), "variable "+var->name()+" is not definitely assigned");
 		}
 	}
 
@@ -187,12 +190,6 @@ public:
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
-		shared_ptr<Value> vl = e->eval(s, m);
-
-		if ( !vl->type()->isList() ) {
-			throw runtime_error("error evaluating list length: not a list");
-		}
-
 		shared_ptr<Value> rs = e->eval(s, m);
 		shared_ptr<TypedValue<ValueList>> list = static_pointer_cast<TypedValue<ValueList>, Value>( rs );
 		return shared_ptr<Value>( new TypedValue<int>( getType(), list->value().size() ) );
@@ -200,7 +197,7 @@ public:
 
 	void typeCheck( CheckState & ) {
 		if ( !e->getType()->isList() ) {
-			throw TokenException(getToken(0), "only accepts list types");
+			throw TokenException(getTokens(), "expected instance of list or string, found "+e->getType()->aliasStr());
 		}
 	}
 
@@ -211,8 +208,10 @@ private:
 class ConcatExpr: public Expr {
 public:
 	ConcatExpr( Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( tok, t ) { // result type is list
-		first = a;	// TODO check first is a list type
+		first = a;
 		second = b;
+		copyTokens(*a);
+		copyTokens(*b);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -244,22 +243,22 @@ public:
 	}
 
 	void typeCheck( CheckState &cs ) {
+		// check first is a list type
 		if (!first->getType()->isList()) {
-			throw TokenException(getToken(0), "concat used on non list type");
+			throw TokenException(getTokens(), "concat used on non list type");
 		}
 		else {
 			shared_ptr<ListType> list_t = static_pointer_cast<ListType, Type>(
 					first->getType());
 			if (!(getType()->nameStr() == "string" || list_t->innerType()->contains(*second->getType())
 					|| list_t->contains(*second->getType()))) {
-				throw TokenException(getToken(0),
+				throw TokenException(getTokens(),
 						"operands must have identical types, found "
-								+ first->getType()->nameStr() + " and "
-								+ second->getType()->nameStr());
+								+ first->getType()->aliasStr() + " and "
+								+ second->getType()->aliasStr());
 			}
 
 		}
-
 		first->typeCheck(cs);
 		second->typeCheck(cs);
 	}
@@ -303,8 +302,8 @@ public:
 		v_expr->typeCheck(c);
 		index->typeCheck(c);
 		if (index->getType()->nameStr() != "int") {
-			throw TokenException(index->getToken(0),
-					"expected type int, found " + index->getType()->nameStr());
+			throw TokenException(index->getTokens(),
+					"expected type int, found " + index->getType()->aliasStr());
 		}
 	}
 
@@ -382,16 +381,14 @@ public:
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
 		shared_ptr<Value> v = expr->eval( s, m );
-
-		if ( !v->type()->castsTo(*getType()) ) {
-			throw runtime_error("invalid casting values: "+v->type()->nameStr()+" to "+getType()->nameStr());
-		}
-
 		return v->clone( getType() ) ;
 	}
 
-	void typeCheck( CheckState & ) {
-		throw runtime_error("basic cast expr type check not implemented");
+	void typeCheck( CheckState &cs ) {
+		expr->typeCheck(cs);
+		if (!expr->getType()->castsTo(*getType())) {
+			throw runtime_error("invalid casting values: "+expr->getType()->aliasStr()+" to "+getType()->aliasStr());
+		}
 	}
 
 private:
@@ -463,13 +460,13 @@ public:
 	OpExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
 		first = a;
 		second = b;
+		numbersOnly = false;
 		copyTokens(*first);
 		copyTokens(*second);
 	}
 
-	OpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( a->getType() ) {
-		first = a;
-		second = b;
+	OpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b, bool numOnly): OpExpr( a->getType(), a, b ) {
+		numbersOnly = numOnly;
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -483,13 +480,17 @@ public:
 		first->typeCheck(cs);
 		second->typeCheck(cs);
 		if (*first->getType() != *second->getType() ) {
-			throw TokenException(getToken(0), "operator not compatible");
+			throw TokenException(getTokens(), "operands must have identical types, found "+first->getType()->aliasStr()+" and "+second->getType()->aliasStr());
+		}
+		if ( numbersOnly && first->getType()->nameStr() == "bool" ) {
+			throw TokenException(getTokens(), "expected instance of int or real, found "+second->getType()->aliasStr());
 		}
 	}
 
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
+	bool numbersOnly;	// math operations
 };
 
 class EquivOp: public Expr {
@@ -504,7 +505,10 @@ public:
 		return shared_ptr<Value>( new TypedValue<bool>( first->getType(), result ) );
 	}
 
-	void typeCheck( CheckState & ) {}
+	void typeCheck( CheckState &cs ) {
+		first->typeCheck(cs);
+		second->typeCheck(cs);
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -523,7 +527,10 @@ public:
 		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
 	}
 
-	void typeCheck( CheckState & ) {}
+	void typeCheck( CheckState &cs ) {
+		first->typeCheck(cs);
+		second->typeCheck(cs);
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -555,8 +562,11 @@ public:
 		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
 	}
 
-	void typeCheck( CheckState & ) {
-		throw runtime_error("and expr type check not implemented");
+	void typeCheck( CheckState &cs ) {
+		first->typeCheck(cs);
+		second->typeCheck(cs);
+		boolCheck(first);
+		boolCheck(second);
 	}
 
 private:
@@ -589,8 +599,11 @@ public:
 		return shared_ptr<Value>( new TypedValue<bool>( getType(), result ) );
 	}
 
-	void typeCheck( CheckState & ) {
-		throw runtime_error("or expr type check not implemented");
+	void typeCheck( CheckState &cs ) {
+		first->typeCheck(cs);
+		second->typeCheck(cs);
+		boolCheck(first);
+		boolCheck(second);
 	}
 
 private:
@@ -612,7 +625,8 @@ public:
 	}
 
 	void typeCheck( CheckState &cs ) {
-		throw runtime_error("not expr type check not implemented");
+		first->typeCheck(cs);
+		boolCheck(first);
 	}
 
 private:

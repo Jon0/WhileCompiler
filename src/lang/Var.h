@@ -24,6 +24,7 @@ class Var {
 public:
 	Var();
 	Var(shared_ptr<Type>, Token);
+	Var(shared_ptr<Type>, Var);
 	virtual ~Var();
 
 	string name() const;

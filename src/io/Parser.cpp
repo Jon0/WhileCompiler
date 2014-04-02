@@ -31,8 +31,11 @@ Parser::Parser(Lexer &lexer) :
 	/*
 	 * some internal constants
 	 */
-	shared_ptr<Value> v = shared_ptr<Value>(new TypedValue<int>((*dectypes.find("int")).second, 0));
-	intzero = shared_ptr<Expr>(new ConstExpr(v));
+	shared_ptr<Value> v1 = shared_ptr<Value>(new TypedValue<int>((*dectypes.find("int")).second, 0));
+	intzero = shared_ptr<Expr>(new ConstExpr(v1));
+
+	shared_ptr<Value> v2 = shared_ptr<Value>(new TypedValue<int>((*dectypes.find("real")).second, 0));
+	realzero = shared_ptr<Expr>(new ConstExpr(v2));
 
 	nulltype = (*dectypes.find("null")).second;
 	booltype = (*dectypes.find("bool")).second;
@@ -67,7 +70,7 @@ Program Parser::read() {
 				Token name = in.pop();
 				in.match("is");
 				shared_ptr<Type> type = readType();
-				dectypes.insert(map<string, shared_ptr<Type>>::value_type(name.text(), type));
+				dectypes.insert(map<string, shared_ptr<Type>>::value_type(name.text(), type->makeAlias( name.text() )));
 			}
 			else {
 				Func f = readFunc();
@@ -90,21 +93,19 @@ shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
 	/*
 	 * Boolean operations
 	 */
-	if (in.canMatch("&")) {
-		in.match("&"); // second &
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>( new AndExpr(tok, booltype, e, second) );
-	}
-	else if (in.canMatch("|")) {
-		in.match("|"); // second |
-		shared_ptr<Expr> second = readExpr(ctxt);
-		e = shared_ptr<Expr>( new OrExpr(tok, booltype, e, second) );
-	}
-
-	// type comparison
-	else if (in.canMatch("is")) {
-		shared_ptr<Type> ty = readType();
-		e = shared_ptr<Expr>(new IsTypeExpr(tok, e, ty));
+	bool read = true;
+	while (read) {
+		if (in.canMatch("&")) {
+			in.match("&"); // second &
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new AndExpr(tok, booltype, e, second));
+		} else if (in.canMatch("|")) {
+			in.match("|"); // second |
+			shared_ptr<Expr> second = readExpr(ctxt);
+			e = shared_ptr<Expr>(new OrExpr(tok, booltype, e, second));
+		} else {
+			read = false;
+		}
 	}
 	return e;
 }
@@ -142,6 +143,11 @@ shared_ptr<Expr> Parser::readExprCmpr(ParserContext &ctxt) {
 			ExprPair ep = ExprPair(e, readExprList(ctxt));
 			e = TypeSwitch<LessParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
 		}
+	}
+	else if (in.canMatch("is")) {
+		// type comparison
+		shared_ptr<Type> ty = readType();
+		e = shared_ptr<Expr>(new IsTypeExpr(tok, e, ty));
 	}
 	return e;
 }
@@ -185,16 +191,23 @@ shared_ptr<Expr> Parser::readExprMul(ParserContext &ctxt) {
 	/*
 	 * Math Operations
 	 */
-	if (in.canMatch("*")) {
-		ExprPair ep = ExprPair(e, readExprTerm(ctxt));
-		e = TypeSwitch<MulParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
-	} else if (in.canMatch("/")) {
-		ExprPair ep = ExprPair(e, readExprTerm(ctxt));
-		e = TypeSwitch<DivParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
-	}
-	else if (in.canMatch("%")) {
-		ExprPair ep = ExprPair(e, readExprTerm(ctxt));
-		e = TypeSwitch<ModParser, shared_ptr<Expr>, ExprPair>::typeSwitch( e->getType(), ep );
+	bool read = true;
+	while (read) {
+		if (in.canMatch("*")) {
+			ExprPair ep = ExprPair(e, readExprTerm(ctxt));
+			e = TypeSwitch<MulParser, shared_ptr<Expr>, ExprPair>::typeSwitch(
+					e->getType(), ep);
+		} else if (in.canMatch("/")) {
+			ExprPair ep = ExprPair(e, readExprTerm(ctxt));
+			e = TypeSwitch<DivParser, shared_ptr<Expr>, ExprPair>::typeSwitch(
+					e->getType(), ep);
+		} else if (in.canMatch("%")) {
+			ExprPair ep = ExprPair(e, readExprTerm(ctxt));
+			e = TypeSwitch<ModParser, shared_ptr<Expr>, ExprPair>::typeSwitch(
+					e->getType(), ep);
+		} else {
+			read = false;
+		}
 	}
 
 	return e;
@@ -211,9 +224,17 @@ shared_ptr<Expr> Parser::readExprTerm(ParserContext &ctxt) {
 		/*
 		 * list lookups
 		 */
-		if (e->getType()->isList() && in.canMatch("[")) {// while to cover nested lists
-			ListType &lt = (ListType &) *intype;
-			shared_ptr<Type> inner_type = lt.innerType();
+		if (in.canMatch("[")) {// while to cover nested lists
+			shared_ptr<Type> inner_type;
+			if (e->getType()->isList()) {
+				ListType &lt = (ListType &) *intype;
+				inner_type = lt.innerType();
+
+			}
+			else {
+				inner_type = shared_ptr<Type>(new UnknownType());
+			}
+
 			shared_ptr<Expr> index = readExprAdd(ctxt);
 			e = shared_ptr<Expr>(new ListLookupExpr(tok, e, inner_type, index));
 			in.match("]");
@@ -223,11 +244,17 @@ shared_ptr<Expr> Parser::readExprTerm(ParserContext &ctxt) {
 		/*
 		 * record lookups
 		 */
-		else if (e->getType()->isRecord() && in.canMatch(".")) {	// record member
-			string memb = in.pop().text();
-			RecordType &rt = (RecordType &) *intype;
-			shared_ptr<Type> inner_type = rt.memberType(memb).type();
-			e = shared_ptr<Expr>(new RecordMemberExpr(tok, e, inner_type, memb));
+		else if (in.canMatch(".")) {	// record member
+			Token memb = in.pop();
+			shared_ptr<Type> inner_type;
+			if (e->getType()->isRecord()) {
+				RecordType &rt = (RecordType &) *intype;
+				inner_type = rt.memberType(memb.text()).type();
+			}
+			else {
+				inner_type = shared_ptr<Type>(new UnknownType());
+			}
+			e = shared_ptr<Expr>(new RecordMemberExpr(memb, e, inner_type, memb.text()));
 		}
 		else {
 			read = false;
@@ -378,10 +405,6 @@ shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 	if (in.canMatch("|")) {
 		shared_ptr<Expr> exp = readExprAdd(ctxt);
 		in.match("|");
-
-		if (!exp->getType()->isList()) {
-			throw TokenException(t, "cannot get length of non list");
-		}
 		e = shared_ptr<Expr>(new ListLengthExpr( t, exp));
 	}
 	else if (in.canMatch("!")) {
@@ -390,7 +413,10 @@ shared_ptr<Expr> Parser::readExprPrimary(ParserContext &ctxt) {
 	}
 	else if (in.canMatch("-")) {
 		shared_ptr<Expr> inner = readExprTerm(ctxt);
-		ExprPair ep = ExprPair(intzero, inner);	// TODO real zero?
+
+		// create zero with matching type
+		shared_ptr<Expr> expzero = TypeSwitch<ZeroParser, shared_ptr<Expr>, shared_ptr<Type>>::typeSwitch( inner->getType(), inner->getType() );
+		ExprPair ep = ExprPair(expzero, inner);
 		e = TypeSwitch<SubParser, shared_ptr<Expr>, ExprPair>::typeSwitch( inner->getType(), ep );
 	}
 	else {

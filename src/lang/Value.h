@@ -82,6 +82,7 @@ public:
 				return true;
 			}
 			// union types should not occur in instances except lists
+			// TODO union in lists
 		}
 		return false;
 	}

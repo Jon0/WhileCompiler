@@ -10,6 +10,17 @@
 
 namespace std {
 
+/*
+ * throw error if expr is not boolean
+ */
+void boolCheck(shared_ptr<Expr> expr) {
+	if (expr->getType()->nameStr() != "bool") {
+		throw TokenException(expr->getTokens(),
+				"expected type bool, found "
+						+ expr->getType()->aliasStr());
+	}
+}
+
 FuncCallExpr::FuncCallExpr( Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Expr( tok, f->returnType() ) {
 	func = f;
 	args = a;

@@ -14,38 +14,46 @@ namespace std {
 
 typedef pair<shared_ptr<Expr>, shared_ptr<Expr>> ExprPair;
 
+template<class I, class O> class ZeroParser {
+public:
+	static O func( shared_ptr<Type> in ) {
+		shared_ptr<Value> v = shared_ptr<Value>(new TypedValue<I>(in, (I)0));
+		return shared_ptr<Expr>(new ConstExpr(v));
+	}
+};
+
 template<class I, class O> class AddParser {
 public:
 	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, AddOp<I>>(in.first, in.second) );
+		return shared_ptr<Expr>( new OpExpr<I, I, AddOp<I>>(in.first, in.second, true) );
 	}
 };
 
 template<class I, class O> class SubParser {
 public:
 	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, SubOp<I>>(in.first, in.second) );
+		return shared_ptr<Expr>( new OpExpr<I, I, SubOp<I>>(in.first, in.second, true) );
 	}
 };
 
 template<class I, class O> class MulParser {
 public:
 	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, MulOp<I>>(in.first, in.second) );
+		return shared_ptr<Expr>( new OpExpr<I, I, MulOp<I>>(in.first, in.second, true) );
 	}
 };
 
 template<class I, class O> class DivParser {
 public:
 	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, DivOp<I>>(in.first, in.second) );
+		return shared_ptr<Expr>( new OpExpr<I, I, DivOp<I>>(in.first, in.second, true) );
 	}
 };
 
 template<class I, class O> class ModParser {
 public:
 	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, ModOp<I>>(in.first, in.second) );
+		return shared_ptr<Expr>( new OpExpr<I, I, ModOp<I>>(in.first, in.second, true) );
 	}
 };
 
@@ -137,6 +145,8 @@ private:
 	 * const
 	 */
 	shared_ptr<Expr> intzero;
+	shared_ptr<Expr> realzero;
+	shared_ptr<Expr> unknownzero;
 
 	shared_ptr<Type> stringtype;
 	shared_ptr<Type> nulltype;

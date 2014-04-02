@@ -20,17 +20,16 @@ public:
 		tok.push_back(t);
 	}
 
-	Token &getToken(int i) {
-		if (0 <= i && i < tok.size()) {
-			return tok[i];
-		}
-		else {
-			throw runtime_error("token lookup out of range");
-		}
+	vector<Token> &getTokens() {
+		return tok;
 	}
 
 	void copyTokens(SyntaxElem &other) {
 		tok.insert(tok.end(), other.tok.begin(), other.tok.end());
+	}
+
+	int tokenSize() {
+		return tok.size();
 	}
 
 private:
@@ -39,9 +38,7 @@ private:
 
 class Type: public SyntaxElem, public enable_shared_from_this<Type> {
 public:
-	virtual ~Type() {
-
-	}
+	virtual ~Type() {}
 
 	/*
 	 * create a related value, casting where needed.
@@ -51,6 +48,24 @@ public:
 	 */
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> ) = 0;
 
+	virtual shared_ptr<Type> data() const = 0;
+
+	/*
+	 * creates equal type but with a given alias
+	 */
+	virtual shared_ptr<Type> makeAlias(string) const = 0;
+
+	virtual string nameStr() const = 0;
+
+	virtual string aliasStr() const {
+		if (alias.length() > 0) {
+			return alias;
+		}
+		else {
+			return nameStr();
+		}
+	}
+
 	virtual bool castsTo( const Type &other ) const = 0;
 	virtual bool contains( const Type &other ) const = 0;
 	virtual bool operator==( const Type &other ) const = 0;
@@ -58,12 +73,33 @@ public:
 		return !(*this == other);
 	}
 
-	virtual bool isNull() const =  0;
-	virtual bool isAtomic() const = 0;
-	virtual bool isUnion() const = 0;
-	virtual bool isList() const = 0;
-	virtual bool isRecord() const = 0;
-	virtual string nameStr() const = 0;
+	virtual bool isNull() const {
+		return false;
+	}
+
+	virtual bool isAtomic() const {
+		return false;
+	}
+
+	virtual bool isUnion() const {
+		return false;
+	}
+
+	virtual bool isList() const {
+		return false;
+	}
+
+	virtual bool isRecord() const {
+		return false;
+	}
+
+	void setAlias(string s) {
+		alias = s;
+	}
+
+private:
+	string alias;
+
 };
 
 class Value: public SyntaxElem, public enable_shared_from_this<Value> {
@@ -89,6 +125,8 @@ public:
 	virtual bool operator!=( const Value &other ) const {
 		return !(*this == other);
 	}
+
+
 
 private:
 	shared_ptr<Type> type_in;

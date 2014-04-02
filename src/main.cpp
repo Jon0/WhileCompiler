@@ -17,7 +17,8 @@ int main(int argc, char *argv[]) {
 		Program p = parser.read();
 		p.typeCheck();
 		p.run();
-	} catch (exception &e) {
-			cout << e.what() << endl;
+	}
+	catch (exception &e) {
+		cout << e.what() << endl;
 	}
 }

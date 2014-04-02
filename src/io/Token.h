@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace std {
 
@@ -50,11 +51,13 @@ struct TokenCompare {
 	}
 };
 
-string makeErrorMsg(Token, string);
+string makeErrorMsg(Token &, string);
+string makeErrorMsgA(vector<Token> &, string);
 
 class TokenException: public runtime_error {
 public:
-	TokenException(Token t, string s): runtime_error(makeErrorMsg(t, s)) {}
+	TokenException(Token &t, string s): runtime_error(makeErrorMsg(t, s)) {}
+	TokenException(vector<Token> &t, string s): runtime_error(makeErrorMsgA(t, s)) {}
 };
 
 } /* namespace std */
