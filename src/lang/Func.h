@@ -28,6 +28,8 @@ public:
 	virtual ~Func();
 
 	string name() const;
+	int numArgs() const;
+	shared_ptr<Type>  argType(int) const;
 	shared_ptr<Type> returnType() const;
 
 	void execute( Stack & );

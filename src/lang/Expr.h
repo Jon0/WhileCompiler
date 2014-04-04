@@ -278,6 +278,7 @@ public:
 	ListLookupExpr( Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( tok, t ) {
 		v_expr = v;
 		index = i;
+		copyTokens(*i);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {

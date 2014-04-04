@@ -24,6 +24,20 @@ string Func::name() const {
 	return name_str;
 }
 
+int Func::numArgs() const {
+	return args.size();
+}
+
+shared_ptr<Type> Func::argType(int i) const {
+	if (0 <= i && i < args.size()) {
+		return args[i].type();
+	}
+	else {
+		throw runtime_error("function arg index out of range");
+	}
+
+}
+
 shared_ptr<Type> Func::returnType() const {
 	return r_type;
 }

@@ -55,8 +55,19 @@ shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p
 }
 
 void FuncCallExpr::typeCheck( CheckState &cs ) {
+	if (func->numArgs() != args.size()) {
+		throw TokenException(getTokens(), "Incorrect number of arguments");
+	}
+
+	int i = 0;
 	for (shared_ptr<Expr> ep: args) {
 		ep->typeCheck(cs);
+
+		if ( !func->argType(i)->contains( *ep->getType() )) {
+			throw TokenException(ep->getTokens(), "expected type "+func->argType(i)->aliasStr()+", found "+ep->getType()->aliasStr());
+		}
+
+		i++;
 	}
 	// TODO check arg types match function
 }
