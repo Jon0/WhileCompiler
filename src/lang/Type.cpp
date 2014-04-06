@@ -12,6 +12,24 @@
 
 namespace std {
 
+
+bool ListType::contains( const Type &other ) const {
+	if ( elem_type && other.isList() ) {
+		ListType &other_list = (ListType &)other;
+
+		// consider nulls(empty list) a subtype
+		return other_list.elem_type == NULL || elem_type->contains(*other_list.elem_type);
+	}
+	if ( elem_type && other.isUnion() ) {
+
+		// [int|real] contains [int]|[real]
+		UnionType &other_u = (UnionType &)other;
+		return other_u.containedByList(*elem_type);
+
+	}
+	return *this == other;
+}
+
 vector<shared_ptr<Type>> UnionType::normalise( const vector<shared_ptr<Type>> types ) {
 	vector<shared_ptr<Type>> sets;
 

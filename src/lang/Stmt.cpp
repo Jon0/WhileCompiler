@@ -165,6 +165,8 @@ void IfStmt::typeCheck( CheckState &cs ) {
 		// TODO intersection of types
 
 	}
+
+	cs.returned |= csbody.returned || csalt.returned;
 }
 
 WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
@@ -319,7 +321,7 @@ void ReturnStmt::typeCheck( CheckState &s ) {
 	}
 	else {
 		if (s.to_return->nameStr() != "void") {
-			throw runtime_error("return type required");
+			throw runtime_error("return value required");
 		}
 	}
 	s.returned = true;

@@ -265,20 +265,7 @@ public:
 
 
 
-	virtual bool contains( const Type &other ) const {
-		if ( elem_type && other.isList() ) {
-			ListType &other_list = (ListType &)other;
-
-			// consider nulls(empty list) a subtype
-			return other_list.elem_type == NULL || elem_type->contains(*other_list.elem_type);
-		}
-		if ( elem_type && other.isUnion() ) {
-			// TODO [int|real] contains [int]|[real]
-
-
-		}
-		return *this == other;
-	}
+	virtual bool contains( const Type &other ) const;
 
 	virtual bool operator==( const Type &other ) const {
 		if ( other.isList() ) {
@@ -326,13 +313,6 @@ private:
 class UnionType: public Type {
 public:
 	UnionType( vector<shared_ptr<Type>> t ) {
-		str = "";
-		int i = 0;
-		for (auto a: t) {
-			str += a->nameStr();
-			if (i < t.size() - 1) str += "|";
-			i++;
-		}
 
 		// format and nomalise
 		vector<shared_ptr<Type>> ntypes;
@@ -340,12 +320,30 @@ public:
 			if (tp->isUnion()) {
 				UnionType &o = (UnionType &)tp;
 				for (auto &otp: o.types) {
-					ntypes.push_back(otp);
+					bool contains = false;
+					for (shared_ptr<Type> itp: ntypes) {
+						if (itp->contains(*otp)) contains = true;
+						break;
+					}
+					if (!contains) ntypes.push_back(otp);
 				}
 			}
 			else {
-				ntypes.push_back(tp);
+				bool contains = false;
+				for (shared_ptr<Type> itp: ntypes) {
+					if (itp->contains(*tp)) contains = true;
+					break;
+				}
+				if (!contains) ntypes.push_back(tp);
 			}
+		}
+
+		str = "";
+		int i = 0;
+		for (auto a: ntypes) {
+			str += a->nameStr();
+			if (i < ntypes.size() - 1) str += "|";
+			i++;
 		}
 
 		types = normalise(ntypes);
@@ -407,6 +405,18 @@ public:
 
 	virtual string nameStr() const {
 		return str;
+	}
+
+	bool containedByList( const Type &other ) {
+		bool result = true;
+		for (auto a: types) {
+			if (!a->isList()) return false;
+
+			ListType &a_list = (ListType &)*a;
+
+			result &= other.contains(*a_list.innerType());
+		}
+		return result;
 	}
 
 private:

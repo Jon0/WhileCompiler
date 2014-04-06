@@ -156,10 +156,12 @@ private:
 	map<string, shared_ptr<Expr>> rec;
 };
 
+shared_ptr<Type> findListType(vector<shared_ptr<Expr>> e);
+
 class ListExpr: public Expr {
 public:
 	// TODO generate list type if int and bool are contained, type is bool|int
-	ListExpr( Token tok, shared_ptr<Type> t, vector<shared_ptr<Expr>> l ): Expr( tok, t ) {
+	ListExpr( Token tok, vector<shared_ptr<Expr>> l ): Expr( tok, findListType(l) ) {
 		list = l;
 	}
 
@@ -174,8 +176,13 @@ public:
 	}
 
 	void typeCheck( CheckState &cs ) {
+		shared_ptr<ListType> ltype = static_pointer_cast<ListType, Type>( getType() );
+
 		for ( shared_ptr<Expr> ex: list ) {
 			ex->typeCheck(cs);
+			if (!ltype->innerType()->contains(*ex->getType())) {
+				throw TokenException(getTokens(), "list of "+getType()->aliasStr()+" cannot contain "+ex->getType()->aliasStr());
+			}
 		}
 	}
 
@@ -222,7 +229,16 @@ public:
 		 * concat with single value or list?
 		 */
 		if ( !second->getType()->isList() ) {
-			newList.push_back( second->eval(s,m) );
+			if (getType()->nameStr() == "string") {
+				string insert = second->eval(s,m)->asString();
+				shared_ptr<Type> inner_type = shared_ptr<Type>(new AtomicType<char>("char"));
+				for (char c: insert) {
+					newList.push_back( makeValue<char>(inner_type, c) );
+				}
+			}
+			else {
+				newList.push_back( second->eval(s,m) );
+			}
 		}
 		else {
 			// hack to make strings work

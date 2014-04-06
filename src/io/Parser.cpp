@@ -336,15 +336,7 @@ shared_ptr<Expr> Parser::readExprTermInner(ParserContext &ctxt) {
 				list.push_back( readExpr(ctxt) );
 			}
 		}
-
-		shared_ptr<Type> type;
-		if (list.empty()) {
-			type = shared_ptr<Type>( new ListType() );
-		}
-		else {
-			type = shared_ptr<Type>( new ListType( list[0]->getType() ) );
-		}
-		e = shared_ptr<Expr>(new ListExpr( t, type, list));
+		e = shared_ptr<Expr>(new ListExpr( t, list ));
 	}
 
 	/*

@@ -47,7 +47,7 @@ void Func::execute( Stack &stack ) {
 
 	// TODO check arg types
 	for (Var &v: args) {
-		shared_ptr<Value> ev = stack.back()->clone( v.type() ); // clone as type of arg
+		shared_ptr<Value> ev = stack.back()->clone(); // clone as type of original value
 		stack.pop_back();
 		vars.insert( VarMap::value_type(v, ev) );
 	}
@@ -68,6 +68,10 @@ void Func::typeCheck() {
 	}
 
 	stmts->typeCheck(cs);
+
+	if ( r_type->nameStr() != "void" && !cs.returned ) {
+		throw runtime_error("non void function requires return value");
+	}
 }
 
 } /* namespace std */
