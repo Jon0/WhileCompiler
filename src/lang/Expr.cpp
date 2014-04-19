@@ -1,10 +1,3 @@
-/*
- * Expr.cpp
- *
- *  Created on: 17/03/2014
- *      Author: remnanjona
- */
-
 #include "Expr.h"
 #include "Func.h"
 

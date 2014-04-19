@@ -9,6 +9,8 @@ file(GLOB SRC_FILES
     "src/*.cpp"
     "src/io/*.cpp"
     "src/lang/*.cpp"
+    "src/utils/*.cpp"
+    "src/test/*.cpp"
 )
 
 add_definitions(-std=c++11)

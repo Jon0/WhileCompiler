@@ -43,7 +43,7 @@ public:
 
 	virtual void typeCheck( CheckState & ) = 0;
 
-	virtual shared_ptr<Var>  assignable( CheckState & ) {
+	virtual shared_ptr<Var> assignable( CheckState & ) {
 		return NULL;
 	}
 
@@ -52,7 +52,7 @@ private:
 
 };
 
-class ConstExpr: public Expr {
+class ConstExpr: public Expr, public enable_shared_from_this<ConstExpr> {
 public:
 	ConstExpr(shared_ptr<Value> c): Expr( c->type() ) {
 		const_value = c;
@@ -68,6 +68,10 @@ public:
 
 	void typeCheck( CheckState & ) {}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
 private:
 	shared_ptr<Value> const_value;
 
@@ -77,7 +81,7 @@ private:
  * check types
  * TODO: very broken...
  */
-class IsTypeExpr: public Expr {
+class IsTypeExpr: public Expr, public enable_shared_from_this<IsTypeExpr> {
 public:
 	IsTypeExpr( Token tok, shared_ptr<Expr> e, shared_ptr<Type> t): Expr( tok, shared_ptr<Type>( new AtomicType<bool>("bool") )  ) {
 		to_check = e;
@@ -93,13 +97,17 @@ public:
 		to_check->typeCheck(cs);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
 private:
 	shared_ptr<Expr> to_check;
 	shared_ptr<Type> type;
 
 };
 
-class VariableExpr: public Expr {
+class VariableExpr: public Expr, public enable_shared_from_this<VariableExpr> {
 public:
 	VariableExpr(Token tok, shared_ptr<Var> v): Expr( tok, v->type() ) {
 		var = v;
@@ -126,11 +134,15 @@ public:
 		return var;
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
 private:
 	shared_ptr<Var> var;
 };
 
-class RecordExpr: public Expr {
+class RecordExpr: public Expr, public enable_shared_from_this<RecordExpr> {
 public:
 	RecordExpr( Token tok, shared_ptr<Type> t, map<string, shared_ptr<Expr>> r ): Expr(tok, t) {
 		rec = r;
@@ -152,17 +164,20 @@ public:
 		}
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	map<string, shared_ptr<Expr>> rec;
 };
 
 shared_ptr<Type> findListType(vector<shared_ptr<Expr>> e);
 
-class ListExpr: public Expr {
+class ListExpr: public Expr, public enable_shared_from_this<ListExpr> {
 public:
 	// TODO generate list type if int and bool are contained, type is bool|int
 	ListExpr( Token tok, vector<shared_ptr<Expr>> l ): Expr( tok, findListType(l) ) {
 		list = l;
+		cout << "list type is " << getType()->nameStr() << endl;
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -186,11 +201,13 @@ public:
 		}
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	vector<shared_ptr<Expr>> list;
 };
 
-class ListLengthExpr: public Expr {
+class ListLengthExpr: public Expr, public enable_shared_from_this<ListLengthExpr> {
 public:
 	ListLengthExpr( Token tok, shared_ptr<Expr> v ): Expr( tok, shared_ptr<Type>( new AtomicType<int>("int") ) ) {
 		e = v;
@@ -208,11 +225,13 @@ public:
 		}
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> e;
 };
 
-class ConcatExpr: public Expr {
+class ConcatExpr: public Expr, public enable_shared_from_this<ConcatExpr> {
 public:
 	ConcatExpr( Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( tok, t ) { // result type is list
 		first = a;
@@ -279,6 +298,8 @@ public:
 		second->typeCheck(cs);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
@@ -289,7 +310,7 @@ private:
  * t is the type of inner elements(what is returned from this)
  * i is the position in the list to lookup
  */
-class ListLookupExpr: public Expr {
+class ListLookupExpr: public Expr, public enable_shared_from_this<ListLookupExpr> {
 public:
 	ListLookupExpr( Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( tok, t ) {
 		v_expr = v;
@@ -329,6 +350,8 @@ public:
 		return v_expr->assignable(c);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> v_expr;
 	shared_ptr<Expr> index;
@@ -339,7 +362,7 @@ private:
  * t is the type of inner elements(what is returned from this)
  * m_name is the name of the member to get
  */
-class RecordMemberExpr: public Expr {
+class RecordMemberExpr: public Expr, public enable_shared_from_this<RecordMemberExpr> {
 public:
 	RecordMemberExpr( Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, string m_name ): Expr( tok, t ) {
 		v_expr = v;
@@ -372,12 +395,14 @@ public:
 		return v_expr->assignable(c);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> v_expr;
 	string member_name;
 };
 
-class FuncCallExpr: public Expr {
+class FuncCallExpr: public Expr, public enable_shared_from_this<FuncCallExpr> {
 public:
 	FuncCallExpr( Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a );
 
@@ -385,12 +410,14 @@ public:
 
 	void typeCheck( CheckState &cs );
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Func> func;
 	vector<shared_ptr<Expr>> args;
 };
 
-class BasicCastExpr: public Expr {
+class BasicCastExpr: public Expr, public enable_shared_from_this<BasicCastExpr> {
 public:
 	BasicCastExpr( Token tok, shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( tok, t ) {
 		expr = e;
@@ -407,6 +434,8 @@ public:
 			throw runtime_error("invalid casting values: "+expr->getType()->aliasStr()+" to "+getType()->aliasStr());
 		}
 	}
+
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
 
 private:
 	shared_ptr<Expr> expr;
@@ -466,15 +495,9 @@ template<class T> struct LessEqualOp {
 	}
 };
 
-/*
- * R is result type
- * T is type of values
- * O defines and operation
- * eg. 1 == 1 uses <bool, int, EquivOp>
- */
-template<class R, class T, class O> class OpExpr: public Expr {
+class AbstractOpExpr: public Expr, public enable_shared_from_this<AbstractOpExpr> {
 public:
-	OpExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
+	AbstractOpExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( t ) {
 		first = a;
 		second = b;
 		numbersOnly = false;
@@ -482,16 +505,10 @@ public:
 		copyTokens(*second);
 	}
 
-	OpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b, bool numOnly): OpExpr( a->getType(), a, b ) {
+	AbstractOpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b, bool numOnly): AbstractOpExpr( a->getType(), a, b ) {
 		numbersOnly = numOnly;
 	}
 
-	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
-		shared_ptr<TypedValue<T>> a = static_pointer_cast<TypedValue<T>, Value>( first->eval( s, m ) );
-		shared_ptr<TypedValue<T>> b = static_pointer_cast<TypedValue<T>, Value>( second->eval( s, m ) );
-		R result = O::compute(a->value(),  b->value());
-		return shared_ptr<Value>( new TypedValue<R>( first->getType(), result ) );
-	}
 
 	void typeCheck( CheckState &cs ) {
 		first->typeCheck(cs);
@@ -504,13 +521,44 @@ public:
 		}
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
+	shared_ptr<Expr> getLHS() const {
+		return first;
+	}
+
+	shared_ptr<Expr> getRHS() const {
+		return second;
+	}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
 	bool numbersOnly;	// math operations
+
 };
 
-class EquivOp: public Expr {
+/*
+ * R is result type
+ * T is type of values
+ * O defines and operation
+ * eg. 1 == 1 uses <bool, int, EquivOp>
+ */
+template<class R, class T, class O> class OpExpr: public AbstractOpExpr {
+public:
+	OpExpr(shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): AbstractOpExpr( t, a, b ) {}
+
+	OpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b, bool numOnly): AbstractOpExpr( a, b, numOnly ) {}
+
+	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
+		shared_ptr<TypedValue<T>> a = static_pointer_cast<TypedValue<T>, Value>( getLHS()->eval( s, m ) );
+		shared_ptr<TypedValue<T>> b = static_pointer_cast<TypedValue<T>, Value>( getRHS()->eval( s, m ) );
+		R result = O::compute(a->value(),  b->value());
+		return shared_ptr<Value>( new TypedValue<R>( getLHS()->getType(), result ) );
+	}
+};
+
+class EquivOp: public Expr, public enable_shared_from_this<EquivOp> {
 public:
 	EquivOp(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
@@ -527,12 +575,14 @@ public:
 		second->typeCheck(cs);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
 };
 
-class NotEquivOp: public Expr {
+class NotEquivOp: public Expr, public enable_shared_from_this<NotEquivOp> {
 public:
 	NotEquivOp(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
@@ -549,12 +599,14 @@ public:
 		second->typeCheck(cs);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
 };
 
-class AndExpr: public Expr {
+class AndExpr: public Expr, public enable_shared_from_this<AndExpr> {
 public:
 	AndExpr(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
@@ -586,12 +638,14 @@ public:
 		boolCheck(second);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
 };
 
-class OrExpr: public Expr {
+class OrExpr: public Expr, public enable_shared_from_this<OrExpr> {
 public:
 	OrExpr(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
@@ -623,12 +677,14 @@ public:
 		boolCheck(second);
 	}
 
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
 };
 
-class NotExpr: public Expr {
+class NotExpr: public Expr, public enable_shared_from_this<NotExpr> {
 public:
 	NotExpr(Token tok, shared_ptr<Expr> a): Expr( tok, a->getType() ) {
 		first = a;
@@ -645,6 +701,8 @@ public:
 		first->typeCheck(cs);
 		boolCheck(first);
 	}
+
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
 
 private:
 	shared_ptr<Expr> first;

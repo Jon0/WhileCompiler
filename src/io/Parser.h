@@ -102,7 +102,7 @@ public:
 	Parser(Lexer &);
 	virtual ~Parser();
 
-	Program read();
+	shared_ptr<Program> read();
 
 private:
 	ParserInput in;
@@ -114,7 +114,7 @@ private:
 
 	vector<shared_ptr<Var>> unresolved;
 
-	Func readFunc();
+	shared_ptr<Func> readFunc();
 
 	shared_ptr<Expr> readExpr(ParserContext &);
 	shared_ptr<Expr> readExprCmpr(ParserContext &);

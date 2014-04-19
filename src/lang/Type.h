@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "SyntaxElem.h"
+#include "TypeIntf.h"
 #include "Value.h"
 
 namespace std {

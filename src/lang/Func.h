@@ -22,7 +22,7 @@ class Expr;
 class Stmt;
 class Type;
 
-class Func: public SyntaxElem {
+class Func: public SyntaxElem, public enable_shared_from_this<Func> {
 public:
 	Func( string, shared_ptr<Type>, vector<Var>, shared_ptr<Stmt> );
 	virtual ~Func();
@@ -31,9 +31,13 @@ public:
 	int numArgs() const;
 	shared_ptr<Type>  argType(int) const;
 	shared_ptr<Type> returnType() const;
+	vector<Var> getArgs() const;
+	shared_ptr<Stmt> getStmt() const;
 
 	void execute( Stack & );
 	void typeCheck();
+
+	virtual void visit(shared_ptr<SyntaxVisitor>);
 
 private:
 	// Type return_type;

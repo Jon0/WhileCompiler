@@ -22,21 +22,22 @@ class Type;
 class Stmt: public SyntaxElem {
 public:
 	virtual ~Stmt() {}
-	virtual StmtStatus execute( Stack &, VarMap & ) = 0;
 	virtual void typeCheck( CheckState & ) = 0;
 };
 
-class BlockStmt: public Stmt {
+class BlockStmt: public Stmt, public enable_shared_from_this<BlockStmt> {
 public:
 	BlockStmt( vector<shared_ptr<Stmt>> );
 	virtual ~BlockStmt();
-	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+	vector<shared_ptr<Stmt>> getStmt();
+
 private:
 	vector<shared_ptr<Stmt>> block;
 };
 
-class InitStmt: public Stmt {
+class InitStmt: public Stmt, public enable_shared_from_this<InitStmt> {
 public:
 	InitStmt( Var );
 	InitStmt( Var, shared_ptr<Expr> );
@@ -44,56 +45,46 @@ public:
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	bool hasInit();
+	Var getVar();
+	shared_ptr<Expr> getExpr();
 private:
 	Var var;
 	shared_ptr<Expr> expr;
 };
 
-class AssignStmt: public Stmt {
+class AssignStmt: public Stmt, public enable_shared_from_this<AssignStmt> {
 public:
 	AssignStmt( shared_ptr<Expr>, shared_ptr<Expr> );
 	virtual ~AssignStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Expr> getLHS();
+	shared_ptr<Expr> getRHS();
+
 private:
 	shared_ptr<Expr> lhs;
 	shared_ptr<Expr> rhs;
 };
 
-class ListAssignStmt: public Stmt {
-public:
-	ListAssignStmt( Var, shared_ptr<Expr>, shared_ptr<Expr> );
-	virtual ~ListAssignStmt();
-
-	virtual StmtStatus execute( Stack &, VarMap & );
-	virtual void typeCheck( CheckState & );
-private:
-	Var var;
-	shared_ptr<Expr> expr;
-	shared_ptr<Expr> ind;
-};
-
-class RecordAssignStmt: public Stmt {
-public:
-	RecordAssignStmt( Var, shared_ptr<Expr>, string );
-	virtual ~RecordAssignStmt();
-
-	virtual StmtStatus execute( Stack &, VarMap & );
-	virtual void typeCheck( CheckState & );
-private:
-	Var var;
-	shared_ptr<Expr> expr;
-	string member;
-};
-
-class IfStmt: public Stmt {
+class IfStmt: public Stmt, public enable_shared_from_this<IfStmt> {
 public:
 	IfStmt( shared_ptr<Expr>, shared_ptr<Stmt>, shared_ptr<Stmt> );
 	virtual ~IfStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Expr> getExpr();
+	shared_ptr<Stmt> getBody();
+	shared_ptr<Stmt> getAlt();
+	bool hasAlt();
 
 private:
 	shared_ptr<Expr> expr;
@@ -101,60 +92,78 @@ private:
 	shared_ptr<Stmt> alt;
 };
 
-class WhileStmt: public Stmt {
+class WhileStmt: public Stmt, public enable_shared_from_this<WhileStmt> {
 public:
 	WhileStmt( shared_ptr<Expr>, shared_ptr<Stmt> );
 	virtual ~WhileStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Expr> getExpr();
+	shared_ptr<Stmt> getBody();
 
 private:
 	shared_ptr<Expr> expr;
 	shared_ptr<Stmt> body;
 };
 
-class ForStmt: public Stmt {
+class ForStmt: public Stmt, public enable_shared_from_this<ForStmt> {
 public:
 	ForStmt( shared_ptr<Stmt>, shared_ptr<Expr>, shared_ptr<Stmt>, shared_ptr<Stmt> );
 	virtual ~ForStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Stmt> getInit();
+	shared_ptr<Expr> getExpr();
+	shared_ptr<Stmt> getInc();
+	shared_ptr<Stmt> getBody();
+	bool hasInit();
+	bool hasExpr();
+	bool hasInc();
 
 private:
-	bool checkCond( Stack &, VarMap & );
 	shared_ptr<Stmt> init;
 	shared_ptr<Expr> expr;
 	shared_ptr<Stmt> inc;
 	shared_ptr<Stmt> body;
 };
 
-class PrintStmt: public Stmt {
+class PrintStmt: public Stmt, public enable_shared_from_this<PrintStmt> {
 public:
 	PrintStmt( shared_ptr<Expr> );
 	virtual ~PrintStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Expr> getExpr();
 
 private:
 	shared_ptr<Expr> expr;
 };
 
-class EvalStmt: public Stmt {
+class EvalStmt: public Stmt, public enable_shared_from_this<EvalStmt> {
 public:
 	EvalStmt( shared_ptr<Expr> );
 	virtual ~EvalStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Expr> getExpr();
 
 private:
 	shared_ptr<Expr> expr;
 };
 
-class ReturnStmt: public Stmt {
+class ReturnStmt: public Stmt, public enable_shared_from_this<ReturnStmt> {
 public:
 	ReturnStmt();
 	ReturnStmt( shared_ptr<Expr> );
@@ -162,30 +171,38 @@ public:
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
+	virtual void visit(shared_ptr<SyntaxVisitor>);
+
+	shared_ptr<Expr> getExpr();
+	bool hasExpr();
 
 private:
 	shared_ptr<Expr> expr;
 };
 
-class BreakStmt: public Stmt {
+class BreakStmt: public Stmt, public enable_shared_from_this<BreakStmt> {
 public:
 	BreakStmt();
 	virtual ~BreakStmt();
 
 	virtual StmtStatus execute( Stack &, VarMap & );
 	virtual void typeCheck( CheckState & );
-
-private:
-	shared_ptr<Expr> expr;
+	virtual void visit(shared_ptr<SyntaxVisitor>);
 };
 
-class SwitchStmt: public Stmt {
+class SwitchStmt: public Stmt, public enable_shared_from_this<SwitchStmt> {
 public:
 	SwitchStmt( shared_ptr<Expr>, map<shared_ptr<Expr>, shared_ptr<Stmt>>, shared_ptr<Stmt> );
 	virtual ~SwitchStmt();
 
-	virtual StmtStatus execute( Stack &, VarMap & );
-	virtual void typeCheck( CheckState & );
+	virtual void typeCheck( CheckState &cs );
+
+	shared_ptr<Expr> getSwitch();
+	map<shared_ptr<Expr>, shared_ptr<Stmt>> getCases();
+	shared_ptr<Stmt> getDefCase();
+	bool hasDefCase();
+
+	virtual void visit(shared_ptr<SyntaxVisitor>);
 
 private:
 	shared_ptr<Expr> expr;

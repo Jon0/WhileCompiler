@@ -20,23 +20,18 @@ BlockStmt::BlockStmt( vector<shared_ptr<Stmt>> b ) {
 BlockStmt::~BlockStmt() {
 }
 
-StmtStatus BlockStmt::execute( Stack &st, VarMap &m ) {
-	for (shared_ptr<Stmt> &s: block) {
-		StmtStatus ss = s->execute( st, m );
-		if (ss.isReturn) {
-			return {true, false}; 	// propogate back
-		}
-		else if (ss.isBreak) {
-			return {false, false};
-		}
-	}
-	return {false, false};
-}
-
 void BlockStmt::typeCheck( CheckState &cks ) {
 	for (shared_ptr<Stmt> &s: block) {
 		s->typeCheck(cks);
 	}
+}
+
+void BlockStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+vector<shared_ptr<Stmt>> BlockStmt::getStmt() {
+	return block;
 }
 
 InitStmt::InitStmt(Var v): var(v) {
@@ -51,14 +46,7 @@ InitStmt::~InitStmt() {
 }
 
 StmtStatus InitStmt::execute( Stack &s, VarMap &m ) {
-	if (expr) {
-		m.insert(VarMap::value_type( var, expr->eval( s, m )->clone( var.type() ) ));	// always clone rhs on assignment
-	}
-	else {
-		m.insert(VarMap::value_type(var, shared_ptr<Value>( new TypedValue<int>(var.type(), 0) )));
-	}
 
-	return {false, false};
 }
 
 void InitStmt::typeCheck( CheckState &cs ) {
@@ -72,6 +60,22 @@ void InitStmt::typeCheck( CheckState &cs ) {
 	cs.assigned.insert( map<string, AssignState>::value_type(var.name(), as) );
 }
 
+void InitStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+bool InitStmt::hasInit() {
+	return expr? true: false;
+}
+
+Var InitStmt::getVar() {
+	return var;
+}
+
+shared_ptr<Expr> InitStmt::getExpr() {
+	return expr;
+}
+
 AssignStmt::AssignStmt(shared_ptr<Expr> l, shared_ptr<Expr> r) {
 	lhs = l;
 	rhs = r;
@@ -80,16 +84,7 @@ AssignStmt::AssignStmt(shared_ptr<Expr> l, shared_ptr<Expr> r) {
 AssignStmt::~AssignStmt() {}
 
 StmtStatus AssignStmt::execute( Stack &s, VarMap &m ) {
-	shared_ptr<Value> *assignable = NULL;
 
-	lhs->eval( s, m, &assignable );
-	if (!assignable) {
-		throw runtime_error("interpreter error: lhs not assignable");
-	}
-	shared_ptr<Value> ev = rhs->eval( s, m )->clone( lhs->getType() ); // always clone rhs on assignment
-	*assignable = ev;
-
-	return {false, false};
 }
 
 void AssignStmt::typeCheck( CheckState &cs ) {
@@ -107,6 +102,13 @@ void AssignStmt::typeCheck( CheckState &cs ) {
 	(*it).second.defAssign = true;
 }
 
+shared_ptr<Expr> AssignStmt::getLHS() { return lhs; }
+shared_ptr<Expr> AssignStmt::getRHS() { return rhs; }
+
+void AssignStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
 IfStmt::IfStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b, shared_ptr<Stmt> a) {
 	expr = e;
 	body = b;
@@ -116,28 +118,7 @@ IfStmt::IfStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b, shared_ptr<Stmt> a) {
 IfStmt::~IfStmt() {}
 
 StmtStatus IfStmt::execute( Stack &s, VarMap &m ) {
-	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
-	if ( a->value() ) {
-		StmtStatus ss = body->execute( s, m );
-		if (ss.isReturn) {
-			return {true, false}; 	// propogate back
-		}
-		else if (ss.isBreak) {
-			return {false, false};
-		}
-	}
 
-	// check alt exists
-	else if (alt) {
-		StmtStatus ss = alt->execute( s, m );
-		if (ss.isReturn) {
-			return {true, false}; 	// propogate back
-		}
-		else if (ss.isBreak) {
-			return {false, false};
-		}
-	}
-	return {false, false};
 }
 
 void IfStmt::typeCheck( CheckState &cs ) {
@@ -169,6 +150,26 @@ void IfStmt::typeCheck( CheckState &cs ) {
 	cs.returned |= csbody.returned || csalt.returned;
 }
 
+void IfStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+shared_ptr<Expr> IfStmt::getExpr() {
+	return expr;
+}
+
+shared_ptr<Stmt> IfStmt::getBody() {
+	return body;
+}
+
+shared_ptr<Stmt> IfStmt::getAlt() {
+	return alt;
+}
+
+bool IfStmt::hasAlt() {
+	return alt != NULL;
+}
+
 WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
 	expr = e;
 	body = b;
@@ -177,21 +178,9 @@ WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
 WhileStmt::~WhileStmt() {}
 
 StmtStatus WhileStmt::execute( Stack &s, VarMap &m ) {
-	shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
-	while ( a->value() ) {
-		StmtStatus ss = body->execute( s, m );
-		if (ss.isReturn) {
-			return {true, false}; 	// propogate back
-		}
-		else if (ss.isBreak) {
-			return {false, false};
-		}
 
-		// reevaluate loop condition
-		a = static_pointer_cast<TypedValue<bool>, Value>( expr->eval( s, m ) );
-	}
-	return {false, false};
 }
+
 
 void WhileStmt::typeCheck( CheckState &cs ) {
 	expr->typeCheck(cs);
@@ -204,6 +193,17 @@ void WhileStmt::typeCheck( CheckState &cs ) {
 	boolCheck(expr);
 }
 
+void WhileStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+shared_ptr<Expr> WhileStmt::getExpr() {
+	return expr;
+}
+
+shared_ptr<Stmt> WhileStmt::getBody() {
+	return body;
+}
 
 ForStmt::ForStmt( shared_ptr<Stmt> i, shared_ptr<Expr> c, shared_ptr<Stmt> u, shared_ptr<Stmt> b ) {
 	init = i;
@@ -216,33 +216,8 @@ ForStmt::~ForStmt() {
 
 }
 
-bool ForStmt::checkCond( Stack &s, VarMap &m ) {
-	if (expr) {
-		shared_ptr<TypedValue<bool>> a = static_pointer_cast<TypedValue<bool>, Value>(expr->eval(s, m));
-		return a->value();
-	}
-	else {
-		return true; // when no condition eg. "for(;;){}"
-	}
-}
-
 StmtStatus ForStmt::execute( Stack &s, VarMap &m ) {
-	// init
-	if (init) init->execute(s, m);
 
-	while ( checkCond( s, m ) ) {
-		StmtStatus ss = body->execute( s, m );
-		if (ss.isReturn) {
-			return {true, false}; 	// propogate back
-		}
-		else if (ss.isBreak) {
-			return {false, false};
-		}
-
-		// inc and reevaluate loop condition
-		if (inc) inc->execute(s, m);
-	}
-	return {false, false};
 }
 
 void ForStmt::typeCheck( CheckState &cs ) {
@@ -257,6 +232,38 @@ void ForStmt::typeCheck( CheckState &cs ) {
 	boolCheck(expr);
 }
 
+void ForStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+shared_ptr<Stmt> ForStmt::getInit() {
+	return init;
+}
+
+shared_ptr<Expr> ForStmt::getExpr() {
+	return expr;
+}
+
+shared_ptr<Stmt> ForStmt::getInc() {
+	return inc;
+}
+
+shared_ptr<Stmt> ForStmt::getBody() {
+	return body;
+}
+
+bool ForStmt::hasInit() {
+	return init != NULL;
+}
+
+bool ForStmt::hasExpr() {
+	return expr != NULL;
+}
+
+bool ForStmt::hasInc() {
+	return inc != NULL;
+}
+
 PrintStmt::PrintStmt(shared_ptr<Expr> e) {
 	expr = e;
 }
@@ -264,12 +271,19 @@ PrintStmt::PrintStmt(shared_ptr<Expr> e) {
 PrintStmt::~PrintStmt() {}
 
 StmtStatus PrintStmt::execute( Stack &s, VarMap &m ) {
-	cout << expr->eval( s, m )->asString() << endl;
-	return {false, false};
+
 }
 
 void PrintStmt::typeCheck( CheckState &cs ) {
 	expr->typeCheck(cs);
+}
+
+void PrintStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+shared_ptr<Expr> PrintStmt::getExpr() {
+	return expr;
 }
 
 EvalStmt::EvalStmt(shared_ptr<Expr> e) {
@@ -279,12 +293,19 @@ EvalStmt::EvalStmt(shared_ptr<Expr> e) {
 EvalStmt::~EvalStmt() {}
 
 StmtStatus EvalStmt::execute( Stack &s, VarMap &m ) {
-	expr->eval( s, m );
-	return {false, false};
+
 }
 
 void EvalStmt::typeCheck( CheckState &cs ) {
 	expr->typeCheck(cs);
+}
+
+void EvalStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+shared_ptr<Expr> EvalStmt::getExpr() {
+	return expr;
 }
 
 ReturnStmt::ReturnStmt() {
@@ -298,15 +319,7 @@ ReturnStmt::ReturnStmt(shared_ptr<Expr> e) {
 ReturnStmt::~ReturnStmt() {}
 
 StmtStatus ReturnStmt::execute( Stack &s, VarMap &m ) {
-	// put things on top of stack
 
-	if (expr) {
-		shared_ptr<Value> ev = expr->eval( s, m );
-		s.push_back( ev );
-	}
-
-	// escape current block
-	return {true, false};
 
 }
 
@@ -327,17 +340,32 @@ void ReturnStmt::typeCheck( CheckState &s ) {
 	s.returned = true;
 }
 
+void ReturnStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
+
+shared_ptr<Expr> ReturnStmt::getExpr() {
+	return expr;
+}
+
+bool ReturnStmt::hasExpr() {
+	return expr != NULL;
+}
+
 BreakStmt::BreakStmt() {}
 
 BreakStmt::~BreakStmt() {}
 
 StmtStatus BreakStmt::execute( Stack &s, VarMap &m ) {
-	// escape current block
-	return {false, true};
+
 }
 
 void BreakStmt::typeCheck( CheckState & ) {
 	// TODO unreachable code
+}
+
+void BreakStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
 }
 
 SwitchStmt::SwitchStmt( shared_ptr<Expr> e, map<shared_ptr<Expr>, shared_ptr<Stmt>> l, shared_ptr<Stmt> d ) {
@@ -347,24 +375,6 @@ SwitchStmt::SwitchStmt( shared_ptr<Expr> e, map<shared_ptr<Expr>, shared_ptr<Stm
 }
 
 SwitchStmt::~SwitchStmt() {}
-
-StmtStatus SwitchStmt::execute( Stack &s, VarMap &m ) {
-	shared_ptr<Value> ev = expr->eval( s, m );
-	for ( map<shared_ptr<Expr>, shared_ptr<Stmt>>::value_type ex: list ) {
-		shared_ptr<Value> cv = ex.first->eval( s, m );
-
-		if (*cv == *ev) {
-			StmtStatus ss = ex.second->execute( s, m );
-			return {ss.isReturn, false}; 	// propogate back
-		}
-	}
-
-	if (def_stmt) {
-		StmtStatus ss = def_stmt->execute( s, m );
-		return {ss.isReturn, false}; 	// propogate back
-	}
-	return {false, false};
-}
 
 void SwitchStmt::typeCheck( CheckState &cs ) {
 	vector<CheckState> states;
@@ -399,6 +409,26 @@ void SwitchStmt::typeCheck( CheckState &cs ) {
 	}
 }
 
+shared_ptr<Expr> SwitchStmt::getSwitch() {
+	return expr;
+}
+
+map<shared_ptr<Expr>, shared_ptr<Stmt>> SwitchStmt::getCases() {
+	return list;
+}
+
+shared_ptr<Stmt> SwitchStmt::getDefCase() {
+	return def_stmt;
+}
+
+bool SwitchStmt::hasDefCase() {
+	return def_stmt != NULL;
+}
+
+
+void SwitchStmt::visit(shared_ptr<SyntaxVisitor> v) {
+	v->accept( shared_from_this() );
+}
 
 
 } /* namespace std */

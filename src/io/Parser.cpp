@@ -56,7 +56,7 @@ Parser::Parser(Lexer &lexer) :
 Parser::~Parser() {
 }
 
-Program Parser::read() {
+shared_ptr<Program> Parser::read() {
 	try {
 		while ( !in.empty() ) {
 			if (in.canMatch("const")) {
@@ -73,8 +73,8 @@ Program Parser::read() {
 				dectypes.insert(map<string, shared_ptr<Type>>::value_type(name.text(), type->makeAlias( name.text() )));
 			}
 			else {
-				Func f = readFunc();
-				functions.insert(FuncMap::value_type(f.name(), f));
+				shared_ptr<Func> f = readFunc();
+				functions.insert(FuncMap::value_type(f->name(), f));
 			}
 		}
 	} catch (exception &e) {
@@ -82,8 +82,7 @@ Program Parser::read() {
 		throw runtime_error("failed to parse program");
 	}
 
-	Program p(functions);
-	return p;
+	return shared_ptr<Program>(new Program(functions));
 }
 
 shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {
@@ -316,7 +315,7 @@ shared_ptr<Expr> Parser::readExprTermInner(ParserContext &ctxt) {
 				//e = shared_ptr<Expr>( new FuncCallExpr(shared_ptr<Func>(new Func((*i).second)), args) );
 			}
 			else {
-				e = shared_ptr<Expr>( new FuncCallExpr(t, shared_ptr<Func>(new Func((*i).second)), args) );
+				e = shared_ptr<Expr>( new FuncCallExpr(t, (*i).second, args) );
 			}
 		}
 		else if ( ctxt.isVar(t) ) {
@@ -461,7 +460,7 @@ shared_ptr<Var> Parser::unresolvedVar(Token n) {
 	return v;
 }
 
-Func Parser::readFunc() {
+shared_ptr<Func> Parser::readFunc() {
 	ParserContext ctxt;
 
 	shared_ptr<Type> t = readType();
@@ -484,8 +483,7 @@ Func Parser::readFunc() {
 		}
 	}
 
-	Func f( name.text(), t, args, readStmtBlock(ctxt) );
-	return f;
+	return shared_ptr<Func>(new Func( name.text(), t, args, readStmtBlock(ctxt) ));
 }
 
 shared_ptr<Stmt> Parser::readStmtBlock(ParserContext &ctxt) {

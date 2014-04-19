@@ -42,17 +42,16 @@ shared_ptr<Type> Func::returnType() const {
 	return r_type;
 }
 
+vector<Var> Func::getArgs() const {
+	return args;
+}
+
+shared_ptr<Stmt> Func::getStmt() const {
+	return stmts;
+}
+
 void Func::execute( Stack &stack ) {
-	VarMap vars;
 
-	// TODO check arg types
-	for (Var &v: args) {
-		shared_ptr<Value> ev = stack.back()->clone(); // clone as type of original value
-		stack.pop_back();
-		vars.insert( VarMap::value_type(v, ev) );
-	}
-
-	stmts->execute( stack, vars );
 }
 
 void Func::typeCheck() {
@@ -72,6 +71,10 @@ void Func::typeCheck() {
 	if ( r_type->nameStr() != "void" && !cs.returned ) {
 		throw runtime_error("non void function requires return value");
 	}
+}
+
+void Func::visit(shared_ptr<SyntaxVisitor> v) {
+	return v->accept( shared_from_this() );
 }
 
 } /* namespace std */

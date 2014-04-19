@@ -14,7 +14,8 @@
 #include <string>
 
 #include "Common.h"
-#include "SyntaxElem.h"
+#include "TypeIntf.h"
+#include "ValueIntf.h"
 
 namespace std {
 

@@ -15,12 +15,16 @@
 
 namespace std {
 
+extern bool debug;
+
+class Type;
+
 struct StmtStatus {
 	bool isReturn;
 	bool isBreak;
 };
 
-// TODO finding intersection of check states
+// TODO move to interpreter
 
 struct AssignState {
 	bool defAssign;

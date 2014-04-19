@@ -15,21 +15,27 @@ Program::Program( FuncMap f ) {
 
 Program::~Program() {}
 
-void Program::run() {
-	Stack s;
+FuncMap Program::getFuncMap() const {
+	return funcs;
+}
 
-	FuncMap::iterator i = funcs.find( "main" );
-	if (i == funcs.end()) {
-		throw runtime_error("no main function found");
-	}
-	else {
-		(*i).second.execute(s);
-	}
+void Program::run() {
+
 }
 
 void Program::typeCheck() {
 	for (FuncMap::value_type &f: funcs) {
-		f.second.typeCheck();
+		f.second->typeCheck();
+	}
+}
+
+void Program::visitFunc(string s, shared_ptr<SyntaxVisitor> v) {
+	FuncMap::iterator i = funcs.find( s );
+	if (i == funcs.end()) {
+		throw runtime_error("no function named "+s+" found");
+	}
+	else {
+		v->accept( (*i).second );
 	}
 }
 

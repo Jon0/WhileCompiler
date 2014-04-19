@@ -17,15 +17,23 @@
 
 namespace std {
 
-typedef map<string, Func> FuncMap;
+typedef map<string, shared_ptr<Func>> FuncMap;
 
-class Program: public SyntaxElem {
+class Program: public SyntaxElem, public enable_shared_from_this<Program> {
 public:
 	Program( FuncMap );
 	virtual ~Program();
 
+	FuncMap getFuncMap() const;
+
 	void run();
 	void typeCheck();
+
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		return v->accept( shared_from_this() );
+	}
+
+	void visitFunc(string, shared_ptr<SyntaxVisitor> v);
 
 private:
 	FuncMap funcs;
