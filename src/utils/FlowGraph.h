@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "../lang/SyntaxVisitor.h"
+#include "FlowNode.h"
 
 namespace std {
 
@@ -49,6 +50,10 @@ public:
 	virtual void accept(shared_ptr<RecordMemberExpr>);
 	virtual void accept(shared_ptr<BasicCastExpr>);
 	virtual void accept(shared_ptr<AbstractOpExpr>);
+
+private:
+	shared_ptr<FlowNode> gr; // for each function
+
 };
 
 } /* namespace std */

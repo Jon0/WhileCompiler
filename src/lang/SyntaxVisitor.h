@@ -37,8 +37,6 @@ class BasicCastExpr;
 class RecordExpr;
 class AbstractOpExpr;
 
-
-
 class SyntaxVisitor {
 public:
 	virtual ~SyntaxVisitor() {}
