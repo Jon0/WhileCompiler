@@ -5,6 +5,7 @@
  *      Author: asdf
  */
 
+#include "../lang/Program.h"
 #include "FlowGraph.h"
 
 namespace std {
@@ -21,7 +22,15 @@ FlowGraph::~FlowGraph() {
 void FlowGraph::accept(shared_ptr<Type>) {}
 void FlowGraph::accept(shared_ptr<Value>) {}
 void FlowGraph::accept(shared_ptr<Func>) {}
-void FlowGraph::accept(shared_ptr<Program>) {}
+
+/* create flow for each function */
+void FlowGraph::accept(shared_ptr<Program> p) {
+	FuncMap fm = p->getFuncMap();
+
+	for ( FuncMap::value_type func: fm ) {
+		//func.first
+	}
+}
 
 void FlowGraph::accept(shared_ptr<BlockStmt>) {}
 void FlowGraph::accept(shared_ptr<InitStmt>) {}
