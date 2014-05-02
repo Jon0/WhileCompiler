@@ -5,7 +5,7 @@
 
 #include "lang/Common.h"
 
-#include "utils/FlowGraph.h"
+#include "java/Bytecode.h"
 
 using namespace std;
 
@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
 		Parser parser(lex);
 		shared_ptr<SyntaxElem> p = parser.read();
 
-		shared_ptr<FlowGraph> graph = shared_ptr<FlowGraph>(new FlowGraph());
-		p->visit(graph);
+		shared_ptr<Bytecode> compiler = shared_ptr<Bytecode>(new Bytecode());
+		p->visit(compiler);
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;
