@@ -23,7 +23,11 @@ int main(int argc, char *argv[]) {
 		shared_ptr<SyntaxElem> p = parser.read();
 
 		shared_ptr<Bytecode> compiler = shared_ptr<Bytecode>(new Bytecode());
+
 		p->visit(compiler);
+
+		Classfile &cf = compiler->getClassFile();
+		cf.write("test.class");
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;

@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "../lang/SyntaxVisitor.h"
+#include "Classfile.h"
 
 namespace std {
 
@@ -18,6 +19,8 @@ class Bytecode: public SyntaxVisitor, public enable_shared_from_this<Bytecode> {
 public:
 	Bytecode();
 	virtual ~Bytecode();
+
+	Classfile &getClassFile();
 
 	virtual void accept(shared_ptr<Type>);
 	virtual void accept(shared_ptr<Value>);
@@ -49,6 +52,9 @@ public:
 	virtual void accept(shared_ptr<RecordMemberExpr>);
 	virtual void accept(shared_ptr<BasicCastExpr>);
 	virtual void accept(shared_ptr<AbstractOpExpr>);
+
+private:
+	Classfile cf;
 
 };
 

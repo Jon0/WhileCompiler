@@ -7,8 +7,8 @@ set (Test_VERSION_MINOR 0)
 
 file(GLOB SRC_FILES
     "src/*.cpp"
-    "src/compile/*.cpp"
     "src/io/*.cpp"
+    "src/java/*.cpp"
     "src/lang/*.cpp"
     "src/utils/*.cpp"
     "src/test/*.cpp"

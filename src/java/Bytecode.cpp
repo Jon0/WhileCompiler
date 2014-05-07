@@ -21,6 +21,10 @@ Bytecode::~Bytecode() {
 	// TODO Auto-generated destructor stub
 }
 
+Classfile &Bytecode::getClassFile() {
+	return cf;
+}
+
 void Bytecode::accept(shared_ptr<Type>) {}
 void Bytecode::accept(shared_ptr<Value>) {}
 void Bytecode::accept(shared_ptr<Func>) {}
