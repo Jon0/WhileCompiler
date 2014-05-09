@@ -72,6 +72,10 @@ public:
 		v->accept( shared_from_this() );
 	}
 
+	shared_ptr<Value> getValue() {
+		return const_value;
+	}
+
 private:
 	shared_ptr<Value> const_value;
 

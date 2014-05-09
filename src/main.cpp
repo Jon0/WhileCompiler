@@ -20,14 +20,11 @@ int main(int argc, char *argv[]) {
 	try {
 		Lexer lex(argv[1]);
 		Parser parser(lex);
-		shared_ptr<SyntaxElem> p = parser.read();
+		shared_ptr<Program> p = parser.read();
 
-		shared_ptr<Bytecode> compiler = shared_ptr<Bytecode>(new Bytecode());
 
-		p->visit(compiler);
-
-		Classfile &cf = compiler->getClassFile();
-		cf.write("test.class");
+		Classfile cf(p);
+		cf.write();
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;

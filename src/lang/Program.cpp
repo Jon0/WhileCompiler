@@ -9,11 +9,16 @@
 
 namespace std {
 
-Program::Program( FuncMap f ) {
+Program::Program( FuncMap f, string pn ) {
 	funcs = f;
+	program_name = pn;
 }
 
 Program::~Program() {}
+
+string Program::getProgramName() const {
+	return program_name;
+}
 
 FuncMap Program::getFuncMap() const {
 	return funcs;

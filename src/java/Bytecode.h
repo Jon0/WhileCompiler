@@ -9,18 +9,24 @@
 #define BYTECODE_H_
 
 #include <memory>
+#include <vector>
 
 #include "../lang/SyntaxVisitor.h"
+
 #include "Classfile.h"
+#include "ClassfileWriter.h"
 
 namespace std {
 
+class Instruction {
+public:
+	vector<unsigned char> bytes;
+};
+
 class Bytecode: public SyntaxVisitor, public enable_shared_from_this<Bytecode> {
 public:
-	Bytecode();
+	Bytecode(ClassfileWriter &, ConstantPool &);
 	virtual ~Bytecode();
-
-	Classfile &getClassFile();
 
 	virtual void accept(shared_ptr<Type>);
 	virtual void accept(shared_ptr<Value>);
@@ -54,8 +60,18 @@ public:
 	virtual void accept(shared_ptr<AbstractOpExpr>);
 
 private:
-	Classfile cf;
+	ClassfileWriter &out;
+	ConstantPool &constant_pool;
 
+	vector<Instruction> istack;
+
+
+	int stackSize();
+
+	void addInstruction(unsigned char code);
+	void addInstruction1(unsigned char code, unsigned char arg);
+	void addInstruction2(unsigned char code, unsigned short arg);
+	void addInstruction4(unsigned char code, unsigned int arg);
 };
 
 } /* namespace std */

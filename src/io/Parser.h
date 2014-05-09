@@ -105,6 +105,7 @@ public:
 	shared_ptr<Program> read();
 
 private:
+	string classname;
 	ParserInput in;
 
 	// list global functions and types

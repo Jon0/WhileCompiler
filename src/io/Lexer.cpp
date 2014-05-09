@@ -31,6 +31,10 @@ Lexer::Lexer(const char *fn):
 
 Lexer::~Lexer() {}
 
+string Lexer::getFilename() {
+	return filename;
+}
+
 queue<Token> Lexer::getTokens() {
 	queue<Token> tokens;
 	while ( canRead() ) {

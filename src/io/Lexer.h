@@ -22,6 +22,8 @@ public:
 	Lexer(const char *);
 	virtual ~Lexer();
 
+	string getFilename();
+
 	queue<Token> getTokens();
 
 private:

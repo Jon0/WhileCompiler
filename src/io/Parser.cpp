@@ -7,6 +7,8 @@ namespace std {
 
 Parser::Parser(Lexer &lexer) :
 		in(lexer) {
+	size_t ind = lexer.getFilename().find(".");
+	classname = lexer.getFilename().substr(0, ind);
 
 	// initialise atomic types
 	vector<shared_ptr<Type>> initial_types {
@@ -82,7 +84,7 @@ shared_ptr<Program> Parser::read() {
 		throw runtime_error("failed to parse program");
 	}
 
-	return shared_ptr<Program>(new Program(functions));
+	return shared_ptr<Program>(new Program(functions, classname));
 }
 
 shared_ptr<Expr> Parser::readExpr(ParserContext &ctxt) {

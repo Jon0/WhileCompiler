@@ -8,20 +8,37 @@
 #ifndef CLASSFILE_H_
 #define CLASSFILE_H_
 
+#include <fstream>
+#include <memory>
 #include <string>
+#include <vector>
+
+#include "ClassfileWriter.h"
+#include "ConstantPool.h"
 
 namespace std {
 
-class Classfile {
+class SyntaxElem;
+
+class Classfile: public enable_shared_from_this<Classfile> {
 public:
-	Classfile();
+	Classfile(shared_ptr<Program>);
 	virtual ~Classfile();
 
 	void read(string);
-	void write(string);
+	void write();
+
+	ConstantPool &getConstPool();
 
 private:
+	string class_name;
+	shared_ptr<Program> program;
+
 	unsigned short version_major, version_minor;
+
+	ConstantPool cp;
+
+	void writeMethod();
 };
 
 } /* namespace std */
