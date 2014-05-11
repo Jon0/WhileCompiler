@@ -47,6 +47,10 @@ public:
 		return NULL;
 	}
 
+	virtual shared_ptr<Var> assignable() {
+		return NULL;
+	}
+
 private:
 	shared_ptr<Type> type;
 
@@ -138,8 +142,16 @@ public:
 		return var;
 	}
 
+	virtual shared_ptr<Var> assignable() {
+		return var;
+	}
+
 	virtual void visit(shared_ptr<SyntaxVisitor> v) {
 		v->accept( shared_from_this() );
+	}
+
+	shared_ptr<Var> getVar() {
+		return var;
 	}
 
 private:
@@ -168,7 +180,9 @@ public:
 		}
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	map<string, shared_ptr<Expr>> rec;
@@ -181,7 +195,10 @@ public:
 	// TODO generate list type if int and bool are contained, type is bool|int
 	ListExpr( Token tok, vector<shared_ptr<Expr>> l ): Expr( tok, findListType(l) ) {
 		list = l;
-		cout << "list type is " << getType()->nameStr() << endl;
+
+		for (shared_ptr<Expr> e: list) {
+			addChild(e);
+		}
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -205,7 +222,13 @@ public:
 		}
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
+	int size() {
+		return list.size();
+	}
 
 private:
 	vector<shared_ptr<Expr>> list;
@@ -215,6 +238,7 @@ class ListLengthExpr: public Expr, public enable_shared_from_this<ListLengthExpr
 public:
 	ListLengthExpr( Token tok, shared_ptr<Expr> v ): Expr( tok, shared_ptr<Type>( new AtomicType<int>("int") ) ) {
 		e = v;
+		addChild(e);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -229,7 +253,9 @@ public:
 		}
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> e;
@@ -302,7 +328,9 @@ public:
 		second->typeCheck(cs);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -354,7 +382,9 @@ public:
 		return v_expr->assignable(c);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> v_expr;
@@ -399,7 +429,9 @@ public:
 		return v_expr->assignable(c);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> v_expr;
@@ -414,7 +446,13 @@ public:
 
 	void typeCheck( CheckState &cs );
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
+	shared_ptr<Func> getFunc() {
+		return func;
+	}
 
 private:
 	shared_ptr<Func> func;
@@ -439,7 +477,9 @@ public:
 		}
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> expr;
@@ -449,11 +489,19 @@ template<class T> struct AddOp {
 	static T compute(T a, T b) {
 		return a + b;
 	}
+
+	static char opcode() {
+		return '+';
+	}
 };
 
 template<class T> struct SubOp {
 	static T compute(T a, T b) {
 		return a - b;
+	}
+
+	static char opcode() {
+		return '-';
 	}
 };
 
@@ -461,11 +509,19 @@ template<class T> struct MulOp {
 	static T compute(T a, T b) {
 		return a * b;
 	}
+
+	static char opcode() {
+		return '*';
+	}
 };
 
 template<class T> struct DivOp {
 	static T compute(T a, T b) {
 		return a / b;
+	}
+
+	static char opcode() {
+		return '/';
 	}
 };
 
@@ -473,11 +529,19 @@ template<class T> struct ModOp {
 	static T compute(T a, T b) {
 		return (int)a % (int)b;
 	}
+
+	static char opcode() {
+		return '%';
+	}
 };
 
 template<class T> struct GreaterOp {
 	static T compute(T a, T b) {
 		return a > b;
+	}
+
+	static char opcode() {
+		return '>';
 	}
 };
 
@@ -485,17 +549,29 @@ template<class T> struct GreaterEqualOp {
 	static T compute(T a, T b) {
 		return a >= b;
 	}
+
+	static char opcode() {
+		return ']';
+	}
 };
 
 template<class T> struct LessOp {
 	static T compute(T a, T b) {
 		return a < b;
 	}
+
+	static char opcode() {
+		return '<';
+	}
 };
 
 template<class T> struct LessEqualOp {
 	static T compute(T a, T b) {
 		return a <= b;
+	}
+
+	static char opcode() {
+		return '[';
 	}
 };
 
@@ -525,7 +601,9 @@ public:
 		}
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 	shared_ptr<Expr> getLHS() const {
 		return first;
@@ -534,6 +612,8 @@ public:
 	shared_ptr<Expr> getRHS() const {
 		return second;
 	}
+
+	virtual char opcode() = 0;
 
 private:
 	shared_ptr<Expr> first;
@@ -560,6 +640,10 @@ public:
 		R result = O::compute(a->value(),  b->value());
 		return shared_ptr<Value>( new TypedValue<R>( getLHS()->getType(), result ) );
 	}
+
+	virtual char opcode() {
+		return O::opcode();
+	}
 };
 
 class EquivOp: public Expr, public enable_shared_from_this<EquivOp> {
@@ -579,7 +663,9 @@ public:
 		second->typeCheck(cs);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -603,7 +689,9 @@ public:
 		second->typeCheck(cs);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -642,7 +730,17 @@ public:
 		boolCheck(second);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
+	shared_ptr<Expr> getLHS() {
+		return first;
+	}
+
+	shared_ptr<Expr> getRHS() {
+		return second;
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -681,7 +779,17 @@ public:
 		boolCheck(second);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
+
+	shared_ptr<Expr> getLHS() {
+		return first;
+	}
+
+	shared_ptr<Expr> getRHS() {
+		return second;
+	}
 
 private:
 	shared_ptr<Expr> first;
@@ -706,7 +814,9 @@ public:
 		boolCheck(first);
 	}
 
-	virtual void visit(shared_ptr<SyntaxVisitor> v) {}
+	virtual void visit(shared_ptr<SyntaxVisitor> v) {
+		v->accept( shared_from_this() );
+	}
 
 private:
 	shared_ptr<Expr> first;

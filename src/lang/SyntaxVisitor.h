@@ -36,6 +36,11 @@ class RecordMemberExpr;
 class BasicCastExpr;
 class RecordExpr;
 class AbstractOpExpr;
+class EquivOp;
+class NotEquivOp;
+class AndExpr;
+class OrExpr;
+class NotExpr;
 
 class SyntaxVisitor {
 public:
@@ -71,6 +76,12 @@ public:
 	virtual void accept(shared_ptr<BasicCastExpr>) = 0;
 	virtual void accept(shared_ptr<RecordExpr>) = 0;
 	virtual void accept(shared_ptr<AbstractOpExpr>) = 0;
+	virtual void accept(shared_ptr<EquivOp>) = 0;
+	virtual void accept(shared_ptr<NotEquivOp>) = 0;
+	virtual void accept(shared_ptr<AndExpr>) = 0;
+	virtual void accept(shared_ptr<OrExpr>) = 0;
+	virtual void accept(shared_ptr<NotExpr>) = 0;
+
 
 };
 

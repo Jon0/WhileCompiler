@@ -37,8 +37,6 @@ private:
 	unsigned short version_major, version_minor;
 
 	ConstantPool cp;
-
-	void writeMethod();
 };
 
 } /* namespace std */

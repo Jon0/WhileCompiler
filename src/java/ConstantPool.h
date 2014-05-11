@@ -65,6 +65,8 @@ public:
 	virtual string lookupStr();
 	virtual string typeStr();
 
+	int nameIndex();
+
 private:
 	int name_index, descriptor_index;
 };
@@ -95,6 +97,8 @@ public:
 	virtual string lookupStr();
 	virtual string typeStr();
 
+	int nameIndex();
+
 private:
 	int class_index, nametype_index;
 };
@@ -115,6 +119,35 @@ private:
 	int utf8_index;
 };
 
+class JInteger: public Constant {
+public:
+	JInteger(int n) {
+		value = n;
+	}
+
+	virtual void writeByteCode(ClassfileWriter &);
+	virtual string lookupStr();
+	virtual string typeStr();
+	int getValue();
+
+private:
+	int value;
+};
+
+class JFloat: public Constant {
+public:
+	JFloat(float n) {
+		value = n;
+	}
+
+	virtual void writeByteCode(ClassfileWriter &);
+	virtual string lookupStr();
+	virtual string typeStr();
+
+private:
+	float value;
+};
+
 class ConstantPool: public SyntaxVisitor, public enable_shared_from_this<ConstantPool> {
 public:
 	ConstantPool();
@@ -122,9 +155,12 @@ public:
 
 	void writeByteCode(ClassfileWriter &);
 	void add(shared_ptr<Constant>);
+	short lookup(int);
 	short lookup(string);
 	short lookupType(string, string);
 	short size();
+
+	shared_ptr<Constant> makeMethodRef( shared_ptr<Func> );
 
 	virtual void accept(shared_ptr<Type>);
 	virtual void accept(shared_ptr<Value>);
@@ -156,6 +192,11 @@ public:
 	virtual void accept(shared_ptr<RecordMemberExpr>);
 	virtual void accept(shared_ptr<BasicCastExpr>);
 	virtual void accept(shared_ptr<AbstractOpExpr>);
+	virtual void accept(shared_ptr<EquivOp>);
+	virtual void accept(shared_ptr<NotEquivOp>);
+	virtual void accept(shared_ptr<AndExpr>);
+	virtual void accept(shared_ptr<OrExpr>);
+	virtual void accept(shared_ptr<NotExpr>);
 
 private:
 	vector<shared_ptr<Constant>> constant_pool;

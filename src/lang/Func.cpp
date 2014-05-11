@@ -16,6 +16,8 @@ Func::Func( string name, shared_ptr<Type> t, vector<Var> a, shared_ptr<Stmt> s )
 	name_str = name;
 	args = a;
 	stmts = s;
+
+	addChild(s);
 }
 
 Func::~Func() {}

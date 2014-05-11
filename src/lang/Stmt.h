@@ -49,7 +49,7 @@ public:
 
 	bool hasInit();
 	Var getVar();
-	shared_ptr<Expr> getExpr();
+	shared_ptr<Expr> getExpr();	// initialising expression
 private:
 	Var var;
 	shared_ptr<Expr> expr;

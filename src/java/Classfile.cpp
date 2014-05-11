@@ -17,7 +17,7 @@ namespace std {
 Classfile::Classfile(shared_ptr<Program> p){
 	program = p;
 
-	version_major = 51;
+	version_major = 49;
 	version_minor = 0;
 }
 
@@ -42,11 +42,6 @@ void Classfile::write() {
 
 	shared_ptr<Bytecode> bc = make_shared<Bytecode>(out, *cp);
 	program->visit(bc);
-}
-
-void Classfile::writeMethod() {
-
-
 }
 
 ConstantPool &Classfile::getConstPool() {

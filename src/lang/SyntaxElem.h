@@ -36,8 +36,21 @@ public:
 	/* */
 	virtual void visit(shared_ptr<SyntaxVisitor> v) = 0;
 
+	void visitChildren(shared_ptr<SyntaxVisitor> v) {
+		for (shared_ptr<SyntaxElem> e: children) {
+			e->visit(v);
+		}
+	}
+
+protected:
+	void addChild(shared_ptr<SyntaxElem> e) {
+		children.push_back(e);
+	}
+
 private:
 	vector<Token> tok;
+
+	vector<shared_ptr<SyntaxElem>> children;
 };
 
 } /* namespace std */

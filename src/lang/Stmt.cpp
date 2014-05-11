@@ -15,6 +15,10 @@ namespace std {
 
 BlockStmt::BlockStmt( vector<shared_ptr<Stmt>> b ) {
 	block = b;
+
+	for ( shared_ptr<Stmt> s: b) {
+		addChild( s );
+	}
 }
 
 BlockStmt::~BlockStmt() {
@@ -40,6 +44,8 @@ InitStmt::InitStmt(Var v): var(v) {
 
 InitStmt::InitStmt(Var v, shared_ptr<Expr> e): var(v) {
 	expr = e;
+
+	if (hasInit()) addChild( e );
 }
 
 InitStmt::~InitStmt() {
@@ -79,6 +85,8 @@ shared_ptr<Expr> InitStmt::getExpr() {
 AssignStmt::AssignStmt(shared_ptr<Expr> l, shared_ptr<Expr> r) {
 	lhs = l;
 	rhs = r;
+	addChild(lhs);
+	addChild(rhs);
 }
 
 AssignStmt::~AssignStmt() {}
@@ -113,6 +121,10 @@ IfStmt::IfStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b, shared_ptr<Stmt> a) {
 	expr = e;
 	body = b;
 	alt = a;
+
+	addChild(expr);
+	addChild(body);
+	if (hasAlt()) addChild(alt);
 }
 
 IfStmt::~IfStmt() {}
@@ -173,6 +185,8 @@ bool IfStmt::hasAlt() {
 WhileStmt::WhileStmt(shared_ptr<Expr> e, shared_ptr<Stmt> b) {
 	expr = e;
 	body = b;
+	addChild(expr);
+	addChild(body);
 }
 
 WhileStmt::~WhileStmt() {}
@@ -210,6 +224,11 @@ ForStmt::ForStmt( shared_ptr<Stmt> i, shared_ptr<Expr> c, shared_ptr<Stmt> u, sh
 	expr = c;
 	inc = u;
 	body = b;
+
+	addChild(init);
+	addChild(expr);
+	addChild(inc);
+	addChild(body);
 }
 
 ForStmt::~ForStmt() {
@@ -266,6 +285,7 @@ bool ForStmt::hasInc() {
 
 PrintStmt::PrintStmt(shared_ptr<Expr> e) {
 	expr = e;
+	addChild(expr);
 }
 
 PrintStmt::~PrintStmt() {}
@@ -288,6 +308,7 @@ shared_ptr<Expr> PrintStmt::getExpr() {
 
 EvalStmt::EvalStmt(shared_ptr<Expr> e) {
 	expr = e;
+	addChild(expr);
 }
 
 EvalStmt::~EvalStmt() {}
@@ -314,6 +335,7 @@ ReturnStmt::ReturnStmt() {
 
 ReturnStmt::ReturnStmt(shared_ptr<Expr> e) {
 	expr = e;
+	if (hasExpr()) addChild(expr);
 }
 
 ReturnStmt::~ReturnStmt() {}
@@ -372,6 +394,12 @@ SwitchStmt::SwitchStmt( shared_ptr<Expr> e, map<shared_ptr<Expr>, shared_ptr<Stm
 	expr = e;
 	list = l;
 	def_stmt = d;
+
+	for ( map<shared_ptr<Expr>, shared_ptr<Stmt>>::value_type ex: list ) {
+		addChild(ex.first);
+		addChild(ex.second);
+	}
+	if (def_stmt) addChild(def_stmt);
 }
 
 SwitchStmt::~SwitchStmt() {}

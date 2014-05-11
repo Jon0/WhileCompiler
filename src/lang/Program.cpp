@@ -12,6 +12,10 @@ namespace std {
 Program::Program( FuncMap f, string pn ) {
 	funcs = f;
 	program_name = pn;
+
+	for ( FuncMap::value_type &f: funcs ) {
+		addChild( f.second );
+	}
 }
 
 Program::~Program() {}

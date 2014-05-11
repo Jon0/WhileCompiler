@@ -21,6 +21,22 @@ namespace std {
 class Instruction {
 public:
 	vector<unsigned char> bytes;
+
+	void modifyArg1(unsigned char c) {
+		bytes[1] = c;
+	}
+
+	void modifyArg2(unsigned short c) {
+		bytes[1] = (unsigned char) (c >> 8);
+		bytes[2] = (unsigned char) (c >> 0);
+	}
+
+	void modifyArg4(unsigned int c) {
+		bytes[1] = (unsigned char) (c >> 24);
+		bytes[2] = (unsigned char) (c >> 16);
+		bytes[3] = (unsigned char) (c >> 8);
+		bytes[4] = (unsigned char) (c >> 0);
+	}
 };
 
 class Bytecode: public SyntaxVisitor, public enable_shared_from_this<Bytecode> {
@@ -58,12 +74,24 @@ public:
 	virtual void accept(shared_ptr<RecordMemberExpr>);
 	virtual void accept(shared_ptr<BasicCastExpr>);
 	virtual void accept(shared_ptr<AbstractOpExpr>);
+	virtual void accept(shared_ptr<EquivOp>);
+	virtual void accept(shared_ptr<NotEquivOp>);
+	virtual void accept(shared_ptr<AndExpr>);
+	virtual void accept(shared_ptr<OrExpr>);
+	virtual void accept(shared_ptr<NotExpr>);
 
 private:
 	ClassfileWriter &out;
 	ConstantPool &constant_pool;
 
 	vector<Instruction> istack;
+
+	int num_locals;
+	map<string, int> local_map;
+	vector<shared_ptr<Type>> local_type;
+
+
+	shared_ptr<Type> t_const; // type of the last constant visited;
 
 
 	int stackSize();
