@@ -252,8 +252,8 @@ void ConstantPool::accept(shared_ptr<Func> f) {
 		add(make_shared<UTF8>("([Ljava/lang/String;)V"));
 	}
 	else {
-		add(make_shared<UTF8>("()V"));
-		add(make_shared<JNameType>( lookup(f->name()), lookup("()V") ));
+		add(make_shared<UTF8>("(I)V"));
+		add(make_shared<JNameType>( lookup(f->name()), lookup("(I)V") ));
 		add(make_shared<JMethodRef>(4, lookup(f->name()) + 2)); // TODO fix this.
 	}
 
@@ -323,11 +323,20 @@ void ConstantPool::accept(shared_ptr<ConstExpr> ex) {
 void ConstantPool::accept(shared_ptr<IsTypeExpr>) {}
 void ConstantPool::accept(shared_ptr<VariableExpr>) {}
 
-void ConstantPool::accept(shared_ptr<FuncCallExpr>) {}
+void ConstantPool::accept(shared_ptr<FuncCallExpr> f) {
+	// push args
+	vector<shared_ptr<Expr>> args = f->getArgs();
+	for (shared_ptr<Expr> e: args) {
+		e->visit(shared_from_this());
+	}
+}
 
 void ConstantPool::accept(shared_ptr<RecordExpr>) {}
 
-void ConstantPool::accept(shared_ptr<ListExpr>) {}
+void ConstantPool::accept(shared_ptr<ListExpr> le) {
+	le->visitChildren( shared_from_this() );
+}
+
 void ConstantPool::accept(shared_ptr<ListLengthExpr>) {}
 void ConstantPool::accept(shared_ptr<ConcatExpr>) {}
 void ConstantPool::accept(shared_ptr<ListLookupExpr>) {}

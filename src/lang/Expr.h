@@ -230,6 +230,10 @@ public:
 		return list.size();
 	}
 
+	shared_ptr<Expr> getExpr(int index) {
+		return list[index];
+	}
+
 private:
 	vector<shared_ptr<Expr>> list;
 };
@@ -386,6 +390,15 @@ public:
 		v->accept( shared_from_this() );
 	}
 
+	shared_ptr<Expr> getExpr() {
+		return v_expr;
+	}
+
+	shared_ptr<Expr> getIndex() {
+		return index;
+	}
+
+
 private:
 	shared_ptr<Expr> v_expr;
 	shared_ptr<Expr> index;
@@ -452,6 +465,10 @@ public:
 
 	shared_ptr<Func> getFunc() {
 		return func;
+	}
+
+	vector<shared_ptr<Expr>> getArgs() {
+		return args;
 	}
 
 private:

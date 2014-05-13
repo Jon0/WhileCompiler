@@ -5,12 +5,34 @@
  *      Author: remnanjona
  */
 
+#include <string>
+#include <iostream>
+#include <stdio.h>
+#include <vector>
+
 #include "Test.h"
+
+std::string exec(char* cmd) {
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) return "ERROR";
+    char buffer[128];
+    std::string result = "";
+    while(!feof(pipe)) {
+    	if(fgets(buffer, 128, pipe) != NULL)
+    		result += buffer;
+    }
+    pclose(pipe);
+    return result;
+}
+
+
+
 
 namespace std {
 
 Test::Test() {
-	// TODO Auto-generated constructor stub
+	// give list of files in test folder
+	vector<string> v = {"a", "b"};
 
 }
 

@@ -115,18 +115,33 @@ void Bytecode::accept(shared_ptr<Func> f) {
 
 	if ( f->name() == "main" ) {
 		out.write_u2( constant_pool.lookup("([Ljava/lang/String;)V") ); // descriptor
+
+		num_locals = 1; // 1 argument to the main method
+		local_type.push_back( NULL ); // reserve for unused argument
+
 	}
 	else {
-		out.write_u2( constant_pool.lookup("()V") ); // descriptor
+		out.write_u2( constant_pool.lookup("(I)V") ); // descriptor
+
+		num_locals = 0;
+		vector<Var> args = f->getArgs();
+		for (Var &v: args) {
+
+			cout << "arg " << v.name() << " is " <<  v.type()->nameStr() << endl;
+
+			local_map.insert( map<string, int>::value_type(v.name(), num_locals) );
+			local_type.push_back( v.type() );
+
+			num_locals += 1;
+		}
+
+
 	}
 	out.write_u2(1); // number of attributes - currently only code
 
 
 
 	// visit function code
-	num_locals = 1; // 1 argument to the main method
-	local_type.push_back( NULL ); // reserve for argument
-
 	f->getStmt()->visit(shared_from_this());
 	addInstruction(0xb1); // add return
 
@@ -139,8 +154,8 @@ void Bytecode::accept(shared_ptr<Func> f) {
 	out.write_u4( codesize + 12 ); // size of following block
 
 	//	u2 max_stack;
-	out.write_u2(5); // just guessing
-	cout << "max stack = 5" << endl;
+	out.write_u2(10); // just guessing
+	cout << "max stack = 10" << endl;
 
 	//	u2 max_locals;
 	out.write_u2(num_locals);
@@ -157,6 +172,8 @@ void Bytecode::accept(shared_ptr<Func> f) {
 	}
 
 	istack.clear();
+	local_map.clear();
+	local_type.clear();
 
 	//	u2 exception_table_length;
 	out.write_u2(0);
@@ -248,8 +265,10 @@ void Bytecode::accept(shared_ptr<WhileStmt> ws) {
 	addInstruction2(0x99, 0); // ifeq
 
 	ws->getBody()->visit( shared_from_this() );
+
 	addInstruction2(0xa7, -(stackSize() - marker1)); // goto
-	istack[instructionNo].modifyArg2((stackSize() - marker2) + 3);
+
+	istack[instructionNo].modifyArg2(stackSize() - marker2);
 }
 
 void Bytecode::accept(shared_ptr<ForStmt>) {}
@@ -294,7 +313,7 @@ void Bytecode::accept(shared_ptr<ConstExpr> ex) {
 		throw runtime_error("constant pool lookup failed");
 	}
 
-	addInstruction1(0x12, ind); // ldc, push constant string
+	addInstruction1(0x12, ind); // ldc, push constant
 }
 
 
@@ -303,8 +322,6 @@ void Bytecode::accept(shared_ptr<IsTypeExpr>) {}
 void Bytecode::accept(shared_ptr<VariableExpr> v) {
 	int ind = local_map[v->getVar()->name()];
 	shared_ptr<Type> t = local_type[ind];
-
-
 
 	if ( t->nameStr() == "int") {
 		addInstruction1(0x15, ind); // iload
@@ -316,36 +333,55 @@ void Bytecode::accept(shared_ptr<VariableExpr> v) {
 
 void Bytecode::accept(shared_ptr<FuncCallExpr> f) {
 	string mname = f->getFunc()->name();
-
-
 	int ind = constant_pool.lookupType("methodref", mname);
 	if (ind == 0) {
 		throw runtime_error("constant pool lookup failed");
 	}
 
-	addInstruction2(0xb8, ind); // aload
+	// push args
+	vector<shared_ptr<Expr>> args = f->getArgs();
+	for (shared_ptr<Expr> e: args) {
+		e->visit(shared_from_this());
+	}
+
+	cout << "invoke " << ind << endl;
+	addInstruction2(0xb8, ind); // invokestatic
 }
 
 void Bytecode::accept(shared_ptr<RecordExpr>) {}
 
 void Bytecode::accept(shared_ptr<ListExpr> l) {
-	t_const = l->getType();
-
 	addInstruction1(0x10, l->size()); // bipush length
 
 	addInstruction1(0xbc, 10); // newarray int
+
+	for (int i = 0; i < l->size(); ++i) {
+		addInstruction(0x59); // dup
+		addInstruction1(0x10, i); // bipush index
+		l->getExpr(i)->visit( shared_from_this() ); // value
+		addInstruction(0x4f); // iastore
+	}
+
+	t_const = l->getType();
 }
 
 
 void Bytecode::accept(shared_ptr<ListLengthExpr> l) {
 	l->visitChildren( shared_from_this() );
-	t_const = l->getType();
+	addInstruction(0xbe); // arraylength
 
-	addInstruction(0xbe);
+	t_const = l->getType();
 }
 
 void Bytecode::accept(shared_ptr<ConcatExpr>) {}
-void Bytecode::accept(shared_ptr<ListLookupExpr>) {}
+
+void Bytecode::accept(shared_ptr<ListLookupExpr> ll) {
+	ll->getExpr()->visit( shared_from_this() );
+	ll->getIndex()->visit( shared_from_this() );
+	addInstruction(0x2e); // iaload
+}
+
+
 void Bytecode::accept(shared_ptr<RecordMemberExpr>) {}
 void Bytecode::accept(shared_ptr<BasicCastExpr>) {}
 
