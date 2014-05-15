@@ -835,6 +835,10 @@ public:
 		v->accept( shared_from_this() );
 	}
 
+	shared_ptr<Expr> getExpr() {
+		return first;
+	}
+
 private:
 	shared_ptr<Expr> first;
 };

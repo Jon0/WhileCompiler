@@ -342,7 +342,6 @@ ReturnStmt::~ReturnStmt() {}
 
 StmtStatus ReturnStmt::execute( Stack &s, VarMap &m ) {
 
-
 }
 
 void ReturnStmt::typeCheck( CheckState &s ) {

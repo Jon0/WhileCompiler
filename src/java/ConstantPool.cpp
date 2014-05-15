@@ -14,6 +14,29 @@
 
 namespace std {
 
+string JavaDescriptor(shared_ptr<Type> t) {
+	if (t->nameStr() == "int") {
+		return "I";
+	}
+	else if (t->nameStr() == "void") {
+		return "V";
+	}
+	else if (t->nameStr() == "string") {
+		return "Ljava/lang/String;";
+	}
+	return "Unknown";
+}
+
+string JavaDescriptor(shared_ptr<Func> f) {
+	string desc = "(";
+	for (int i = 0; i < f->numArgs(); ++i) {
+		desc += JavaDescriptor( f->argType(i) );
+	}
+	desc += ")";
+	desc += JavaDescriptor( f->returnType() );
+	return desc;
+}
+
 void UTF8::writeByteCode(ClassfileWriter &outfile) {
 	outfile.write_u1(1);
 	outfile.write_u2(str.length());
@@ -239,6 +262,12 @@ void ConstantPool::accept(shared_ptr<Program> p) {
 	add(make_shared<JNameType>(14, 18));				// #19
 	add(make_shared<JMethodRef>(13, 19));				// #20
 
+	// boolean const strings
+	add(make_shared<UTF8>("true"));						// #21
+	add(make_shared<JString>(21));						// #22
+	add(make_shared<UTF8>("false"));					// #23
+	add(make_shared<JString>(23));						// #24
+
 	FuncMap fm = p->getFuncMap();
 	for ( FuncMap::value_type &func: fm ) {
 		func.second->visit(shared_from_this());
@@ -252,8 +281,9 @@ void ConstantPool::accept(shared_ptr<Func> f) {
 		add(make_shared<UTF8>("([Ljava/lang/String;)V"));
 	}
 	else {
-		add(make_shared<UTF8>("(I)V"));
-		add(make_shared<JNameType>( lookup(f->name()), lookup("(I)V") ));
+		string desc = JavaDescriptor( f );
+		add(make_shared<UTF8>(desc));
+		add(make_shared<JNameType>( lookup(f->name()), lookup(desc) ));
 		add(make_shared<JMethodRef>(4, lookup(f->name()) + 2)); // TODO fix this.
 	}
 
@@ -284,7 +314,9 @@ void ConstantPool::accept(shared_ptr<WhileStmt> ws) {
 	ws->visitChildren( shared_from_this() );
 }
 
-void ConstantPool::accept(shared_ptr<ForStmt>) {}
+void ConstantPool::accept(shared_ptr<ForStmt> fs) {
+	fs->visitChildren( shared_from_this() );
+}
 
 void ConstantPool::accept(shared_ptr<PrintStmt> ps) {
 	ps->getExpr()->visit(shared_from_this());
@@ -294,7 +326,10 @@ void ConstantPool::accept(shared_ptr<EvalStmt> es) {
 	es->visitChildren( shared_from_this() );
 }
 
-void ConstantPool::accept(shared_ptr<ReturnStmt>) {}
+void ConstantPool::accept(shared_ptr<ReturnStmt> r) {
+	r->visitChildren( shared_from_this() );
+}
+
 void ConstantPool::accept(shared_ptr<BreakStmt>) {}
 void ConstantPool::accept(shared_ptr<SwitchStmt>) {}
 
@@ -361,6 +396,8 @@ void ConstantPool::accept(shared_ptr<OrExpr> oe) {
 	oe->getRHS()->visit( shared_from_this() );
 }
 
-void ConstantPool::accept(shared_ptr<NotExpr>) {}
+void ConstantPool::accept(shared_ptr<NotExpr> ne) {
+	ne->getExpr()->visit( shared_from_this() );
+}
 
 } /* namespace std */

@@ -64,7 +64,6 @@ void Bytecode::addInstruction4(unsigned char code, unsigned int arg) {
 void Bytecode::accept(shared_ptr<Type>) {}
 void Bytecode::accept(shared_ptr<Value>) {}
 
-/* create flow for each function */
 void Bytecode::accept(shared_ptr<Program> p) {
 
 	//	u2 access_flags;
@@ -79,18 +78,15 @@ void Bytecode::accept(shared_ptr<Program> p) {
 	//	u2 interfaces_count;
 	out.write_u2(0);
 
-//	u2	interfaces[interfaces_count];
+	//	u2	interfaces[interfaces_count];
 
-//	u2 	fields_count;
+	//	u2 	fields_count;
 	out.write_u2(0);
-//	field_info 	fields[fields_count];
+	//	field_info 	fields[fields_count];
 
 
 	// Write Methods of this class
 	//	u2 	methods_count;
-
-
-
 	//	method_info methods[methods_count];
 	FuncMap fm = p->getFuncMap();
 	out.write_u2( fm.size() );
@@ -121,12 +117,12 @@ void Bytecode::accept(shared_ptr<Func> f) {
 
 	}
 	else {
-		out.write_u2( constant_pool.lookup("(I)V") ); // descriptor
+		string desc = JavaDescriptor( f );
+		out.write_u2( constant_pool.lookup(desc) ); // descriptor
 
 		num_locals = 0;
 		vector<Var> args = f->getArgs();
 		for (Var &v: args) {
-
 			cout << "arg " << v.name() << " is " <<  v.type()->nameStr() << endl;
 
 			local_map.insert( map<string, int>::value_type(v.name(), num_locals) );
@@ -143,7 +139,9 @@ void Bytecode::accept(shared_ptr<Func> f) {
 
 	// visit function code
 	f->getStmt()->visit(shared_from_this());
-	addInstruction(0xb1); // add return
+	if ( f->returnType()->nameStr() == "void") {
+		addInstruction(0xb1); // add return
+	}
 
 
 	int codesize = stackSize();
@@ -154,8 +152,8 @@ void Bytecode::accept(shared_ptr<Func> f) {
 	out.write_u4( codesize + 12 ); // size of following block
 
 	//	u2 max_stack;
-	out.write_u2(10); // just guessing
-	cout << "max stack = 10" << endl;
+	out.write_u2(20); // just guessing
+	cout << "max stack = 20" << endl;
 
 	//	u2 max_locals;
 	out.write_u2(num_locals);
@@ -214,7 +212,7 @@ void Bytecode::accept(shared_ptr<InitStmt> is) {
 		}
 
 
-		if ( t_const->nameStr() == "int") {
+		if ( t_const->nameStr() == "int" || t_const->nameStr() == "bool") {
 			addInstruction1(0x36, num_locals);			// istore
 		}
 		else {
@@ -234,11 +232,12 @@ void Bytecode::accept(shared_ptr<AssignStmt> as) {
 
 	as->getRHS()->visit( shared_from_this() );	// pushes value
 
-	if ( t->nameStr() == "string") {
-		addInstruction1(0x3a, ind);			// astore
-	}
-	else if ( t->nameStr() == "int") {
+
+	if ( t->nameStr() == "int" || t->nameStr() == "bool") {
 		addInstruction1(0x36, ind);			// istore
+	}
+	else  {
+		addInstruction1(0x3a, ind);			// astore
 	}
 }
 
@@ -253,7 +252,25 @@ void Bytecode::accept(shared_ptr<IfStmt> is) {
 	is->getBody()->visit( shared_from_this() );
 	int diff = stackSize() - marker;
 
-	istack[instructionNo].modifyArg2(diff);
+
+	if (is->hasAlt()) {
+		int instructionNo2 = istack.size();
+		addInstruction2(0xa7, 0); // goto
+		marker = stackSize();
+
+		is->getAlt()->visit( shared_from_this() );
+
+		int diff2 = stackSize() - marker;
+		istack[instructionNo].modifyArg2(diff + 3); // include the goto
+		istack[instructionNo2].modifyArg2(diff2);
+	}
+	else {
+		istack[instructionNo].modifyArg2(diff);
+	}
+
+
+
+
 }
 
 void Bytecode::accept(shared_ptr<WhileStmt> ws) {
@@ -271,15 +288,38 @@ void Bytecode::accept(shared_ptr<WhileStmt> ws) {
 	istack[instructionNo].modifyArg2(stackSize() - marker2);
 }
 
-void Bytecode::accept(shared_ptr<ForStmt>) {}
+void Bytecode::accept(shared_ptr<ForStmt> fs) {
+	fs->getInit()->visit( shared_from_this() );
+
+	int marker1 = stackSize();
+	fs->getExpr()->visit( shared_from_this() );
+
+	int marker2 = stackSize();
+	int instructionNo = istack.size();
+	addInstruction2(0x99, 0); // ifeq
+
+	fs->getBody()->visit( shared_from_this() );
+	fs->getInc()->visit( shared_from_this() );
+	addInstruction2(0xa7, -(stackSize() - marker1)); // goto
+
+	istack[instructionNo].modifyArg2(stackSize() - marker2);
+}
 
 void Bytecode::accept(shared_ptr<PrintStmt> ps) {
 	addInstruction2(0xb2, 11); // push output stream
 
 	ps->getExpr()->visit(shared_from_this()); // should add item to print
+	shared_ptr<Type> inner_type = ps->getExpr()->getType();
 
-	if ( t_const->nameStr() == "int") {
+	if ( inner_type->nameStr() == "int" ) {
 		addInstruction2(0xb6, 20); // invoke println for int
+	}
+	else if (inner_type->nameStr() == "bool") {
+		addInstruction2(0x99, 8); // ifeq
+		addInstruction1(0x12, 22); // ldc, push constant true
+		addInstruction2(0xa7, 5); // goto
+		addInstruction1(0x12, 24); // ldc, push constant false
+		addInstruction2(0xb6, 17); // invoke println for str
 	}
 	else {
 		addInstruction2(0xb6, 17); // invoke println for str
@@ -290,14 +330,31 @@ void Bytecode::accept(shared_ptr<EvalStmt> es) {
 	es->visitChildren( shared_from_this() );
 }
 
-void Bytecode::accept(shared_ptr<ReturnStmt>) {}
+void Bytecode::accept(shared_ptr<ReturnStmt> r) {
+	r->visitChildren( shared_from_this() );
+
+	if ( r->hasExpr() ) {
+		shared_ptr<Type> rtype = r->getExpr()->getType();
+
+		if (rtype->nameStr() == "string") {
+			addInstruction(0xb0); // areturn
+		}
+		else {
+			addInstruction(0xac); // ireturn
+		}
+	}
+	else {
+		addInstruction(0xb1); // empty return
+	}
+}
+
+
 void Bytecode::accept(shared_ptr<BreakStmt>) {}
 void Bytecode::accept(shared_ptr<SwitchStmt>) {}
 
 void Bytecode::accept(shared_ptr<ConstExpr> ex) {
 	shared_ptr<Value> v = ex->getValue();
 	t_const = v->type();
-
 	int ind = 0;
 	if ( t_const->nameStr() == "string") {
 		string s = ex->getValue()->asString();
@@ -307,6 +364,17 @@ void Bytecode::accept(shared_ptr<ConstExpr> ex) {
 		shared_ptr<TypedValue<int>> intv = static_pointer_cast<TypedValue<int>, Value>( v );
 		int i = intv->value();
 		ind = constant_pool.lookup(i);
+	}
+	else if ( t_const->nameStr() == "bool") {
+		shared_ptr<TypedValue<bool>> intv = static_pointer_cast<TypedValue<bool>, Value>( v );
+		bool i = intv->value();
+		if (i) {
+			addInstruction(0x4); // iconst_1
+		}
+		else {
+			addInstruction(0x3); // iconst_0
+		}
+		return;
 	}
 
 	if (ind == 0) {
@@ -323,7 +391,7 @@ void Bytecode::accept(shared_ptr<VariableExpr> v) {
 	int ind = local_map[v->getVar()->name()];
 	shared_ptr<Type> t = local_type[ind];
 
-	if ( t->nameStr() == "int") {
+	if ( t->nameStr() == "int" || t->nameStr() == "bool" ) {
 		addInstruction1(0x15, ind); // iload
 	}
 	else {
@@ -344,7 +412,6 @@ void Bytecode::accept(shared_ptr<FuncCallExpr> f) {
 		e->visit(shared_from_this());
 	}
 
-	cout << "invoke " << ind << endl;
 	addInstruction2(0xb8, ind); // invokestatic
 }
 
@@ -393,9 +460,38 @@ void Bytecode::accept(shared_ptr<AbstractOpExpr> oe) {
 	if ( oe->opcode() == '+') {
 		addInstruction(0x60); // iadd
 	}
-
-	if ( oe->opcode() == '<') {
+	else if ( oe->opcode() == '-') {
+		addInstruction(0x64); // iadd
+	}
+	else if ( oe->opcode() == '*') {
+		addInstruction(0x68); // imul
+	}
+	else if ( oe->opcode() == '/') {
+		addInstruction(0x6c); // idiv
+	}
+	else if ( oe->opcode() == '%') {
+		addInstruction(0x70); // irem
+	}
+	else if ( oe->opcode() == '<') {
 		addInstruction2(0xa2, 7); // if_icmpge
+		addInstruction(0x4); // iconst_1
+		addInstruction2(0xa7, 4); // goto
+		addInstruction(0x3); // iconst_0
+	}
+	else if ( oe->opcode() == '>') {
+		addInstruction2(0xa4, 7); // if_icmple
+		addInstruction(0x4); // iconst_1
+		addInstruction2(0xa7, 4); // goto
+		addInstruction(0x3); // iconst_0
+	}
+	else if ( oe->opcode() == '[') {
+		addInstruction2(0xa3, 7); // if_icmpgt
+		addInstruction(0x4); // iconst_1
+		addInstruction2(0xa7, 4); // goto
+		addInstruction(0x3); // iconst_0
+	}
+	else if ( oe->opcode() == ']') {
+		addInstruction2(0xa1, 7); // if_icmplt
 		addInstruction(0x4); // iconst_1
 		addInstruction2(0xa7, 4); // goto
 		addInstruction(0x3); // iconst_0
@@ -420,6 +516,13 @@ void Bytecode::accept(shared_ptr<OrExpr> oe) {
 }
 
 
-void Bytecode::accept(shared_ptr<NotExpr>) {}
+void Bytecode::accept(shared_ptr<NotExpr> ne) {
+	ne->getExpr()->visit( shared_from_this() );
+
+	addInstruction2(0x99, 7); // ifeq
+	addInstruction(0x3); // iconst_0
+	addInstruction2(0xa7, 4); // goto
+	addInstruction(0x4); // iconst_1
+}
 
 } /* namespace std */

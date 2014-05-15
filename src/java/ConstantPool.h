@@ -18,6 +18,12 @@
 
 namespace std {
 
+class Type;
+class Func;
+
+string JavaDescriptor(shared_ptr<Type>);
+string JavaDescriptor(shared_ptr<Func>);
+
 class Constant {
 public:
 	virtual ~Constant() {}
