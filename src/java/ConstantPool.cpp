@@ -21,6 +21,17 @@ string JavaDescriptor(shared_ptr<Type> t) {
 	else if (t->nameStr() == "void") {
 		return "V";
 	}
+	else if (t->nameStr() == "char") {
+		return "C";
+	}
+	else if (t->nameStr() == "real") {
+		return "D";
+	}
+	else if (t->isList()) {
+		shared_ptr<ListType> lt = static_pointer_cast<ListType, Type>( t );
+
+		return "["+JavaDescriptor(lt->innerType());
+	}
 	else if (t->nameStr() == "string") {
 		return "Ljava/lang/String;";
 	}
@@ -338,20 +349,16 @@ void ConstantPool::accept(shared_ptr<ConstExpr> ex) {
 	shared_ptr<Value> v = ex->getValue();
 	shared_ptr<Type> t = v->type();
 
-
 	if ( t->nameStr() == "string") {
 		string s = ex->getValue()->asString();
 		add(make_shared<UTF8>(s));
 		add(make_shared<JString>( lookup(s) ));
 	}
-	else if ( t->nameStr() == "int") {
+	else if ( t->nameStr() == "int" || t->nameStr() == "char" ) {
 		shared_ptr<TypedValue<int>> intv = static_pointer_cast<TypedValue<int>, Value>( v );
 		int i = intv->value();
 		add(make_shared<JInteger>(i));
 	}
-
-
-
 
 }
 

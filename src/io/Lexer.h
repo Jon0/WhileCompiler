@@ -20,6 +20,7 @@ namespace std {
 class Lexer {
 public:
 	Lexer(const char *);
+	Lexer(string);
 	virtual ~Lexer();
 
 	string getFilename();

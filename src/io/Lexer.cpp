@@ -7,6 +7,8 @@
 
 namespace std {
 
+Lexer::Lexer(string s): Lexer(s.c_str()){}
+
 Lexer::Lexer(const char *fn):
 		file(fn)
 {

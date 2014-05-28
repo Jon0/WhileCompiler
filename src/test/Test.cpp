@@ -5,39 +5,90 @@
  *      Author: remnanjona
  */
 
-#include <string>
-#include <iostream>
-#include <stdio.h>
+#include <streambuf>
 #include <vector>
+#include <memory>
+
+#include "../io/Lexer.h"
+#include "../io/Parser.h"
+#include "../io/Pipe.h"
+#include "../lang/Common.h"
+#include "../x86/WhileToX86.h"
+#include "../x86/X86Program.h"
+#include "../x86/X86Writer.h"
 
 #include "Test.h"
-
-std::string exec(char* cmd) {
-    FILE* pipe = popen(cmd, "r");
-    if (!pipe) return "ERROR";
-    char buffer[128];
-    std::string result = "";
-    while(!feof(pipe)) {
-    	if(fgets(buffer, 128, pipe) != NULL)
-    		result += buffer;
-    }
-    pclose(pipe);
-    return result;
-}
-
-
-
 
 namespace std {
 
 Test::Test() {
-	// give list of files in test folder
-	vector<string> v = {"a", "b"};
-
+	passed = 0;
+	total = 0;
 }
 
-Test::~Test() {
-	// TODO Auto-generated destructor stub
+Test::~Test() {}
+
+void Test::testDirectory(string directory, vector<string> wfiles) {
+	passed = 0;
+	total = 0;
+
+	for ( string wf: wfiles ) {
+		runTest(directory+wf, "");
+	}
+
+	cout << endl;
+	cout << "----------------------" << endl;
+	cout << passed << " / " << total << " tests passed" << endl;
 }
+
+void Test::runTest(string in, string out) {
+	try {
+		string inExt = ".while";
+		string cmpExt = ".sysout";
+
+		// read while program
+		Lexer lex(in+inExt);
+		Parser parser(lex);
+		shared_ptr<Program> input = parser.read();
+
+
+		// convert to a x86 assembly program
+		shared_ptr<X86Program> x86prog = make_shared<X86Program>();
+		shared_ptr<WhileToX86> converter = make_shared<WhileToX86>(x86prog);
+		input->visit(converter);
+
+		// save executable
+		shared_ptr<X86Writer> writer = make_shared<X86Writer>(x86prog, "bin/", "");
+		writer->writeExecutable();
+
+		// run program record output
+		Pipe p;
+		string outStr = p.exec("./"+writer->filepath());
+
+		// read expected output
+		ifstream t(in+cmpExt);
+		string expected((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());
+
+		// compare to expected output
+		//expected = expected.substr(0, expected.length() - 1); // buffer ends with "\r"
+		if (outStr != expected) {
+			cout << endl;
+			cout << "test failed - " << in << endl;
+			cout << "have:\t" << outStr << endl;
+			cout << "expect:\t" << expected << endl;
+			cout << "----------------------" << endl;
+		}
+		else {
+			cout << "test passed - " << in << endl;
+			passed++;
+		}
+		total++;
+
+	}
+	catch (exception &e) {
+		cout << "error in test " << in << ", " << e.what() << endl;
+	}
+}
+
 
 } /* namespace std */

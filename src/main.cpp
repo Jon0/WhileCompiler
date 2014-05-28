@@ -7,6 +7,8 @@
 
 #include "java/Bytecode.h"
 
+#include "test/Test.h"
+
 using namespace std;
 
 bool debug = true;
@@ -14,6 +16,21 @@ bool debug = true;
 int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		cout << "requires a file" << endl;
+		return 0;
+	}
+
+	string arg1 = argv[1];
+	if (arg1 == "--test") {
+		shared_ptr<Test> t = make_shared<Test>();
+
+		// list of files in test folder
+		//string directory = "tests/mytests/";
+		//vector<string> wfiles = {"first", "second", "print2"};
+
+		string directory = "tests/valid/";
+		vector<string> wfiles = {"BoolAssign_Valid_1", "BoolAssign_Valid_2", "BoolAssign_Valid_3", "BoolAssign_Valid_4"};
+
+		t->testDirectory(directory, wfiles);
 		return 0;
 	}
 

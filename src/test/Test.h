@@ -8,12 +8,21 @@
 #ifndef TEST_H_
 #define TEST_H_
 
+#include <string>
+#include <vector>
+
 namespace std {
 
 class Test {
 public:
 	Test();
 	virtual ~Test();
+
+	void testDirectory(string, vector<string>);
+	void runTest(string, string);
+
+private:
+	int passed, total;
 };
 
 } /* namespace std */

@@ -463,11 +463,11 @@ public:
 		v->accept( shared_from_this() );
 	}
 
-	shared_ptr<Func> getFunc() {
+	shared_ptr<Func> getFunc() const {
 		return func;
 	}
 
-	vector<shared_ptr<Expr>> getArgs() {
+	vector<shared_ptr<Expr>> getArgs() const {
 		return args;
 	}
 
@@ -684,6 +684,14 @@ public:
 		v->accept( shared_from_this() );
 	}
 
+	shared_ptr<Expr> getLHS() {
+		return first;
+	}
+
+	shared_ptr<Expr> getRHS() {
+		return second;
+	}
+
 private:
 	shared_ptr<Expr> first;
 	shared_ptr<Expr> second;
@@ -708,6 +716,14 @@ public:
 
 	virtual void visit(shared_ptr<SyntaxVisitor> v) {
 		v->accept( shared_from_this() );
+	}
+
+	shared_ptr<Expr> getLHS() {
+		return first;
+	}
+
+	shared_ptr<Expr> getRHS() {
+		return second;
 	}
 
 private:

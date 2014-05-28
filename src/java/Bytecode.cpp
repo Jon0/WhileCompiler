@@ -212,7 +212,7 @@ void Bytecode::accept(shared_ptr<InitStmt> is) {
 		}
 
 
-		if ( t_const->nameStr() == "int" || t_const->nameStr() == "bool") {
+		if ( t_const->nameStr() == "int" || t_const->nameStr() == "char" || t_const->nameStr() == "bool") {
 			addInstruction1(0x36, num_locals);			// istore
 		}
 		else {
@@ -233,7 +233,7 @@ void Bytecode::accept(shared_ptr<AssignStmt> as) {
 	as->getRHS()->visit( shared_from_this() );	// pushes value
 
 
-	if ( t->nameStr() == "int" || t->nameStr() == "bool") {
+	if ( t->nameStr() == "int" || t_const->nameStr() == "char" || t->nameStr() == "bool") {
 		addInstruction1(0x36, ind);			// istore
 	}
 	else  {
@@ -267,10 +267,6 @@ void Bytecode::accept(shared_ptr<IfStmt> is) {
 	else {
 		istack[instructionNo].modifyArg2(diff);
 	}
-
-
-
-
 }
 
 void Bytecode::accept(shared_ptr<WhileStmt> ws) {
@@ -311,8 +307,8 @@ void Bytecode::accept(shared_ptr<PrintStmt> ps) {
 	ps->getExpr()->visit(shared_from_this()); // should add item to print
 	shared_ptr<Type> inner_type = ps->getExpr()->getType();
 
-	if ( inner_type->nameStr() == "int" ) {
-		addInstruction2(0xb6, 20); // invoke println for int
+	if ( inner_type->nameStr() == "int" || inner_type->nameStr() == "char") {
+		addInstruction2(0xb6, 20); // invoke println for int or char
 	}
 	else if (inner_type->nameStr() == "bool") {
 		addInstruction2(0x99, 8); // ifeq
