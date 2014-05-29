@@ -22,7 +22,7 @@ namespace std {
  * also includes labeled constants, and basic constants
  * register access is faster
  */
-class X86Reference {
+class X86Reference: public enable_shared_from_this<X86Reference> {
 public:
 	X86Reference(string);
 	X86Reference(int);

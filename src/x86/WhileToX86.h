@@ -18,6 +18,7 @@
 namespace std {
 
 typedef map<string, shared_ptr<X86Reference>> refmap;
+typedef vector<shared_ptr<X86Reference>> refstack;
 
 class X86Program;
 
@@ -66,13 +67,20 @@ private:
 	shared_ptr<X86Program> out;
 
 	int dLabel, tagCount;
-	refmap refs;
 
-	shared_ptr<X86Register> eax;
+
+	shared_ptr<X86Register> ax;
+	shared_ptr<X86Register> bx;
+	shared_ptr<X86Register> cx;
+	shared_ptr<X86Register> dx;
 
 	X86StackFrame stack;
-	shared_ptr<X86Reference> top;
 
+	// used to track values
+	refmap refs;
+	refstack top;
+
+	shared_ptr<X86Reference> popRef();
 };
 
 } /* namespace std */

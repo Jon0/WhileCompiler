@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 		//string directory = "tests/mytests/";
 		//vector<string> wfiles = {"first", "second", "print2"};
 
-		string directory = "tests/valid/";
-		vector<string> wfiles = {"BoolAssign_Valid_1", "BoolAssign_Valid_2", "BoolAssign_Valid_3", "BoolAssign_Valid_4"};
+		string directory = "tests/mytests/";
+		vector<string> wfiles = {"funccall"};
 
 		t->testDirectory(directory, wfiles);
 		return 0;

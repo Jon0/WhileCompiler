@@ -53,6 +53,7 @@ shared_ptr<X86Instruction> X86Reference::setValue(string v) {
 
 shared_ptr<X86Instruction> X86Reference::assignRegister(shared_ptr<X86Register> r) {
 	reg = r;
+	reg->assign( shared_from_this() );
 
 	if (reg) {
 		return make_shared<InstrMov>( stackPlace(), reg->place() );

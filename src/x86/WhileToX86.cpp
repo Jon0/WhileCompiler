@@ -20,10 +20,12 @@ namespace std {
 
 WhileToX86::WhileToX86(shared_ptr<X86Program> o) {
 	out = o;
-	eax = make_shared<X86Register>("eax");
+	ax = make_shared<X86Register>("ax");
+	bx = make_shared<X86Register>("bx");
+	cx = make_shared<X86Register>("cx");
+	dx = make_shared<X86Register>("dx");
 	dLabel = -1;
 	tagCount = 1;
-	top = NULL;
 }
 
 WhileToX86::~WhileToX86() {
@@ -44,26 +46,25 @@ void WhileToX86::accept(shared_ptr<Func> f) {
 	out->addInstruction( "text", make_shared<InstrGlobl>(f->name()) );	//.globl [function name]
 	//out->addInstruction( make_shared<InstrType>(f->name()) );	//.type	[function name], @function
 
-	// labels
+	// label function
 	out->addInstruction( "text", make_shared<InstrFuncLabel>( f->name() ) );
 
 	// save stack pointer
 	out->addInstruction( "text", make_shared<InstrPush>("%rbp") );
 	out->addInstruction( "text", make_shared<InstrMov>("%rsp", "%rbp") );
-	out->addInstruction( "text", stack.allocate(16) ); // TODO should modify later
+	out->addInstruction( "text", stack.allocate(0) ); // TODO should modify later
 
-	// args should be on top of the stack, this actually does nothing
-	int vi = 0;
+	// args should be on top of the stack
+	int vi = 16;
 	for (Var var: f->getArgs()) {
 		string vname = var.name();
-		refs.insert( refmap::value_type(vname, make_shared<X86Reference>( stack.nextSpace(4) )) );
-		out->addInstruction( "text", make_shared<InstrMov>( to_string(vi)+"(%rbp)", "%eax") );
-		out->addInstruction( "text", refs[vname]->setValue( "%eax" ) );
-		vi += 4;
+		refs.insert( refmap::value_type(vname, make_shared<X86Reference>( vi )) );
+		vi += 8;
 	}
 
 	f->visitChildren( shared_from_this() );
 
+	// leave
 	out->addInstruction( "text", make_shared<InstrMov>("%rbp", "%rsp") );
 	out->addInstruction( "text", make_shared<InstrPop>("%rbp") );
 	out->addInstruction( "text", make_shared<InstrRet>() );
@@ -84,14 +85,13 @@ void WhileToX86::accept(shared_ptr<InitStmt> e) {
 	refs.insert( refmap::value_type(vname, make_shared<X86Reference>( stack.nextSpace(4) )) );
 
 	// hopefully a reference is made
-	top = NULL;
 	e->getExpr()->visit( shared_from_this() );
-	if (!top) {
+	if (top.empty()) {
 		cout << "assignment failed" << endl;
 		return;
 	}
 
-	out->addInstruction( "text", refs[vname]->setValue( top->place() ) );
+	out->addInstruction( "text", refs[vname]->setValue( popRef()->place() ) );
 }
 
 void WhileToX86::accept(shared_ptr<AssignStmt> e) {
@@ -100,7 +100,14 @@ void WhileToX86::accept(shared_ptr<AssignStmt> e) {
 	if (a) {
 		string vname = a->name();
 
-		out->addInstruction("text", refs[vname]->setValue("$0"));
+		// hopefully a reference is made
+		e->getRHS()->visit( shared_from_this() );
+		if (top.empty()) {
+			cout << "assignment failed" << endl;
+			return;
+		}
+
+		out->addInstruction("text", refs[vname]->setValue( popRef()->place() ));
 	}
 	else {
 		cout << "not assignable" << endl;
@@ -108,15 +115,14 @@ void WhileToX86::accept(shared_ptr<AssignStmt> e) {
 }
 
 void WhileToX86::accept(shared_ptr<IfStmt> e) {
-	top = NULL;
 	e->getExpr()->visit( shared_from_this() );
-	if (!top) {
+	if (top.empty()) {
 		cout << "invalid expression" << endl;
 		return;
 	}
 
 	// top should be a boolean
-	out->addInstruction( "text", make_shared<InstrCmp>( "$0", top->place() ) );
+	out->addInstruction( "text", make_shared<InstrCmp>( "$0", popRef()->place() ) );
 	string tag1 = ".L"+to_string(tagCount++);
 	string tag2 = ".L"+to_string(tagCount++);
 
@@ -135,11 +141,10 @@ void WhileToX86::accept(shared_ptr<WhileStmt>) {}
 void WhileToX86::accept(shared_ptr<ForStmt>) {}
 
 void WhileToX86::accept(shared_ptr<PrintStmt> e) {
-	top = NULL;
 	e->visitChildren( shared_from_this() );
-	if (!top) return;
+	if (top.empty()) return;
 
-	out->addInstruction( "text", make_shared<InstrMov>( top->place(), "%edi" ) );
+	out->addInstruction( "text", make_shared<InstrMov>( popRef()->place(), "%edi" ) );
 	//out->addInstruction( "text", make_shared<InstrMov>( "$0", "%eax" ) );
 
 	shared_ptr<Expr> inner = e->getExpr();
@@ -154,11 +159,15 @@ void WhileToX86::accept(shared_ptr<PrintStmt> e) {
 	}
 }
 
-void WhileToX86::accept(shared_ptr<EvalStmt>) {}
+void WhileToX86::accept(shared_ptr<EvalStmt> e) {
+	e->visitChildren( shared_from_this() );
+}
 
 void WhileToX86::accept(shared_ptr<ReturnStmt> e) {
 	e->visitChildren( shared_from_this() );
-	out->addInstruction( "text", make_shared<InstrMov>( top->place(), "%eax" ) );
+	if (e->hasExpr()) {
+		out->addInstruction( "text", popRef()->assignRegister(ax) );
+	}
 }
 
 void WhileToX86::accept(shared_ptr<BreakStmt>) {}
@@ -172,16 +181,16 @@ void WhileToX86::accept(shared_ptr<ConstExpr> e) {
 		out->addInstruction( "data", make_shared<InstrDirective>( "data" ) );	// TODO shouldnt assume its the first data
 		out->addInstruction( "data", make_shared<InstrLabel>( ".LC" + to_string(dLabel) ) );
 		out->addInstruction( "data", make_shared<InstrDirective>( "string", vector<string>({v->asString()}) ) );
-		top = make_shared<X86Reference>( "$.LC" + to_string(dLabel) );
+		top.push_back(make_shared<X86Reference>( "$.LC" + to_string(dLabel) ));
 
 	}
 	else if ( v->type()->nameStr() == "bool") {
 		shared_ptr<TypedValue<bool>> b = static_pointer_cast<TypedValue<bool>, Value>( v );
-		top = make_shared<X86Reference>("$"+to_string(b->value()));
+		top.push_back(make_shared<X86Reference>("$"+to_string(b->value())));
 	}
 	else if ( v->type()->nameStr() == "int") {
 		shared_ptr<TypedValue<int>> b = static_pointer_cast<TypedValue<int>, Value>( v );
-		top = make_shared<X86Reference>("$"+to_string(b->value()));
+		top.push_back(make_shared<X86Reference>("$"+to_string(b->value())));
 	}
 
 }
@@ -192,8 +201,8 @@ void WhileToX86::accept(shared_ptr<VariableExpr> e) {
 	if (a) {
 		string vname = a->name();
 		if (refs.count(vname) > 0) {
-			out->addInstruction( "text", refs[vname]->assignRegister(eax) );
-			top = refs[vname];
+			out->addInstruction( "text", refs[vname]->assignRegister(ax) );
+			top.push_back(refs[vname]);
 		}
 	}
 	else {
@@ -205,13 +214,13 @@ void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
 
 	for (shared_ptr<Expr> e: f->getArgs()) {
 		e->visit( shared_from_this() );
-		out->addInstruction( "text", make_shared<InstrMov>( top->place(), "%eax" ) );
+		out->addInstruction( "text", make_shared<InstrMov>( popRef()->place(), "%eax" ) );
 		out->addInstruction( "text", make_shared<InstrPush>("%rax") );
 	}
 
 
 	out->addInstruction( "text", make_shared<InstrCall>( f->getFunc()->name() ) );
-	top = make_shared<X86Reference>(eax);
+	top.push_back(make_shared<X86Reference>(ax));
 }
 
 void WhileToX86::accept(shared_ptr<RecordExpr>) {}
@@ -227,7 +236,7 @@ void WhileToX86::accept(shared_ptr<AbstractOpExpr>) {
 	out->addInstruction( "text", make_shared<InstrMov>( "$345", "%eax" ) );
 	out->addInstruction( "text", make_shared<InstrMov>( "$4", "%edx" ) );
 	out->addInstruction( "text", make_shared<InstrAdd>( "%edx", "%eax" ) );
-	top = make_shared<X86Reference>(eax);
+	top.push_back(make_shared<X86Reference>(ax));
 }
 
 
@@ -239,13 +248,13 @@ void WhileToX86::accept(shared_ptr<EquivOp> e) {
 
 
 	e->getLHS()->visit( shared_from_this() );
-	out->addInstruction( "text", make_shared<InstrMov>( top->place(), "%ebx" ) );
+	out->addInstruction( "text", make_shared<InstrMov>( popRef()->place(), "%ebx" ) );
 	e->getRHS()->visit( shared_from_this() );
-	out->addInstruction( "text", make_shared<InstrCmp>( top->place(), "%ebx" ) );
+	out->addInstruction( "text", make_shared<InstrCmp>( popRef()->place(), "%ebx" ) );
 	out->addInstruction( "text", make_shared<InstrSet>( "%al" ) );
 	out->addInstruction( "text", make_shared<InstrMov>( "zbl", "%al", "%eax" ) );
 
-	top = make_shared<X86Reference>(eax);
+	top.push_back(make_shared<X86Reference>(ax));
 }
 
 void WhileToX86::accept(shared_ptr<NotEquivOp>) {}
@@ -253,7 +262,13 @@ void WhileToX86::accept(shared_ptr<AndExpr>) {}
 void WhileToX86::accept(shared_ptr<OrExpr>) {}
 
 void WhileToX86::accept(shared_ptr<NotExpr>) {
-	top = make_shared<X86Reference>(eax);
+	top.push_back(make_shared<X86Reference>(ax));
+}
+
+shared_ptr<X86Reference> WhileToX86::popRef() {
+	shared_ptr<X86Reference> rr = top.back();
+	top.pop_back();
+	return rr;
 }
 
 } /* namespace std */
