@@ -30,7 +30,8 @@ Test::~Test() {}
 
 void Test::testDirectory(string directory, vector<string> wfiles) {
 	passed = 0;
-	total = 0;
+	completed = 0;
+	total = wfiles.size();
 
 	for ( string wf: wfiles ) {
 		runTest(directory+wf, "");
@@ -42,6 +43,11 @@ void Test::testDirectory(string directory, vector<string> wfiles) {
 }
 
 void Test::runTest(string in, string out) {
+	cout << "----------------------" << endl;
+	cout << "building " << in << endl;
+	cout << completed << "/" << total << endl;
+	cout << "----------------------" << endl;
+
 	try {
 		string inExt = ".while";
 		string cmpExt = ".sysout";
@@ -50,7 +56,6 @@ void Test::runTest(string in, string out) {
 		Lexer lex(in+inExt);
 		Parser parser(lex);
 		shared_ptr<Program> input = parser.read();
-
 
 		// convert to a x86 assembly program
 		shared_ptr<X86Program> x86prog = make_shared<X86Program>();
@@ -82,7 +87,7 @@ void Test::runTest(string in, string out) {
 			cout << "test passed - " << in << endl;
 			passed++;
 		}
-		total++;
+		completed++;
 
 	}
 	catch (exception &e) {

@@ -226,11 +226,11 @@ public:
 		v->accept( shared_from_this() );
 	}
 
-	int size() {
+	int size() const {
 		return list.size();
 	}
 
-	shared_ptr<Expr> getExpr(int index) {
+	shared_ptr<Expr> getExpr(int index) const {
 		return list[index];
 	}
 
@@ -480,6 +480,7 @@ class BasicCastExpr: public Expr, public enable_shared_from_this<BasicCastExpr> 
 public:
 	BasicCastExpr( Token tok, shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( tok, t ) {
 		expr = e;
+		addChild(e);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -600,6 +601,8 @@ public:
 		numbersOnly = false;
 		copyTokens(*first);
 		copyTokens(*second);
+		addChild(a);
+		addChild(b);
 	}
 
 	AbstractOpExpr(shared_ptr<Expr> a, shared_ptr<Expr> b, bool numOnly): AbstractOpExpr( a->getType(), a, b ) {
@@ -668,6 +671,8 @@ public:
 	EquivOp(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
+		addChild(a);
+		addChild(b);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -702,6 +707,8 @@ public:
 	NotEquivOp(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
+		addChild(a);
+		addChild(b);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -736,6 +743,8 @@ public:
 	AndExpr(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
+		addChild(a);
+		addChild(b);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -785,6 +794,8 @@ public:
 	OrExpr(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
+		addChild(a);
+		addChild(b);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -833,6 +844,7 @@ class NotExpr: public Expr, public enable_shared_from_this<NotExpr> {
 public:
 	NotExpr(Token tok, shared_ptr<Expr> a): Expr( tok, a->getType() ) {
 		first = a;
+		addChild(a);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {

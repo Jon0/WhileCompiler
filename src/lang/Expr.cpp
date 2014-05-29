@@ -15,10 +15,11 @@ void boolCheck(shared_ptr<Expr> expr) {
 }
 
 shared_ptr<Type> findListType(vector<shared_ptr<Expr>> e) {
+
+	// give empty list type
 	if (e.empty()) return shared_ptr<Type>(new ListType());
 
 	vector<shared_ptr<Type>> inner_type;
-
 	for (shared_ptr<Expr> ex: e) {
 		bool found = false;
 		for (shared_ptr<Type> ty: inner_type) {
@@ -43,6 +44,9 @@ shared_ptr<Type> findListType(vector<shared_ptr<Expr>> e) {
 FuncCallExpr::FuncCallExpr( Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Expr( tok, f->returnType() ) {
 	func = f;
 	args = a;
+	for (shared_ptr<Expr> e: args) {
+		addChild(e);
+	}
 }
 
 shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {

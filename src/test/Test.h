@@ -22,7 +22,7 @@ public:
 	void runTest(string, string);
 
 private:
-	int passed, total;
+	int passed, completed, total;
 };
 
 } /* namespace std */

@@ -31,6 +31,7 @@ bool ListType::contains( const Type &other ) const {
 }
 
 vector<shared_ptr<Type>> UnionType::normalise( const vector<shared_ptr<Type>> types ) {
+	cout << "normalise union" << endl;
 	vector<shared_ptr<Type>> sets;
 
 	// copy element of the union

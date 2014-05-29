@@ -636,9 +636,7 @@ shared_ptr<Type> Parser::readType() {
 	// union types
 	while (in.canMatch("|")) {
 		types.push_back( readTypeInner() );
-
 	}
-
 
 	if (types.size() == 1) {
 		return types[0];

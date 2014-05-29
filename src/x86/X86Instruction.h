@@ -8,10 +8,13 @@
 #ifndef X86INSTRUCTION_H_
 #define X86INSTRUCTION_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace std {
+
+class X86Reference;
 
 /* base class for instruction types */
 class X86Instruction {
@@ -122,6 +125,8 @@ class InstrCode: public X86Instruction {
 public:
 	InstrCode() {}
 	virtual ~InstrCode() {}
+
+	string width(shared_ptr<X86Reference> r);
 };
 
 class InstrSkip: public InstrCode {
@@ -136,15 +141,9 @@ public:
 
 class InstrPush: public InstrCode {
 public:
-	InstrPush(string l) {
-		labelStr = l;
-		type = "q";
-	}
-	virtual ~InstrPush() {}
-
-	virtual string str() {
-		return "\tpush"+type+"\t"+labelStr;
-	}
+	InstrPush(shared_ptr<X86Reference>);
+	virtual ~InstrPush();
+	virtual string str();
 
 private:
 	string type, labelStr;
@@ -165,13 +164,7 @@ private:
 
 class InstrMov: public InstrCode {
 public:
-	InstrMov(string f, string t) {
-		from = f; to = t;
-		type = "q";
-
-		// TODO use register sizes
-		if (f[0] == '$' || f[1] == 'e' || t[1] == 'e') type = "l";
-	}
+	InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
 	InstrMov(string p, string f, string t) {
 		from = f; to = t;
 		type = p;
@@ -203,6 +196,52 @@ public:
 
 	virtual string str() {
 		return "\tadd"+type+"\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type;
+};
+
+class InstrAnd: public InstrCode {
+public:
+	InstrAnd(string f, string t) {
+		from = f; to = t;
+		type = "q";
+
+		// TODO use register sizes
+		if (f[0] == '$' || f[1] == 'e' || t[1] == 'e') type = "l";
+	}
+	InstrAnd(string p, string f, string t) {
+		from = f; to = t;
+		type = p;
+	}
+	virtual ~InstrAnd() {}
+
+	virtual string str() {
+		return "\tand"+type+"\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type;
+};
+
+class InstrXor: public InstrCode {
+public:
+	InstrXor(string f, string t) {
+		from = f; to = t;
+		type = "q";
+
+		// TODO use register sizes
+		if (f[0] == '$' || f[1] == 'e' || t[1] == 'e') type = "l";
+	}
+	InstrXor(string p, string f, string t) {
+		from = f; to = t;
+		type = p;
+	}
+	virtual ~InstrXor() {}
+
+	virtual string str() {
+		return "\txor"+type+"\t"+from+", "+to;
 	}
 
 private:
@@ -254,6 +293,10 @@ public:
 		return "\tsub"+type+"\t"+from+", "+to;
 	}
 
+	void modifyLHS(string s) {
+		from = s;
+	}
+
 private:
 	string from, to, type;
 };
@@ -284,15 +327,22 @@ private:
 
 class InstrSet: public InstrCode {
 public:
-	InstrSet(string l) {labelStr = l;}
+	InstrSet(string l) {
+		type = "e";
+		labelStr = l;
+	}
+	InstrSet(string t, string l) {
+		type = t;
+		labelStr = l;
+	}
 	virtual ~InstrSet() {}
 
 	virtual string str() {
-		return "\tsete\t"+labelStr;
+		return "\tset"+type+"\t"+labelStr;
 	}
 
 private:
-	string labelStr;
+	string type, labelStr;
 };
 
 

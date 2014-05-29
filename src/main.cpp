@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "io/Directory.h"
 #include "io/Lexer.h"
 #include "io/Parser.h"
 
@@ -21,16 +22,17 @@ int main(int argc, char *argv[]) {
 
 	string arg1 = argv[1];
 	if (arg1 == "--test") {
+		string directoryPath = argv[2];
+
+		// get list of files in test folder
+		Directory dir(directoryPath);
+		vector<string> wfiles = dir.fileList("while");
+//		vector<string> wfiles = {"BoolAssign_Valid_1", "BoolAssign_Valid_2", "BoolAssign_Valid_3", "BoolAssign_Valid_4",
+//				"BoolIfElse_Valid_1", "BoolIfElse_Valid_2", "ListAccess_Valid_1"};
+
+
 		shared_ptr<Test> t = make_shared<Test>();
-
-		// list of files in test folder
-		//string directory = "tests/mytests/";
-		//vector<string> wfiles = {"first", "second", "print2"};
-
-		string directory = "tests/mytests/";
-		vector<string> wfiles = {"funccall"};
-
-		t->testDirectory(directory, wfiles);
+		t->testDirectory(directoryPath, wfiles);
 		return 0;
 	}
 

@@ -13,6 +13,7 @@
 
 #include "X86Instruction.h"
 #include "X86Register.h"
+#include "X86StackFrame.h"
 
 namespace std {
 
@@ -25,18 +26,39 @@ namespace std {
 class X86Reference: public enable_shared_from_this<X86Reference> {
 public:
 	X86Reference(string);
-	X86Reference(int);
-	X86Reference(shared_ptr<X86Register>);
+	X86Reference(StackSpace);
+	X86Reference(shared_ptr<X86Register>, int);
 	virtual ~X86Reference();
 
+	int typeSize();
+
+	int stackOffset();
+
+	bool isLive(); // TODO is this reference usable - registers get updated it gets lost
+
+	/*
+	 * return with priority on registers
+	 */
 	string place();
+	string place(int);	// force type width
+
+	/*
+	 * reference value prioritise non-register
+	 */
 	string stackPlace();
+
+	shared_ptr<X86Reference> index(int, int);
 
 	/*
 	 * return instructions to apply actions in assembly
 	 */
-	shared_ptr<X86Instruction> setValue(string);
+	shared_ptr<X86Instruction> setValue(shared_ptr<X86Reference>);
 	shared_ptr<X86Instruction> assignRegister(shared_ptr<X86Register>);
+
+	string debug() {
+		return "X86Reference s:" + to_string(stackPlaceOffset) + ", c:"
+				+ constant + ", r:" + to_string(reg == NULL) + " (" + place() + ")";
+	}
 
 private:
 	// list places stored
@@ -47,6 +69,8 @@ private:
 	bool isOnStack;
 
 	string constant;
+
+	int type_size;
 
 };
 

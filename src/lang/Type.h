@@ -314,12 +314,12 @@ private:
 class UnionType: public Type {
 public:
 	UnionType( vector<shared_ptr<Type>> t ) {
-
 		// format and nomalise
 		vector<shared_ptr<Type>> ntypes;
 		for (auto &tp: t) {
 			if (tp->isUnion()) {
 				UnionType &o = (UnionType &)tp;
+
 				for (auto &otp: o.types) {
 					bool contains = false;
 					for (shared_ptr<Type> itp: ntypes) {
@@ -330,6 +330,7 @@ public:
 				}
 			}
 			else {
+				// remove duplicates
 				bool contains = false;
 				for (shared_ptr<Type> itp: ntypes) {
 					if (itp->contains(*tp)) contains = true;
@@ -347,7 +348,8 @@ public:
 			i++;
 		}
 
-		types = normalise(ntypes);
+		// TODO buggy
+		//types = normalise(ntypes);
 	}
 
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {

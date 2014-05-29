@@ -22,8 +22,11 @@ public:
 	virtual ~X86Register();
 
 	string place();
+	string place(int);	// forced width
 
 	void assign(shared_ptr<X86Reference>);
+
+	int getRefStackOffset();
 
 private:
 	string sizeDesc();

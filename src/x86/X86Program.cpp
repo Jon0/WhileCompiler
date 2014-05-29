@@ -9,14 +9,9 @@
 
 namespace std {
 
-X86Program::X86Program() {
-	// TODO Auto-generated constructor stub
+X86Program::X86Program() {}
 
-}
-
-X86Program::~X86Program() {
-	// TODO Auto-generated destructor stub
-}
+X86Program::~X86Program() {}
 
 string X86Program::getName() {
 	return name;

@@ -11,7 +11,7 @@ namespace std {
 
 X86StackFrame::X86StackFrame() {
 	size = 0;
-
+	initial = NULL;
 }
 
 X86StackFrame::~X86StackFrame() {
