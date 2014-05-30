@@ -8,6 +8,8 @@
 #include "X86Reference.h"
 #include "X86Register.h"
 
+#include <iostream>
+
 namespace std {
 
 X86Register::X86Register(string n) {
@@ -23,7 +25,7 @@ string X86Register::place() {
 string X86Register::place(int w) {
 	string size = "";
 	if (w == 4) size = "e";
-	else if (w == 8) size = "r";
+	else if (w >= 8) size = "r";
 
 	return "%"+size+name;
 }

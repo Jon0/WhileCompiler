@@ -5,19 +5,22 @@
  *      Author: remnanjona
  */
 
+#include <iostream>
+
 #include "X86Reference.h"
 
 namespace std {
 
 X86Reference::X86Reference(string s) {
-	stackPlaceOffset = -1;
+	placement.begin = -1;
 	constant = s;
 	isOnStack = false;
 	type_size = 4;
 }
 
-X86Reference::X86Reference(StackSpace ss) {
-	stackPlaceOffset = ss.begin;
+X86Reference::X86Reference(shared_ptr<X86Register> base, StackSpace ss) {
+	stackBase = base;
+	placement = ss;
 	isOnStack = true;
 	reg = NULL;
 	type_size = ss.size;
@@ -25,14 +28,20 @@ X86Reference::X86Reference(StackSpace ss) {
 
 X86Reference::X86Reference(shared_ptr<X86Register> r, int ts) {
 	// reference content of register too
-	stackPlaceOffset = r->getRefStackOffset();
-	isOnStack = (stackPlaceOffset >= 0);
+	placement.begin = r->getRefStackOffset();
+	isOnStack = (placement.begin >= 0);
 	reg = r;
 	type_size = ts;
+
+	if (type_size > 8) cout << "register size " << type_size << " invalid" << endl;
 }
 
 X86Reference::~X86Reference() {
 	// TODO Auto-generated destructor stub
+}
+
+bool X86Reference::isPointer() {
+	return (type_size > 8);
 }
 
 int X86Reference::typeSize() {
@@ -40,7 +49,7 @@ int X86Reference::typeSize() {
 }
 
 int X86Reference::stackOffset() {
-	return stackPlaceOffset;
+	return placement.begin;
 }
 
 string X86Reference::place() {
@@ -66,7 +75,7 @@ string X86Reference::place(int w) {
 
 string X86Reference::stackPlace() {
 	if (isOnStack) {
-		return to_string(stackPlaceOffset)+"(%rbp)";
+		return to_string(placement.begin)+"(%rbp)";
 	}
 	else if (constant.length() > 0) {
 		return constant;
@@ -81,13 +90,14 @@ string X86Reference::stackPlace() {
 
 
 shared_ptr<X86Reference> X86Reference::index(int b, int s) {
-	return make_shared<X86Reference>( StackSpace{ stackPlaceOffset + b, s, NULL } );
+	return make_shared<X86Reference>( stackBase, StackSpace{ placement.begin + b, s, placement.type } );
 }
 
 /*
  * update stack/heap value
  */
-shared_ptr<X86Instruction> X86Reference::setValue(shared_ptr<X86Reference> r) {
+// TODO shared_ptr<X86Program> paramater
+shared_ptr<X86Instruction> X86Reference::setValue( shared_ptr<X86Reference> r) {
 	// the register will no longer match
 	if (reg) {
 		reg->assign( NULL );
@@ -107,7 +117,14 @@ shared_ptr<X86Instruction> X86Reference::assignRegister(shared_ptr<X86Register> 
 		// TODO !!! -- empty instruction?
 		return make_shared<InstrSkip>();
 	}
+}
 
+/*
+ * pointer to this object into a register
+ */
+void X86Reference::assignRegisterPointer(shared_ptr<X86Program> p, shared_ptr<X86Register> r) {
+	p->addInstruction( "text", make_shared<InstrMov>(  make_shared<X86Reference>(stackBase, 8), make_shared<X86Reference>(r, 8) ) );
+	p->addInstruction( "text", make_shared<InstrAdd>( "$"+to_string(placement.begin), r->place(8) ) ); // TODO register is no longer a reference
 }
 
 } /* namespace std */

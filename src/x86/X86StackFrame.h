@@ -56,7 +56,7 @@ private:
 
 	shared_ptr<InstrSub> initial;
 
-	map<string, StackSpace> spaces;
+	map<string, StackSpace> spaces; // TODO
 
 };
 

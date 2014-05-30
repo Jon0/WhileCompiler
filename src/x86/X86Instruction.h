@@ -186,7 +186,7 @@ public:
 		type = "q";
 
 		// TODO use register sizes
-		if (f[0] == '$' || f[1] == 'e' || t[1] == 'e') type = "l";
+		if (f[1] == 'e' || t[1] == 'e') type = "l";
 	}
 	InstrAdd(string p, string f, string t) {
 		from = f; to = t;

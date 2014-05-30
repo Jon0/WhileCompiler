@@ -23,6 +23,7 @@ namespace std {
 
 Test::Test() {
 	passed = 0;
+	completed = 0;
 	total = 0;
 }
 
@@ -35,6 +36,10 @@ void Test::testDirectory(string directory, vector<string> wfiles) {
 
 	for ( string wf: wfiles ) {
 		runTest(directory+wf, "");
+
+		if (passed < completed) {
+			break;
+		}
 	}
 
 	cout << endl;

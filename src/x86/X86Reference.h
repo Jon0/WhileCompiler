@@ -12,6 +12,7 @@
 #include <string>
 
 #include "X86Instruction.h"
+#include "X86Program.h"
 #include "X86Register.h"
 #include "X86StackFrame.h"
 
@@ -26,9 +27,11 @@ namespace std {
 class X86Reference: public enable_shared_from_this<X86Reference> {
 public:
 	X86Reference(string);
-	X86Reference(StackSpace);
+	X86Reference(shared_ptr<X86Register>, StackSpace);
 	X86Reference(shared_ptr<X86Register>, int);
 	virtual ~X86Reference();
+
+	bool isPointer();
 
 	int typeSize();
 
@@ -55,8 +58,10 @@ public:
 	shared_ptr<X86Instruction> setValue(shared_ptr<X86Reference>);
 	shared_ptr<X86Instruction> assignRegister(shared_ptr<X86Register>);
 
+	void assignRegisterPointer(shared_ptr<X86Program>, shared_ptr<X86Register>);
+
 	string debug() {
-		return "X86Reference s:" + to_string(stackPlaceOffset) + ", c:"
+		return "X86Reference s:" + to_string(placement.begin) + ", c:"
 				+ constant + ", r:" + to_string(reg == NULL) + " (" + place() + ")";
 	}
 
@@ -65,7 +70,8 @@ private:
 	// TODO currently only registers...
 	shared_ptr<X86Register> reg;
 
-	int stackPlaceOffset;
+	shared_ptr<X86Register> stackBase;
+	StackSpace placement;
 	bool isOnStack;
 
 	string constant;
