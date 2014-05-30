@@ -14,25 +14,44 @@
 namespace std {
 
 class X86Instruction;
+class X86Program;
 class X86Reference;
 
 class X86Register: public enable_shared_from_this<X86Register> {
 public:
-	X86Register(string);
+	X86Register(shared_ptr<X86Program>, string);
 	virtual ~X86Register();
+
+	string getName();
+
+	bool inUse();
+	void free();
+	void setAsUsed();
+
+	int getSize();
+	void setSize(int);
 
 	string place();
 	string place(int);	// forced width
 
-	void assign(shared_ptr<X86Reference>);
+	void assign( shared_ptr<X86Reference> );
+	void add( shared_ptr<X86Reference> );
+	void multiply( shared_ptr<X86Reference> );
+	void compare( shared_ptr<X86Reference> );
+	void setFromFlags();
+
+	// the thing thats currently assigned
+	shared_ptr<X86Reference> ref();
 
 	int getRefStackOffset();
 
 private:
-	string sizeDesc();
-
+	shared_ptr<X86Program> program; // register is part of this program
 	string name;
-	shared_ptr<X86Reference> ref; // the thing thats currently assigned
+	int current_size;
+	bool in_use;
+
+	string sizeDesc();
 };
 
 } /* namespace std */

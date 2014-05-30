@@ -19,7 +19,6 @@ class Type;
 
 struct StackSpace {
 	int begin, size;
-	shared_ptr<Type> type;
 };
 
 class X86StackFrame {
@@ -35,14 +34,15 @@ public:
 		return initial;
 	}
 
-	StackSpace nextSpace(shared_ptr<Type> t, int s) {
+	StackSpace nextSpace(int s) {
 		size += s;
 
 		// modify initial
-		initial->modifyLHS("$"+to_string(size));
+		if (initial) {
+			initial->modifyLHS("$"+to_string(size));
+		}
 
-
-		StackSpace ss { -size, s, t };
+		StackSpace ss { -size, s };
 		return ss;
 	}
 

@@ -26,18 +26,49 @@ namespace std {
  */
 class X86Reference: public enable_shared_from_this<X86Reference> {
 public:
-	X86Reference(string);
-	X86Reference(shared_ptr<X86Register>, StackSpace);
+
+	/*
+	 * create reference to a constant integer value
+	 * becomes $x in x86 assembly
+	 */
+	X86Reference(int);
+
+	/*
+	 *	%rax type locations
+	 *	parameters register, bytesize
+	 */
 	X86Reference(shared_ptr<X86Register>, int);
+
+	/*
+	 *	-8(%rbp) type locations
+	 *	parameters register, offset, bytesize
+	 */
+	X86Reference(shared_ptr<X86Register>, int, int);
+
+	/*
+	 * stack space reference
+	 */
+	X86Reference(shared_ptr<X86Register>, StackSpace);
+
 	virtual ~X86Reference();
 
-	bool isPointer();
+	bool isLive();
+	void free();
 
+	/*
+	 * creates another reference based on offset from this
+	 */
+	shared_ptr<X86Reference> index(int, int);
+
+	/*
+	 * offset from register
+	 */
+	int getOffset();
+
+	/*
+	 * size of the reference
+	 */
 	int typeSize();
-
-	int stackOffset();
-
-	bool isLive(); // TODO is this reference usable - registers get updated it gets lost
 
 	/*
 	 * return with priority on registers
@@ -46,38 +77,26 @@ public:
 	string place(int);	// force type width
 
 	/*
-	 * reference value prioritise non-register
-	 */
-	string stackPlace();
-
-	shared_ptr<X86Reference> index(int, int);
-
-	/*
-	 * return instructions to apply actions in assembly
+	 * return instructions to apply actions in assembly -- no longer used
 	 */
 	shared_ptr<X86Instruction> setValue(shared_ptr<X86Reference>);
-	shared_ptr<X86Instruction> assignRegister(shared_ptr<X86Register>);
 
-	void assignRegisterPointer(shared_ptr<X86Program>, shared_ptr<X86Register>);
+
+	//void assignRegister(shared_ptr<X86Program>, shared_ptr<X86Register>);
+	//void assignRegisterPointer(shared_ptr<X86Program>, shared_ptr<X86Register>);
 
 	string debug() {
-		return "X86Reference s:" + to_string(placement.begin) + ", c:"
+		return "X86Reference s:" + to_string(offset) + ", c:"
 				+ constant + ", r:" + to_string(reg == NULL) + " (" + place() + ")";
 	}
 
 private:
-	// list places stored
-	// TODO currently only registers...
 	shared_ptr<X86Register> reg;
-
-	shared_ptr<X86Register> stackBase;
-	StackSpace placement;
-	bool isOnStack;
+	int offset;
+	int type_size;
+	bool use_addr, is_live;
 
 	string constant;
-
-	int type_size;
-
 };
 
 } /* namespace std */

@@ -5,6 +5,8 @@
  *      Author: remnanjona
  */
 
+#include <iostream>
+
 #include "X86Instruction.h"
 #include "X86Reference.h"
 
@@ -40,7 +42,23 @@ InstrMov::InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	//if (t->)
 
 	// TODO use register sizes
-	if (from[0] == '$' || from[1] == 'e' || to[1] == 'e') type = "l";
+	if (from[1] == 'e' || to[1] == 'e') type = "l";
+}
+
+InstrAdd::InstrAdd(int f, shared_ptr<X86Reference> t) {
+	from = "$"+to_string(f); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
+}
+
+InstrMul::InstrMul(int f, shared_ptr<X86Reference> t) {
+	from = "$"+to_string(f); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 } /* namespace std */

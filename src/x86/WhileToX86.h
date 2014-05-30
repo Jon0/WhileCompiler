@@ -64,33 +64,30 @@ public:
 	virtual void accept(shared_ptr<NotExpr>);
 
 private:
-	int addr_size;
-
 	shared_ptr<X86Program> out;
 
-	int dLabel, tagCount;
-
+	// these no longer work.........
 	shared_ptr<X86Register> ax;
 	shared_ptr<X86Register> bx;
 	shared_ptr<X86Register> cx;
 	shared_ptr<X86Register> dx;
-
 	shared_ptr<X86Register> di;
-
 	shared_ptr<X86Register> sp;
 	shared_ptr<X86Register> bp;
+	shared_ptr<X86StackFrame> stack;
 
-	X86StackFrame stack;
+	int dLabel, tagCount;
+
 
 	// used to track values
 	refmap refs;
 	refstack top;
 
 	shared_ptr<X86Reference> popRef();
-	shared_ptr<X86Register> getFreeRegister();
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);
 
 	int getTypeSize(shared_ptr<Type>);
+	void pushTypeTag(shared_ptr<Type>);
 };
 
 } /* namespace std */

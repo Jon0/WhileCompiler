@@ -19,15 +19,7 @@
 namespace std {
 
 WhileToX86::WhileToX86(shared_ptr<X86Program> o) {
-	addr_size = 8;
 	out = o;
-	ax = make_shared<X86Register>("ax");
-	bx = make_shared<X86Register>("bx");
-	cx = make_shared<X86Register>("cx");
-	dx = make_shared<X86Register>("dx");
-	di = make_shared<X86Register>("di");
-	sp = make_shared<X86Register>("sp");
-	bp = make_shared<X86Register>("bp");
 	dLabel = -1;
 	tagCount = 1;
 }
@@ -37,36 +29,23 @@ WhileToX86::~WhileToX86() {
 }
 
 void WhileToX86::accept(shared_ptr<Program> p) {
-	out->setName( p->getProgramName() );
-	out->addInstruction( "file", make_shared<InstrDirective>( "file", vector<string>({p->getProgramName()}) ) );
-	out->addInstruction( "text", make_shared<InstrDirective>( "text" ) );
-
+	out->initialise( p->getProgramName() );
 	p->visitChildren( shared_from_this() );
 }
 
 void WhileToX86::accept(shared_ptr<Func> f) {
 	refs.clear();
 	top.clear();
-	stack.clear();
 	cout << "building " << f->name() << endl;
 
-	out->addInstruction( "text", make_shared<InstrGlobl>(f->name()) );	//.globl [function name]
-	//out->addInstruction( make_shared<InstrType>(f->name()) );	//.type	[function name], @function
-
-	// label function
-	out->addInstruction( "text", make_shared<InstrFuncLabel>( f->name() ) );
-
-	// save base pointer
-	out->addInstruction( "text", make_shared<InstrPush>(make_shared<X86Reference>(bp, addr_size)) );
-	out->addInstruction( "text", make_shared<InstrMov>(make_shared<X86Reference>(sp, addr_size), make_shared<X86Reference>(bp, addr_size)) );
-	out->addInstruction( "text", stack.allocate() ); // TODO should modify later
+	out->beginFunction( f->name() );
 
 	// args should be on top of the stack
 	int vi = 16;
 	for (Var var: f->getArgs()) {
 		string vname = var.name();
 		int argsize = getTypeSize(var.type());
-		StackSpace ss { vi, argsize, var.type() };
+		StackSpace ss { vi, argsize };
 		refs.insert( refmap::value_type(vname, make_shared<X86Reference>( bp, ss )) );
 		vi += argsize;
 	}
@@ -74,9 +53,7 @@ void WhileToX86::accept(shared_ptr<Func> f) {
 	f->visitChildren( shared_from_this() );
 
 	// leave
-	out->addInstruction( "text", make_shared<InstrMov>(make_shared<X86Reference>(bp, addr_size), make_shared<X86Reference>(sp, addr_size)) );
-	out->addInstruction( "text", make_shared<InstrPop>("%rbp") );
-	out->addInstruction( "text", make_shared<InstrRet>() );
+	out->endFunction();
 }
 
 void WhileToX86::accept(shared_ptr<Type>) {}
@@ -93,10 +70,10 @@ void WhileToX86::accept(shared_ptr<InitStmt> e) {
 	shared_ptr<Type> vtype = e->getVar().type();
 
 	int ts = getTypeSize(vtype);
-	refs.insert( refmap::value_type(vname, make_shared<X86Reference>( bp, stack.nextSpace(vtype, ts) )) );
+	refs.insert( refmap::value_type(vname, make_shared<X86Reference>( bp, stack->nextSpace(ts) )) );
 
 	// set type info
-	out->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>("$"+to_string(2)), refs[vname] ) );
+	out->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>(2), refs[vname] ) );
 
 	if (e->hasInit()) {
 		// hopefully a reference is made
@@ -167,30 +144,17 @@ void WhileToX86::accept(shared_ptr<PrintStmt> e) {
 	// must be put into di register
 	shared_ptr<X86Reference> r = popRef();
 
-	if (r->isPointer()) {
-		r->assignRegisterPointer(out, ax);
-		out->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>(ax, addr_size), make_shared<X86Reference>(di, addr_size) ) );
+	if (r->typeSize() > 8) {
+		ax->assign( r ); // should be a pointer
+		out->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>(ax, 8), make_shared<X86Reference>(di, 8) ) );
 	}
 	else {
+
+
 		out->addInstruction( "text", make_shared<InstrMov>( r, make_shared<X86Reference>(di, r->typeSize()) ) );
+		out->addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>( 1 ) ) );
+		pushTypeTag( e->getExpr()->getType() );
 	}
-
-	out->addInstruction( "text", make_shared<InstrCall>("printL") );
-
-
-//	shared_ptr<Expr> inner = e->getExpr();
-//	if ( inner->getType()->nameStr() == "bool" ) {
-//		out->addInstruction( "text", make_shared<InstrCall>("printB") );
-//	}
-//	else if ( inner->getType()->nameStr() == "int" ) {
-//		out->addInstruction( "text", make_shared<InstrCall>( "printI" ) );
-//	}
-//	else if ( inner->getType()->nameStr() == "string" ) {
-//		out->addInstruction( "text", make_shared<InstrCall>( "print" ) );
-//	}
-//	else if ( inner->getType()->isList() ) {
-//		out->addInstruction( "text", make_shared<InstrCall>("printL") );
-//	}
 }
 
 void WhileToX86::accept(shared_ptr<EvalStmt> e) {
@@ -201,7 +165,7 @@ void WhileToX86::accept(shared_ptr<ReturnStmt> e) {
 	e->visitChildren( shared_from_this() );
 	if (e->hasExpr()) {
 		shared_ptr<X86Reference> r = popRef();
-		out->addInstruction( "text", r->assignRegister(ax) );
+		ax->assign( r );
 	}
 }
 
@@ -216,16 +180,16 @@ void WhileToX86::accept(shared_ptr<ConstExpr> e) {
 		out->addInstruction( "data", make_shared<InstrDirective>( "data" ) );	// TODO shouldnt assume its the first data
 		out->addInstruction( "data", make_shared<InstrLabel>( ".LC" + to_string(dLabel) ) );
 		out->addInstruction( "data", make_shared<InstrDirective>( "string", vector<string>({v->asString()}) ) );
-		top.push_back(make_shared<X86Reference>( "$.LC" + to_string(dLabel) ));
+		//top.push_back(make_shared<X86Reference>( "$.LC" + to_string(dLabel) ));
 
 	}
 	else if ( v->type()->nameStr() == "bool") {
 		shared_ptr<TypedValue<bool>> b = static_pointer_cast<TypedValue<bool>, Value>( v );
-		top.push_back(make_shared<X86Reference>("$"+to_string(b->value())));
+		top.push_back(make_shared<X86Reference>(b->value()));
 	}
 	else if ( v->type()->nameStr() == "int") {
 		shared_ptr<TypedValue<int>> b = static_pointer_cast<TypedValue<int>, Value>( v );
-		top.push_back(make_shared<X86Reference>("$"+to_string(b->value())));
+		top.push_back(make_shared<X86Reference>(b->value()));
 	}
 
 }
@@ -260,7 +224,7 @@ void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
 		shared_ptr<X86Reference> ref = popRef();
 		shared_ptr<X86Register> reg = refIntoReg(ref);
 		out->addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>( reg, ref->typeSize() ) ) );
-		out->addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>( "$8" ) ) );
+		pushTypeTag(e->getType());
 	}
 
 	out->addInstruction( "text", make_shared<InstrCall>( f->getFunc()->name() ) );
@@ -275,16 +239,16 @@ void WhileToX86::accept(shared_ptr<ListExpr> e) {
 	int msize = 16 + e->size() * 16;
 
 
-	out->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>("$"+to_string(msize)), make_shared<X86Reference>(di, 4) ) );
+	out->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>(msize), make_shared<X86Reference>(di, 4) ) );
 	out->addInstruction( "text", make_shared<InstrCall>( "malloc" ) );
 
 	e->visitChildren( shared_from_this() );
 
 	// should have right number on stack
 	for (int i = 0; i < e->size(); ++i) {
-		out->addInstruction("text", make_shared<InstrMov>(popRef(), make_shared<X86Reference>(to_string(msize-(i+1)*4)+"(%rax)")));
+		out->addInstruction("text", make_shared<InstrMov>(popRef(), make_shared<X86Reference>( ax, msize-(i+1)*4 ) ));  // to_string(msize-(i+1)*4)+"(%rax)"
 	}
-	out->addInstruction("text", make_shared<InstrMov>(make_shared<X86Reference>("$"+to_string(e->size())), make_shared<X86Reference>("0(%rax)")));
+	out->addInstruction("text", make_shared<InstrMov>(make_shared<X86Reference>(e->size()), make_shared<X86Reference>(ax, 0))); // 0(%rax)
 
 	// address returned in rax
 	top.push_back(make_shared<X86Reference>(ax, 8));
@@ -295,7 +259,7 @@ void WhileToX86::accept(shared_ptr<ListLengthExpr>) {}
 void WhileToX86::accept(shared_ptr<ConcatExpr>) {}
 
 void WhileToX86::accept(shared_ptr<ListLookupExpr>) {
-	top.push_back(make_shared<X86Reference>("$1"));
+	top.push_back(make_shared<X86Reference>(1));
 }
 
 void WhileToX86::accept(shared_ptr<RecordMemberExpr>) {}
@@ -370,7 +334,7 @@ void WhileToX86::accept(shared_ptr<NotExpr> e) {
 shared_ptr<X86Reference> WhileToX86::popRef() {
 	if (top.empty()) {
 		cout << "error: stack empty" << endl;
-		return make_shared<X86Reference>( "$0" );
+		return make_shared<X86Reference>( 0 );
 	}
 
 	shared_ptr<X86Reference> rr = top.back();
@@ -378,12 +342,8 @@ shared_ptr<X86Reference> WhileToX86::popRef() {
 	return rr;
 }
 
-shared_ptr<X86Register> WhileToX86::getFreeRegister() {
-	return ax;
-}
-
 shared_ptr<X86Register> WhileToX86::refIntoReg(shared_ptr<X86Reference> ref) {
-	shared_ptr<X86Register> reg = getFreeRegister();
+	shared_ptr<X86Register> reg = out->getFreeRegister();
 	cout << "ts " << ref->typeSize() << endl;
 	out->addInstruction( "text", make_shared<InstrMov>( ref, make_shared<X86Reference>( reg, ref->typeSize() ) ) );
 	return reg;
@@ -392,11 +352,16 @@ shared_ptr<X86Register> WhileToX86::refIntoReg(shared_ptr<X86Reference> ref) {
 int WhileToX86::getTypeSize(shared_ptr<Type> t) {
 	// TODO assuming all types are 8+8 bytes
 	int ts = 16;
-	//if (t->isList()) {
-	//	ts = 12;
-	//}
 	return ts;
 }
 
+void WhileToX86::pushTypeTag(shared_ptr<Type> t) {
+	if ( t->isList() ) {
+		out->addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>( 8 ) ) );
+	}
+	else {
+		out->addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>( 4 ) ) );
+	}
+}
 
 } /* namespace std */

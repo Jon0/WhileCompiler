@@ -181,6 +181,7 @@ private:
 
 class InstrAdd: public InstrCode {
 public:
+	InstrAdd(int f, shared_ptr<X86Reference> t);
 	InstrAdd(string f, string t) {
 		from = f; to = t;
 		type = "q";
@@ -196,6 +197,30 @@ public:
 
 	virtual string str() {
 		return "\tadd"+type+"\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type;
+};
+
+class InstrMul: public InstrCode {
+public:
+	InstrMul(int f, shared_ptr<X86Reference> t);
+	InstrMul(string f, string t) {
+		from = f; to = t;
+		type = "q";
+
+		// TODO use register sizes
+		if (f[1] == 'e' || t[1] == 'e') type = "l";
+	}
+	InstrMul(string p, string f, string t) {
+		from = f; to = t;
+		type = p;
+	}
+	virtual ~InstrMul() {}
+
+	virtual string str() {
+		return "\timul"+type+"\t"+from+", "+to;
 	}
 
 private:

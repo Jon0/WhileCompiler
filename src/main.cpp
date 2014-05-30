@@ -9,6 +9,7 @@
 #include "java/Bytecode.h"
 
 #include "test/Test.h"
+#include "test/InterfaceTest.h"
 
 using namespace std;
 
@@ -27,12 +28,13 @@ int main(int argc, char *argv[]) {
 		// get list of files in test folder
 		Directory dir(directoryPath);
 		vector<string> wfiles = dir.fileList("while");
-//		vector<string> wfiles = {"BoolAssign_Valid_1", "BoolAssign_Valid_2", "BoolAssign_Valid_3", "BoolAssign_Valid_4",
-//				"BoolIfElse_Valid_1", "BoolIfElse_Valid_2", "ListAccess_Valid_1"};
-
 
 		shared_ptr<Test> t = make_shared<Test>();
 		t->testDirectory(directoryPath, wfiles);
+		return 0;
+	}
+	else if (arg1 == "--testinterface") {
+		shared_ptr<InterfaceTest> t = make_shared<InterfaceTest>();
 		return 0;
 	}
 
