@@ -79,6 +79,7 @@ private:
 
 	// define the external print function
 	shared_ptr<X86Function> print;
+	shared_ptr<X86Function> equiv;
 
 	// add debug annotations
 	bool debug_out;

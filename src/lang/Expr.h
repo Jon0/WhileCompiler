@@ -261,6 +261,10 @@ public:
 		v->accept( shared_from_this() );
 	}
 
+	shared_ptr<Expr> getExpr() {
+		return e;
+	}
+
 private:
 	shared_ptr<Expr> e;
 };

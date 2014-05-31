@@ -32,6 +32,9 @@ public:
 	void putOnStack();
 	void pushStack();
 
+	//
+	shared_ptr<X86Register> attachRegister();
+
 	// as existing object
 	void setLocation( shared_ptr<X86Register> );
 	void setLocation( shared_ptr<X86Register>,StackSpace );

@@ -36,7 +36,7 @@ public:
 	 * create reference to a constant integer value
 	 * becomes $x in x86 assembly
 	 */
-	X86Reference(int);
+	X86Reference(long);
 
 	/*
 	 *	%rax type locations

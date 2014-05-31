@@ -48,6 +48,7 @@ void X86Program::initialise(string n) {
 	bx = makeRegister("bx", true);
 	cx = makeRegister("cx", true);
 	dx = makeRegister("dx", true);
+	si = makeRegister("si", false);
 	di = makeRegister("di", false);
 	sp = makeRegister("sp", false);
 	bp = makeRegister("bp", false);
@@ -90,6 +91,7 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 
 	// save all in use registers
 	vector<shared_ptr<X86Register>> stored;
+	bool pad = false;
 	for (shared_ptr<X86Register> r: pool) {
 		if (r->inUse()) {
 			stored.push_back(r);
@@ -97,10 +99,21 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 		}
 	}
 
+	// fix a really weird bug
+	if ((pool.size() % 2) == 1) {
+		pad = true;
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+	}
+
 	// pass args in edi register
 	// TODO multiple args
+	int count = 0;
+
 	for ( shared_ptr<X86Reference> ref: args ) {
-		di->assign( ref );
+		if (count == 0) di->assign( ref );
+		else si->assign( ref );
+		count++;
+
 	}
 	addInstruction( "text", make_shared<InstrCall>( f->getName() ) );
 
@@ -115,6 +128,7 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 	}
 
 	// restore used registers
+	if (pad) addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
 	while (!stored.empty()) {
 		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
 		stored.pop_back();
@@ -126,12 +140,19 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj_list args ) {
 	// save all in use registers
 	vector<shared_ptr<X86Register>> stored;
+	bool pad = false;
 	for (shared_ptr<X86Register> r: pool) {
 		if (r->inUse()) {
 			stored.push_back(r);
 			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
 		}
 	}
+
+	// fix a really weird bug
+//	if ((pool.size() % 2) == 0) {
+//		pad = true;
+//		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+//	}
 
 	// push return space to stack
 	shared_ptr<X86Register> location;
@@ -159,6 +180,7 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 
 	// restore used registers
 	// TODO stack pointer is wrong - has changed so wrong things are popped
+	//if ( pad ) addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
 	while (!stored.empty()) {
 		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
 		stored.pop_back();

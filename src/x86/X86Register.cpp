@@ -79,9 +79,9 @@ void X86Register::compare( shared_ptr<X86Reference> i ) {
 	program->addInstruction( "text", make_shared<InstrCmp>( i->place(), place() ) ); // sets flags
 }
 
-void X86Register::setFromFlags() {
+void X86Register::setFromFlags(string type) {
 	string bytename = "%"+name.substr(0,1)+"l";
-	program->addInstruction( "text", make_shared<InstrSet>( bytename ) );
+	program->addInstruction( "text", make_shared<InstrSet>( type, bytename ) );
 	program->addInstruction( "text", make_shared<InstrMov>( "zbl", bytename, place() ) );
 }
 

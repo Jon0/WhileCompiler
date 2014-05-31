@@ -197,6 +197,7 @@ private:
 
 class InstrAdd: public InstrCode {
 public:
+	InstrAdd(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
 	InstrAdd(int f, shared_ptr<X86Reference> t);
 	InstrAdd(string f, string t) {
 		from = f; to = t;
@@ -295,7 +296,7 @@ public:
 	InstrCmp(string f, string t) {
 		from = f; to = t;
 		type = "q";
-		if (f[0] == '$' || t[1] == 'e') type = "l";
+		if (f[1] == 'e' || t[1] == 'e') type = "l";
 	}
 	virtual ~InstrCmp() {}
 

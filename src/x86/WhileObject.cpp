@@ -45,6 +45,22 @@ void WhileObject::pushStack() {
 	}
 }
 
+shared_ptr<X86Register> WhileObject::attachRegister() {
+	shared_ptr<X86Register> r = program->getFreeRegister();
+
+	// update ref, free any existing ref
+	if (ref) {
+		r->assign( ref );
+
+		if (initialised) {
+			ref->free();
+		}
+	}
+	ref = r->ref();
+
+	return r;
+}
+
 void WhileObject::setLocation( shared_ptr<X86Register> r ) {
 	base = r;
 	initialised = true;
@@ -105,7 +121,6 @@ shared_ptr<X86Reference> WhileObject::valueDirect() {
 // function to put address in register?
 // or return address as reference then register.assign(addr)
 shared_ptr<X86Reference> WhileObject::addrRef() {
-	cout << "find addr " << endl;
 	shared_ptr<X86Register> r = program->getFreeRegister();
 
 	if (!initialised) {
@@ -115,6 +130,7 @@ shared_ptr<X86Reference> WhileObject::addrRef() {
 
 	}
 	else {
+		// TODO can use: leaq	-16(%rbp), %rax
 		r->assign( base->ref() );
 		if (space.begin != 0) r->add( make_shared<X86Reference>(space.begin) );
 	}
@@ -192,6 +208,7 @@ void WhileRecord::initialise(shared_ptr<X86Reference> v, bool write) {
 	shared_ptr<X86Register> r = program->malloc( make_shared<X86Reference>(64) );
 	ref = r->ref();
 	type = make_shared<X86Reference>(16);
+
 
 	if (write) {
 		writeMem();

@@ -20,7 +20,7 @@ X86Reference::X86Reference(string s) {
 	is_live = true;
 }
 
-X86Reference::X86Reference(int s) {
+X86Reference::X86Reference(long s) {
 	constant = "$"+to_string(s);
 	reg = NULL;
 	offset = 0;

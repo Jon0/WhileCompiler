@@ -44,10 +44,20 @@ InstrMov::InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	from = f->place(); to = t->place();
 	type = "q";
 
-	//if (t->)
+	if (from.length() > 10) {
+		type = "absq";
+	}
 
 	// TODO use register sizes
 	if (from[1] == 'e' || to[1] == 'e') type = "l";
+}
+
+InstrAdd::InstrAdd(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	from = f->place(); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 InstrAdd::InstrAdd(int f, shared_ptr<X86Reference> t) {

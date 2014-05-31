@@ -9,6 +9,7 @@ void print_v(void *in) {
 	long *lp = in;
 	long *location;
 	const char *str_location;
+	double *d_location;
 	long arg;
 	long i;
 
@@ -17,12 +18,15 @@ void print_v(void *in) {
 		if (lp[1]) printf("true");
 		else printf("false");
 		break;
+	case 3:
+		printf("%c", lp[1]);
+		break;
 	case 4:
 		printf("%ld", lp[1]);
 		break;
 	case 5:
-		//d_location = (double *)lp;
-		printf("double");
+		d_location = (double *)lp;
+		printf("%g", d_location[1]);
 		break;
 	case 7:
 		str_location = (const char *)lp[1];
@@ -48,10 +52,16 @@ void print_v(void *in) {
 }
 
 void print(void *f) {
-	char buf [100];
-	sprintf(buf, "%g", (int)17.9);
-
 	//printf("print is called with arg %p\r\n", f);
 	print_v(f);
 	printf("\r\n");
+}
+
+int equiv(void *a, void *b) {
+	//printf("equiv is called with arg %p, %p\r\n", a, b);
+	long *la = a;
+	long *lb = b;
+
+	if (la[0] != lb[0]) return 0; // different types
+	return la[1] == lb[1]; // TODO pointer types
 }

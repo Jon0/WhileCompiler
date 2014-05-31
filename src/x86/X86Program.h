@@ -76,6 +76,7 @@ private:
 	shared_ptr<X86Register> bx;
 	shared_ptr<X86Register> cx;
 	shared_ptr<X86Register> dx;
+	shared_ptr<X86Register> si;
 	shared_ptr<X86Register> di;
 	shared_ptr<X86Register> sp;
 	shared_ptr<X86Register> bp;

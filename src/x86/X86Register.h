@@ -38,7 +38,7 @@ public:
 	void add( shared_ptr<X86Reference> );
 	void multiply( shared_ptr<X86Reference> );
 	void compare( shared_ptr<X86Reference> );
-	void setFromFlags();
+	void setFromFlags(string);
 
 	// the thing thats currently assigned
 	shared_ptr<X86Reference> ref();
