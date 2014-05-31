@@ -75,9 +75,13 @@ private:
 	// used to track values
 	objmap refs;
 	objstack top;
+	shared_ptr<WhileObject> returnSpace;
 
 	// define the external print function
 	shared_ptr<X86Function> print;
+
+	// add debug annotations
+	bool debug_out;
 
 	shared_ptr<WhileObject> popRef();
 

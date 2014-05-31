@@ -63,6 +63,8 @@ protected:
 	// values
 	shared_ptr<X86Reference> ref;
 	shared_ptr<X86Reference> type;
+
+	bool initialised;
 };
 
 class WhileList: public WhileObject {
@@ -80,6 +82,14 @@ public:
 		get( wo, ref );
 		return wo;
 	}
+};
+
+class WhileRecord: public WhileObject {
+public:
+	WhileRecord( shared_ptr<X86Program> );
+	virtual ~WhileRecord();
+
+	virtual void initialise(shared_ptr<X86Reference>, bool write);
 };
 
 } /* namespace std */

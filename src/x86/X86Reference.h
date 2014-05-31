@@ -28,6 +28,11 @@ class X86Reference: public enable_shared_from_this<X86Reference> {
 public:
 
 	/*
+	 * create reference to a labeled object
+	 */
+	X86Reference(string);
+
+	/*
 	 * create reference to a constant integer value
 	 * becomes $x in x86 assembly
 	 */

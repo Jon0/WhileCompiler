@@ -35,6 +35,11 @@ string InstrPush::str() {
 	return "\tpush"+type+"\t"+labelStr;
 }
 
+InstrPop::InstrPop(shared_ptr<X86Reference> r) {
+	labelStr = r->place(8);
+	type = "q";
+}
+
 InstrMov::InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	from = f->place(); to = t->place();
 	type = "q";
@@ -47,6 +52,14 @@ InstrMov::InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 
 InstrAdd::InstrAdd(int f, shared_ptr<X86Reference> t) {
 	from = "$"+to_string(f); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
+}
+
+InstrMul::InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	from = f->place(); to = t->place();
 	type = "q";
 
 	// TODO use register sizes

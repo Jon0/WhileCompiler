@@ -14,14 +14,16 @@ namespace std {
 
 class X86Function {
 public:
-	X86Function(string, bool);
+	X86Function(string, bool, bool);
 	virtual ~X86Function();
 
 	string getName();
+	bool hasReturn();
 	bool isExternal();
 
 private:
 	string name;
+	bool has_return;
 	bool external;
 };
 

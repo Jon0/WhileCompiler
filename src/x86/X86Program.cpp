@@ -7,6 +7,7 @@
 
 #include <iostream>
 
+#include "WhileObject.h"
 #include "X86Function.h"
 #include "X86Instruction.h"
 #include "X86Program.h"
@@ -17,7 +18,7 @@ namespace std {
 
 X86Program::X86Program() {
 	addr_size = 8;
-	malloc_func = make_shared<X86Function>("malloc", true);
+	malloc_func = make_shared<X86Function>("malloc", true, true);
 }
 
 X86Program::~X86Program() {}
@@ -61,9 +62,9 @@ StackSpace X86Program::allocateStack(int size) {
 	return stack->nextSpace(size);
 }
 
-void X86Program::beginFunction( string name ) {
+void X86Program::beginFunction( string name, bool has_ret ) {
 	stack->clear();
-	functions.insert( function_map::value_type(name, make_shared<X86Function>(name, false) ) );
+	functions.insert( function_map::value_type(name, make_shared<X86Function>(name, has_ret, false) ) );
 
 	// label function
 	addInstruction( "text", make_shared<InstrGlobl>( name ) );	//.globl [function name]
@@ -77,7 +78,7 @@ void X86Program::beginFunction( string name ) {
 
 void X86Program::endFunction() {
 	sp->assign( bp->ref() );
-	addInstruction( "text", make_shared<InstrPop>("%rbp") );
+	addInstruction( "text", make_shared<InstrPop>( bp->ref() ) );
 	addInstruction( "text", make_shared<InstrRet>() );
 }
 
@@ -85,38 +86,89 @@ shared_ptr<X86Function> X86Program::getFunction( string s ) {
 	return functions[s];
 }
 
-void X86Program::callFunction( shared_ptr<X86Function> f, arg_list args ) {
+shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg_list args ) {
+
+	// save all in use registers
+	vector<shared_ptr<X86Register>> stored;
+	for (shared_ptr<X86Register> r: pool) {
+		if (r->inUse()) {
+			stored.push_back(r);
+			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
+		}
+	}
+
+	// pass args in edi register
+	// TODO multiple args
 	for ( shared_ptr<X86Reference> ref: args ) {
 		di->assign( ref );
 	}
-
 	addInstruction( "text", make_shared<InstrCall>( f->getName() ) );
+
+	// address returned in eax
+	shared_ptr<X86Register> nr;
+	if ( f->hasReturn() ) {
+		int axSize = ax->getSize();
+		ax->setSize(8);
+		nr = getFreeRegister();
+		nr->assign( ax->ref() );
+		ax->setSize(axSize);
+	}
+
+	// restore used registers
+	while (!stored.empty()) {
+		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
+		stored.pop_back();
+	}
+
+	return nr;
+}
+
+shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj_list args ) {
+	// save all in use registers
+	vector<shared_ptr<X86Register>> stored;
+	for (shared_ptr<X86Register> r: pool) {
+		if (r->inUse()) {
+			stored.push_back(r);
+			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
+		}
+	}
+
+	// push return space to stack
+	shared_ptr<X86Register> location;
+	if (f->hasReturn()) {
+		location = getFreeRegister();
+		location->assign( sp->ref() );
+		location->add( make_shared<X86Reference>(-16) );
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+	}
+
+	// push args to stack
+	for (shared_ptr<WhileObject> wo: args) {
+		cout << "psss" << endl;
+		wo->pushStack();
+	}
+	addInstruction( "text", make_shared<InstrCall>( f->getName() ) );
+
+	// find the result
+	shared_ptr<WhileObject> returnPlace;
+	if (f->hasReturn()) {
+		returnPlace = make_shared<WhileObject>( shared_from_this() );
+		returnPlace->setLocation( location );	// the returned object must free the register
+	}
+
+	// restore used registers
+	// TODO stack pointer is wrong - has changed so wrong things are popped
+	while (!stored.empty()) {
+		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
+		stored.pop_back();
+	}
+
+	return returnPlace;
 }
 
 shared_ptr<X86Register> X86Program::malloc( shared_ptr<X86Reference> r ) {
-	if (ax->inUse()) {
-		addInstruction( "text", make_shared<InstrPush>( ax->ref() ) );
-	}
-
-	arg_list args;
-	args.push_back( r );
-	callFunction( malloc_func, args);
-
-	// address returned in eax
-	if (ax->inUse()) {
-		int axSize = ax->getSize();
-		ax->setSize(8);
-		shared_ptr<X86Register> nr = getFreeRegister();
-		nr->assign( ax->ref() );
-		addInstruction( "text", make_shared<InstrPop>( ax->ref()->place() ) );
-		ax->setSize(axSize);
-		return nr;
-	}
-	else {
-		ax->setSize(8);
-		ax->setAsUsed();
-		return ax;
-	}
+	return callFunction( malloc_func, arg_list{ r } );
 }
 
 shared_ptr<X86Register> X86Program::getFreeRegister() {
@@ -133,6 +185,10 @@ shared_ptr<X86Register> X86Program::getFreeRegister() {
 
 shared_ptr<X86Register> X86Program::getBPRegister() {
 	return bp;
+}
+
+shared_ptr<X86Register> X86Program::getSPRegister() {
+	return sp;
 }
 
 string X86Program::availableRegisters() {

@@ -33,6 +33,22 @@ public:
 	}
 };
 
+class InstrComment: public X86Instruction {
+public:
+	InstrComment(string t) {
+		s = t;
+	}
+
+	virtual ~InstrComment() {}
+
+	virtual string str() {
+		return "\n\t#\t"+s;
+	}
+
+private:
+	string s;
+};
+
 class InstrDirective: public X86Instruction {
 public:
 	InstrDirective(string t) {
@@ -151,15 +167,15 @@ private:
 
 class InstrPop: public InstrCode {
 public:
-	InstrPop(string l) {labelStr = l;}
+	InstrPop(shared_ptr<X86Reference>);
 	virtual ~InstrPop() {}
 
 	virtual string str() {
-		return "\tpopq\t"+labelStr;
+		return "\tpop"+type+"\t"+labelStr;
 	}
 
 private:
-	string labelStr;
+	string type, labelStr;
 };
 
 class InstrMov: public InstrCode {
@@ -205,6 +221,7 @@ private:
 
 class InstrMul: public InstrCode {
 public:
+	InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
 	InstrMul(int f, shared_ptr<X86Reference> t);
 	InstrMul(string f, string t) {
 		from = f; to = t;

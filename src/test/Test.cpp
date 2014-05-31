@@ -38,7 +38,7 @@ void Test::testDirectory(string directory, vector<string> wfiles) {
 		runTest(directory+wf, "");
 
 		if (passed < completed) {
-			break;
+			//break;
 		}
 	}
 

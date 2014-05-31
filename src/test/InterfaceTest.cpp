@@ -23,12 +23,12 @@ namespace std {
 
 InterfaceTest::InterfaceTest() {
 	// define the external print function
-	shared_ptr<X86Function> print = make_shared<X86Function>("print", true);
+	shared_ptr<X86Function> print = make_shared<X86Function>("print", false, true);
 
 
 	shared_ptr<X86Program> p = make_shared<X86Program>();
 	p->initialise("test");
-	p->beginFunction( "main" );
+	p->beginFunction( "main", false );
 
 
 	shared_ptr<X86Reference> number1 = make_shared<X86Reference>(16);

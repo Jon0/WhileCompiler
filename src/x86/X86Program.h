@@ -17,6 +17,7 @@
 
 namespace std {
 
+class WhileObject;
 class X86Function;
 class X86Instruction;
 class X86Reference;
@@ -24,6 +25,7 @@ class X86Register;
 
 typedef map<string, shared_ptr<X86Function>> function_map;
 typedef vector< shared_ptr<X86Reference> > arg_list;
+typedef vector< shared_ptr<WhileObject> > obj_list;
 
 class X86Program: public enable_shared_from_this<X86Program> {
 public:
@@ -39,15 +41,17 @@ public:
 
 	StackSpace allocateStack(int);
 
-	void beginFunction( string );
+	void beginFunction( string, bool );
 	void endFunction();
 
 	shared_ptr<X86Function> getFunction( string );
-	void callFunction( shared_ptr<X86Function>, arg_list );
+	shared_ptr<X86Register> callFunction( shared_ptr<X86Function>, arg_list );
+	shared_ptr<WhileObject> callFunction( shared_ptr<X86Function>, obj_list );
 	shared_ptr<X86Register> malloc( shared_ptr<X86Reference> );
 
 	shared_ptr<X86Register> getFreeRegister();
 	shared_ptr<X86Register> getBPRegister();
+	shared_ptr<X86Register> getSPRegister();
 
 	string availableRegisters(); // debug register use
 

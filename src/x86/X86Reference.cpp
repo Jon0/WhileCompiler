@@ -11,6 +11,15 @@
 
 namespace std {
 
+X86Reference::X86Reference(string s) {
+	constant = s;
+	reg = NULL;
+	offset = 0;
+	type_size = 8;
+	use_addr = false;
+	is_live = true;
+}
+
 X86Reference::X86Reference(int s) {
 	constant = "$"+to_string(s);
 	reg = NULL;
