@@ -30,8 +30,7 @@ void print_v(void *in) {
 }
 
 void print(void *f) {
-	printf("print is called with arg %p\r\n", f);
-
+	//printf("print is called with arg %p\r\n", f);
 	print_v(f);
 	printf("\r\n");
 }

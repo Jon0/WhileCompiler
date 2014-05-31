@@ -38,16 +38,16 @@ InterfaceTest::InterfaceTest() {
 
 	shared_ptr<WhileList> obj = make_shared<WhileList>(p);
 	obj->putOnStack();
-	obj->initialise( reg->ref() );
+	obj->initialise( reg->ref(), true );
 	reg->free();
 
 
 	shared_ptr<WhileObject> obj2 = obj->get<WhileObject>( make_shared<X86Reference>(0) );
-	obj2->initialise( make_shared<X86Reference>(42) );
+	obj2->initialise( make_shared<X86Reference>(42), true );
 	obj2->free();
 
 	shared_ptr<WhileList> obj3 = obj->get<WhileList>( make_shared<X86Reference>(1) );
-	obj3->initialise( make_shared<X86Reference>(3) );
+	obj3->initialise( make_shared<X86Reference>(3),true );
 	obj3->free();
 
 

@@ -19,6 +19,7 @@ WhileObject::WhileObject( shared_ptr<X86Program> p ) {
 	base = program->getBPRegister();
 	space.begin = 0;
 	space.size = 0;
+	type = 0;
 }
 
 WhileObject::~WhileObject() {}
@@ -27,21 +28,61 @@ void WhileObject::putOnStack() {
 	space = program->allocateStack(16);
 }
 
-void WhileObject::initialise( shared_ptr<X86Register> r ) {
+void WhileObject::pushStack() {
+	program->addInstruction( "text", make_shared<InstrPush>( valueRef() ) );
+	program->addInstruction( "text", make_shared<InstrPush>( tagRef() ) );
+}
+
+void WhileObject::setLocation( shared_ptr<X86Register> r ) {
 	base = r;
 }
 
-void WhileObject::initialise( shared_ptr<X86Reference> v, int type) {
-	program->addInstruction( "text", make_shared<InstrMov>( make_shared<X86Reference>(type), tagRef() ) );
-	program->addInstruction( "text", make_shared<InstrMov>( v, valueRef() ) );
+void WhileObject::setLocation( shared_ptr<X86Register> r, StackSpace s ) {
+	base = r;
+	space = s;
 }
 
-void WhileObject::initialise( shared_ptr<X86Reference> v ) {
-	initialise( v, 4 );
+void WhileObject::initialise( shared_ptr<X86Reference> v, int t, bool write ) {
+	ref = v;
+	type = make_shared<X86Reference>(t);
+	if ( write ) {
+		writeMem();
+	}
+}
+
+void WhileObject::initialise( shared_ptr<X86Reference> v, bool write ) {
+	initialise( v, 4, write );
+}
+
+void WhileObject::assign( shared_ptr<WhileObject> other, bool write ) {
+	ref = other->valueDirect();
+	type = other->tagDirect();
+
+	if ( write ) {
+		writeMem();
+	}
 }
 
 void WhileObject::free() {
 	base->free();
+}
+
+void WhileObject::writeMem() {
+	if (!ref) {
+		cout << "error writing memory" << endl;
+		return;
+	}
+
+	program->addInstruction( "text", make_shared<InstrMov>( type, tagRef() ) );
+	program->addInstruction( "text", make_shared<InstrMov>( ref, valueRef() ) );
+}
+
+shared_ptr<X86Reference> WhileObject::tagDirect() {
+	return type;
+}
+
+shared_ptr<X86Reference> WhileObject::valueDirect() {
+	return ref;
 }
 
 // function to put address in register?
@@ -65,7 +106,7 @@ shared_ptr<X86Reference> WhileObject::valueRef() {
 WhileList::WhileList( shared_ptr<X86Program> p ): WhileObject(p) {}
 WhileList::~WhileList() {}
 
-void WhileList::initialise(shared_ptr<X86Reference> v) {
+void WhileList::initialise(shared_ptr<X86Reference> v, bool write) {
 	shared_ptr<X86Register> r1 = program->getFreeRegister();
 	r1->assign( v );
 	r1->multiply( make_shared<X86Reference>(16) );
@@ -86,7 +127,7 @@ void WhileList::initialise(shared_ptr<X86Reference> v) {
 void WhileList::length(shared_ptr<WhileObject> inout) {
 	shared_ptr<X86Register> r = program->getFreeRegister();
 	r->assign( valueRef() );
-	inout->initialise(r);
+	inout->setLocation(r);
 	//return make_shared<WhileObject>(program, r, 4);
 }
 
@@ -97,7 +138,7 @@ void WhileList::get(shared_ptr<WhileObject> inout, shared_ptr<X86Reference> ref)
 	r->multiply( make_shared<X86Reference>(16) );
 	r->setSize(8);
 	r->add( valueRef() );
-	inout->initialise(r);
+	inout->setLocation(r);
 	//return make_shared<WhileObject>(program, r, inner_type);
 }
 

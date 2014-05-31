@@ -63,12 +63,11 @@ StackSpace X86Program::allocateStack(int size) {
 
 void X86Program::beginFunction( string name ) {
 	stack->clear();
+	functions.insert( function_map::value_type(name, make_shared<X86Function>(name, false) ) );
 
 	// label function
 	addInstruction( "text", make_shared<InstrGlobl>( name ) );	//.globl [function name]
 	addInstruction( "text", make_shared<InstrFuncLabel>( name ) );
-
-	//functions.insert( function_map::value_type(name, make_shared<X86Function>() ) );
 
 	// save base pointer
 	addInstruction( "text", make_shared<InstrPush>(make_shared<X86Reference>(bp, addr_size)) );
@@ -80,6 +79,10 @@ void X86Program::endFunction() {
 	sp->assign( bp->ref() );
 	addInstruction( "text", make_shared<InstrPop>("%rbp") );
 	addInstruction( "text", make_shared<InstrRet>() );
+}
+
+shared_ptr<X86Function> X86Program::getFunction( string s ) {
+	return functions[s];
 }
 
 void X86Program::callFunction( shared_ptr<X86Function> f, arg_list args ) {

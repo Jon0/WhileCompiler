@@ -17,9 +17,12 @@
 
 namespace std {
 
-typedef map<string, shared_ptr<X86Reference>> refmap;
-typedef vector<shared_ptr<X86Reference>> refstack;
+class WhileObject;
 
+typedef map<string, shared_ptr<WhileObject>> objmap;
+typedef vector<shared_ptr<WhileObject>> objstack;
+
+class X86Function;
 class X86Program;
 
 class WhileToX86: public SyntaxVisitor, public enable_shared_from_this<WhileToX86> {
@@ -66,26 +69,20 @@ public:
 private:
 	shared_ptr<X86Program> out;
 
-	// these no longer work.........
-	shared_ptr<X86Register> ax;
-	shared_ptr<X86Register> bx;
-	shared_ptr<X86Register> cx;
-	shared_ptr<X86Register> dx;
-	shared_ptr<X86Register> di;
-	shared_ptr<X86Register> sp;
-	shared_ptr<X86Register> bp;
-	shared_ptr<X86StackFrame> stack;
-
 	int dLabel, tagCount;
 
 
 	// used to track values
-	refmap refs;
-	refstack top;
+	objmap refs;
+	objstack top;
 
-	shared_ptr<X86Reference> popRef();
+	// define the external print function
+	shared_ptr<X86Function> print;
+
+	shared_ptr<WhileObject> popRef();
+
+	// no l0nger using these
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);
-
 	int getTypeSize(shared_ptr<Type>);
 	void pushTypeTag(shared_ptr<Type>);
 };

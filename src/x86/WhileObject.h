@@ -19,6 +19,10 @@ class X86Register;
 
 /*
  * 16 byte object headers are too big for registers
+ *
+ * location defualt is base pointer addr
+ * call putOnStack() to position on stack or
+ * setLocation() for addr relative to another register
  */
 class WhileObject {
 public:
@@ -26,13 +30,27 @@ public:
 	virtual ~WhileObject();
 
 	void putOnStack();
+	void pushStack();
 
-	void initialise( shared_ptr<X86Register> );
-	void initialise( shared_ptr<X86Reference> v, int type );
-	virtual void initialise(shared_ptr<X86Reference>);
+	// as existing object
+	void setLocation( shared_ptr<X86Register> );
+	void setLocation( shared_ptr<X86Register>,StackSpace );
 
+	// a new object
+	void initialise( shared_ptr<X86Reference> v, int type, bool write );
+	virtual void initialise(shared_ptr<X86Reference>, bool write);
+
+	// ...
+	void assign( shared_ptr<WhileObject>, bool );
+	void writeMem();
 	void free();
 
+
+	// direct references
+	shared_ptr<X86Reference> tagDirect();
+	shared_ptr<X86Reference> valueDirect();
+
+	// address references
 	shared_ptr<X86Reference> addrRef();
 	shared_ptr<X86Reference> tagRef();
 	shared_ptr<X86Reference> valueRef();
@@ -41,6 +59,10 @@ protected:
 	shared_ptr<X86Program> program;
 	shared_ptr<X86Register> base;
 	StackSpace space;
+
+	// values
+	shared_ptr<X86Reference> ref;
+	shared_ptr<X86Reference> type;
 };
 
 class WhileList: public WhileObject {
@@ -48,7 +70,7 @@ public:
 	WhileList( shared_ptr<X86Program> );
 	virtual ~WhileList();
 
-	virtual void initialise(shared_ptr<X86Reference>);
+	virtual void initialise(shared_ptr<X86Reference>, bool write);
 
 	void length(shared_ptr<WhileObject>);
 	void get(shared_ptr<WhileObject>, shared_ptr<X86Reference>);

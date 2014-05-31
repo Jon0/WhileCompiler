@@ -42,6 +42,7 @@ public:
 	void beginFunction( string );
 	void endFunction();
 
+	shared_ptr<X86Function> getFunction( string );
 	void callFunction( shared_ptr<X86Function>, arg_list );
 	shared_ptr<X86Register> malloc( shared_ptr<X86Reference> );
 
