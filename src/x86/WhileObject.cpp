@@ -26,12 +26,28 @@ WhileObject::WhileObject( shared_ptr<X86Program> p ) {
 WhileObject::~WhileObject() {}
 
 void WhileObject::putOnStack() {
-	if (base) free(); // free any existing register
+	shared_ptr<X86Register> newbase = program->getBPRegister();
+	StackSpace newspace = program->allocateStack(16);
 
-	base = program->getBPRegister();
-	space = program->allocateStack(16);
+	if (base) {
+		shared_ptr<X86Register> r = program->getFreeRegister();
+		r->setSize(8);
+		program->addInstruction( "text", make_shared<InstrMov>( tagRef(), r->ref() ) );
+		program->addInstruction( "text", make_shared<InstrMov>( r->ref(), make_shared<X86Reference>( newbase, newspace.begin, 8 ) ) );
 
-	writeMem();
+		program->addInstruction( "text", make_shared<InstrMov>( valueRef(), r->ref() ) );
+		program->addInstruction( "text", make_shared<InstrMov>( r->ref(), make_shared<X86Reference>( newbase, newspace.begin + 8, 8 ) ) );
+		r->free();
+		base->free(); // free any existing base register
+	}
+
+	base = newbase;
+	space = newspace;
+
+	// write stored items
+	if (ref) {
+		writeMem();
+	}
 }
 
 void WhileObject::pushStack() {
@@ -46,19 +62,61 @@ void WhileObject::pushStack() {
 }
 
 shared_ptr<X86Register> WhileObject::attachRegister() {
-	shared_ptr<X86Register> r = program->getFreeRegister();
-
-	// update ref, free any existing ref
+	shared_ptr<X86Register> r;
 	if (ref) {
+		if ( ref->isRegister() ) {
+			return ref->getRegister();
+		}
+
+		r = program->getFreeRegister();
 		r->assign( ref );
 
+		// before update ref, free any existing ref
 		if (initialised) {
 			ref->free();
 		}
 	}
-	ref = r->ref();
+	else {
+		r = program->getFreeRegister();
 
+		// copy base value if available
+		if (base) {
+			r->assign( valueRef() );
+		}
+	}
+
+	ref = r->ref();
 	return r;
+
+}
+
+shared_ptr<X86Register> WhileObject::attachRegisterType() {
+	shared_ptr<X86Register> r;
+	if (type) {
+		if ( type->isRegister() ) {
+			return type->getRegister();
+		}
+
+		r = program->getFreeRegister();
+		r->assign( type );
+
+		// before update ref, free any existing ref
+		if (initialised) {
+			type->free();
+		}
+	}
+	else {
+		r = program->getFreeRegister();
+
+		// copy base value if available
+		if (base) {
+			r->assign( tagRef() );
+		}
+	}
+
+	type = r->ref();
+	return r;
+
 }
 
 /**
@@ -66,20 +124,16 @@ shared_ptr<X86Register> WhileObject::attachRegister() {
  */
 void WhileObject::setLocation( shared_ptr<X86Register> r ) {
 	base = r;
-
-	ref = r->ref(8);
-	type = r->ref(0);
-
+	ref = NULL;
+	type = NULL;
 	initialised = true;
 }
 
 void WhileObject::setLocation( shared_ptr<X86Register> r, StackSpace s ) {
 	base = r;
 	space = s;
-
-	ref = r->ref(s.begin + 8);
-	type = r->ref(s.begin);
-
+	ref = NULL;
+	type = NULL;
 	initialised = true;
 }
 
@@ -104,9 +158,18 @@ void WhileObject::assign( shared_ptr<WhileObject> other, bool write ) {
 	}
 }
 
+/**
+ * does not write to memory
+ */
+void WhileObject::modifyType(int t) {
+	type = make_shared<X86Reference>(t);
+}
+
 void WhileObject::free() {
 	if (ref) ref->free();
+	ref = NULL;
 	if (type) type->free();
+	type = NULL;
 	if (base) base->free();
 }
 
@@ -116,14 +179,21 @@ void WhileObject::writeMem() {
 		return;
 	}
 
-
 	shared_ptr<X86Register> r = program->getFreeRegister();
+	r->setSize(8);
 	program->addInstruction( "text", make_shared<InstrMov>( type, r->ref() ) );
 	program->addInstruction( "text", make_shared<InstrMov>( r->ref(), tagRef() ) );
 
 	program->addInstruction( "text", make_shared<InstrMov>( ref, r->ref() ) );
 	program->addInstruction( "text", make_shared<InstrMov>( r->ref(), valueRef() ) );
 	r->free();
+
+	// should not be used once assigned a memory location
+	ref->free();
+	type->free();
+	ref = NULL;
+	type = NULL;
+
 	initialised = true;
 }
 
@@ -150,6 +220,7 @@ shared_ptr<X86Reference> WhileObject::addrRef() {
 	}
 	else {
 		// TODO can use: leaq	-16(%rbp), %rax
+		base->setSize(8);
 		r->assign( base->ref() );
 		if (space.begin != 0) r->add( make_shared<X86Reference>(space.begin) );
 	}
@@ -158,11 +229,21 @@ shared_ptr<X86Reference> WhileObject::addrRef() {
 }
 
 shared_ptr<X86Reference> WhileObject::tagRef() {
+	base->setSize(8);
 	return make_shared<X86Reference>( base, space.begin, 8 );
 }
 
 shared_ptr<X86Reference> WhileObject::valueRef() {
+	base->setSize(8);
 	return make_shared<X86Reference>( base, space.begin + 8, 8 );
+}
+
+string WhileObject::debug() {
+		string result = "";
+		if (ref) result += "[ref] "+ref->place()+"\t";
+		if (type) result += "[type] "+type->place()+"\t";
+		if (base) result += "[base] "+base->place()+"\t";
+		return result;
 }
 
 WhileList::WhileList( shared_ptr<X86Program> p ): WhileObject(p) {}
@@ -227,7 +308,6 @@ void WhileRecord::initialise(shared_ptr<X86Reference> v, bool write) {
 	shared_ptr<X86Register> r = program->malloc( make_shared<X86Reference>(64) );
 	ref = r->ref();
 	type = make_shared<X86Reference>(16);
-
 
 	if (write) {
 		writeMem();

@@ -41,19 +41,29 @@ InstrPop::InstrPop(shared_ptr<X86Reference> r) {
 }
 
 InstrMov::InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	int toSize = t->typeSize();
+	from = f->place(toSize); to = t->place();
+	type = "q";
+	ext = "";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || to[1] == 'e') type = "l";
+}
+
+InstrMov::InstrMov(string p, shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	// f use defualt size
+	// zero padding could be used
 	from = f->place(); to = t->place();
 	type = "q";
-
-	if (from.length() > 10) {
-		type = "absq";
-	}
+	ext = p;
 
 	// TODO use register sizes
 	if (from[1] == 'e' || to[1] == 'e') type = "l";
 }
 
 InstrAdd::InstrAdd(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
-	from = f->place(); to = t->place();
+	int toSize = t->typeSize();
+	from = f->place(toSize); to = t->place();
 	type = "q";
 
 	// TODO use register sizes
@@ -68,8 +78,26 @@ InstrAdd::InstrAdd(int f, shared_ptr<X86Reference> t) {
 	if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
+InstrSub::InstrSub(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	int toSize = t->typeSize();
+	from = f->place(toSize); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
+}
+
+InstrSub::InstrSub(int f, shared_ptr<X86Reference> t) {
+	from = "$"+to_string(f); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
+}
+
 InstrMul::InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
-	from = f->place(); to = t->place();
+	int toSize = t->typeSize();
+	from = f->place(toSize); to = t->place();
 	type = "q";
 
 	// TODO use register sizes
@@ -77,6 +105,23 @@ InstrMul::InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 }
 
 InstrMul::InstrMul(int f, shared_ptr<X86Reference> t) {
+	from = "$"+to_string(f); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
+}
+
+InstrDiv::InstrDiv(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	int toSize = t->typeSize();
+	from = f->place(toSize); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || type[1] == 'e') type = "l";
+}
+
+InstrDiv::InstrDiv(int f, shared_ptr<X86Reference> t) {
 	from = "$"+to_string(f); to = t->place();
 	type = "q";
 

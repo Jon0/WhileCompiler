@@ -24,7 +24,7 @@ X86Reference::X86Reference(long s) {
 	constant = "$"+to_string(s);
 	reg = NULL;
 	offset = 0;
-	type_size = 4;
+	type_size = 8;
 	use_addr = false;
 	is_live = true;
 }
@@ -93,6 +93,14 @@ string X86Reference::place(int w) {
 	else {
 		return constant;
 	}
+}
+
+bool X86Reference::isRegister() {
+	return reg && !use_addr; // a non addressed register
+}
+
+shared_ptr<X86Register> X86Reference::getRegister() {
+	return reg;
 }
 
 /*

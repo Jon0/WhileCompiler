@@ -114,12 +114,11 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
 	}
 
-	// pass args in edi register
+	// pass args in registers
 	// TODO multiple args
 	int count = 0;
-
 	for ( shared_ptr<X86Reference> ref: args ) {
-		if (count == 0) di->assign( ref );
+		if (count == args.size()-1) di->assign( ref ); // di will be the last arg
 		else si->assign( ref );
 		count++;
 
@@ -159,7 +158,6 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 
 	// save all in use registers
 	vector<shared_ptr<X86Register>> stored;
-	bool pad = false;
 	for (shared_ptr<X86Register> r: pool) {
 		if (r->inUse()) {
 			stored.push_back(r);
@@ -191,8 +189,6 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 	}
 
 	// restore used registers
-	// TODO stack pointer is wrong - has changed so wrong things are popped
-	//if ( pad ) addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
 	while (!stored.empty()) {
 		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
 		stored.pop_back();
@@ -208,12 +204,16 @@ shared_ptr<X86Register> X86Program::malloc( shared_ptr<X86Reference> r ) {
 shared_ptr<X86Register> X86Program::getFreeRegister() {
 	for (shared_ptr<X86Register> r: pool) {
 		if (!r->inUse()) {
+			r->setSize(8);
 			return r;
 		}
 	}
 
-	// TODO save to stack
+	// save to stack
 	cout << "out of registers" << endl;
+	addInstruction( "text", make_shared<InstrPush>( ax->ref() ) );
+
+
 	return ax;
 }
 

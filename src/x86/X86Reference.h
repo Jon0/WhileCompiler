@@ -81,6 +81,9 @@ public:
 	string place();
 	string place(int);	// force type width
 
+	bool isRegister();
+	shared_ptr<X86Register> getRegister();
+
 	/*
 	 * return instructions to apply actions in assembly -- no longer used
 	 */

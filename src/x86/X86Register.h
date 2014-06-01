@@ -36,7 +36,10 @@ public:
 
 	void assign( shared_ptr<X86Reference> );
 	void add( shared_ptr<X86Reference> );
+	void sub( shared_ptr<X86Reference> );
 	void multiply( shared_ptr<X86Reference> );
+	void divide( shared_ptr<X86Reference> );
+	void mod( shared_ptr<X86Reference> );
 	void andBitwise( shared_ptr<X86Reference> );
 	void orBitwise( shared_ptr<X86Reference> );
 	void compare( shared_ptr<X86Reference> );

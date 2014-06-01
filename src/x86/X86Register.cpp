@@ -35,7 +35,7 @@ void X86Register::free() {
 }
 
 void X86Register::setAsUsed() {
-	//cout << "assigning register " << r->getName() << endl;
+	//cout << "assigning register " << name << endl;
 	in_use = true;
 }
 
@@ -71,8 +71,21 @@ void X86Register::add( shared_ptr<X86Reference> i ) {
 	program->addInstruction( "text", make_shared<InstrAdd>( i->place(), place() ) );
 }
 
+void X86Register::sub( shared_ptr<X86Reference> i ) {
+	program->addInstruction( "text", make_shared<InstrSub>( i->place(), place() ) );
+}
+
 void X86Register::multiply( shared_ptr<X86Reference> i ) {
 	program->addInstruction( "text", make_shared<InstrMul>( i->place(), place() ) );
+}
+
+void X86Register::divide( shared_ptr<X86Reference> i ) {
+	program->addInstruction( "text", make_shared<InstrDiv>( i->place(), place() ) );
+}
+
+void X86Register::mod( shared_ptr<X86Reference> i ) {
+	program->addInstruction( "text", make_shared<InstrDiv>( i->place(), place() ) );
+	// TODO remainder in dx register
 }
 
 void X86Register::andBitwise( shared_ptr<X86Reference> i ) {
@@ -90,7 +103,7 @@ void X86Register::compare( shared_ptr<X86Reference> i ) {
 void X86Register::setFromFlags(string type) {
 	string bytename = "%"+name.substr(0,1)+"l";
 	program->addInstruction( "text", make_shared<InstrSet>( type, bytename ) );
-	program->addInstruction( "text", make_shared<InstrMov>( "zbl", bytename, place() ) );
+	program->addInstruction( "text", make_shared<InstrMov>( "zb", make_shared<X86Reference>(bytename), ref() ) );
 }
 
 

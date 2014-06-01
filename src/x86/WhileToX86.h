@@ -27,7 +27,7 @@ class X86Program;
 
 class WhileToX86: public SyntaxVisitor, public enable_shared_from_this<WhileToX86> {
 public:
-	WhileToX86(shared_ptr<X86Program>);
+	WhileToX86(shared_ptr<X86Program>, bool);
 	virtual ~WhileToX86();
 
 	virtual void accept(shared_ptr<Type>);
@@ -73,13 +73,16 @@ private:
 
 
 	// used to track values
+	string loopbreak; // tag to leave current loop
 	objmap refs;
 	objstack top;
 	shared_ptr<WhileObject> returnSpace;
 
-	// define the external print function
+	// define the external library functions
+	// these get linked with gcc
 	shared_ptr<X86Function> print;
 	shared_ptr<X86Function> equiv;
+	shared_ptr<X86Function> append;
 
 	// add debug annotations
 	bool debug_out;
@@ -90,7 +93,7 @@ private:
 	// no l0nger using these
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);
 	int getTypeSize(shared_ptr<Type>);
-	void pushTypeTag(shared_ptr<Type>);
+	int getTypeTag(shared_ptr<Type>);
 };
 
 } /* namespace std */

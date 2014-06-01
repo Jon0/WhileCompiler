@@ -64,7 +64,7 @@ void Test::runTest(string in, string out) {
 
 		// convert to a x86 assembly program
 		shared_ptr<X86Program> x86prog = make_shared<X86Program>();
-		shared_ptr<WhileToX86> converter = make_shared<WhileToX86>(x86prog);
+		shared_ptr<WhileToX86> converter = make_shared<WhileToX86>(x86prog, true);
 		input->visit(converter);
 
 		// save executable

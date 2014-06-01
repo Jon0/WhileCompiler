@@ -181,18 +181,15 @@ private:
 class InstrMov: public InstrCode {
 public:
 	InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
-	InstrMov(string p, string f, string t) {
-		from = f; to = t;
-		type = p;
-	}
+	InstrMov(string p, shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
 	virtual ~InstrMov() {}
 
 	virtual string str() {
-		return "\tmov"+type+"\t"+from+", "+to;
+		return "\tmov"+ext+type+"\t"+from+", "+to;
 	}
 
 private:
-	string from, to, type;
+	string from, to, type, ext;
 };
 
 class InstrAdd: public InstrCode {
@@ -220,6 +217,35 @@ private:
 	string from, to, type;
 };
 
+class InstrSub: public InstrCode {
+public:
+	InstrSub(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
+	InstrSub(int f, shared_ptr<X86Reference> t);
+	InstrSub(string f, string t) {
+		from = f; to = t;
+		type = "q";
+
+		// TODO use register sizes
+		if (f[1] == 'e' || t[1] == 'e') type = "l";
+	}
+	InstrSub(string p, string f, string t) {
+		from = f; to = t;
+		type = p;
+	}
+	virtual ~InstrSub() {}
+
+	virtual string str() {
+		return "\tsub"+type+"\t"+from+", "+to;
+	}
+
+	void modifyLHS(string s) {
+		from = s;
+	}
+
+private:
+	string from, to, type;
+};
+
 class InstrMul: public InstrCode {
 public:
 	InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
@@ -239,6 +265,31 @@ public:
 
 	virtual string str() {
 		return "\timul"+type+"\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type;
+};
+
+class InstrDiv: public InstrCode {
+public:
+	InstrDiv(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
+	InstrDiv(int f, shared_ptr<X86Reference> t);
+	InstrDiv(string f, string t) {
+		from = f; to = t;
+		type = "q";
+
+		// TODO use register sizes
+		if (f[1] == 'e' || t[1] == 'e') type = "l";
+	}
+	InstrDiv(string p, string f, string t) {
+		from = f; to = t;
+		type = p;
+	}
+	virtual ~InstrDiv() {}
+
+	virtual string str() {
+		return "\tidiv"+type+"\t"+from+", "+to;
 	}
 
 private:
@@ -346,27 +397,6 @@ public:
 
 private:
 	string type, target;
-};
-
-class InstrSub: public InstrCode {
-public:
-	InstrSub(string f, string t) {
-		from = f; to = t;
-		type = "q";
-		if (t[1] == 'e') type = "l";
-	}
-	virtual ~InstrSub() {}
-
-	virtual string str() {
-		return "\tsub"+type+"\t"+from+", "+to;
-	}
-
-	void modifyLHS(string s) {
-		from = s;
-	}
-
-private:
-	string from, to, type;
 };
 
 class InstrRet: public InstrCode {

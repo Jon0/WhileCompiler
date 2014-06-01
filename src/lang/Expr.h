@@ -94,6 +94,7 @@ public:
 	IsTypeExpr( Token tok, shared_ptr<Expr> e, shared_ptr<Type> t): Expr( tok, shared_ptr<Type>( new AtomicType<bool>("bool") )  ) {
 		to_check = e;
 		type = t;
+		addChild(to_check);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {
@@ -107,6 +108,10 @@ public:
 
 	virtual void visit(shared_ptr<SyntaxVisitor> v) {
 		v->accept( shared_from_this() );
+	}
+
+	shared_ptr<Type> getRHS() {
+		return type;
 	}
 
 private:
@@ -276,6 +281,8 @@ public:
 		second = b;
 		copyTokens(*a);
 		copyTokens(*b);
+		addChild(first);
+		addChild(second);
 	}
 
 	shared_ptr<Value> eval( Stack &s, VarMap &m, shared_ptr<Value> **p ) {

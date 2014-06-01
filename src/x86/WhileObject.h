@@ -32,8 +32,12 @@ public:
 	void putOnStack();
 	void pushStack();
 
-	//
+	/**
+	 * copy values into registers
+	 * update memory values with next writeMem() call
+	 */
 	shared_ptr<X86Register> attachRegister();
+	shared_ptr<X86Register> attachRegisterType();
 
 	// as existing object
 	void setLocation( shared_ptr<X86Register> );
@@ -45,6 +49,7 @@ public:
 
 	// ...
 	void assign( shared_ptr<WhileObject>, bool );
+	void modifyType(int);
 	void writeMem();
 	void free();
 
@@ -57,6 +62,8 @@ public:
 	shared_ptr<X86Reference> addrRef();
 	shared_ptr<X86Reference> tagRef();
 	shared_ptr<X86Reference> valueRef();
+
+	string debug();
 
 protected:
 	shared_ptr<X86Program> program;
