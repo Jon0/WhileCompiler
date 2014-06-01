@@ -75,6 +75,14 @@ void X86Register::multiply( shared_ptr<X86Reference> i ) {
 	program->addInstruction( "text", make_shared<InstrMul>( i->place(), place() ) );
 }
 
+void X86Register::andBitwise( shared_ptr<X86Reference> i ) {
+	program->addInstruction( "text", make_shared<InstrAnd>( i->place(), place() ) );
+}
+
+void X86Register::orBitwise( shared_ptr<X86Reference> i ) {
+	program->addInstruction( "text", make_shared<InstrOr>( i->place(), place() ) );
+}
+
 void X86Register::compare( shared_ptr<X86Reference> i ) {
 	program->addInstruction( "text", make_shared<InstrCmp>( i->place(), place() ) ); // sets flags
 }
@@ -88,6 +96,10 @@ void X86Register::setFromFlags(string type) {
 
 shared_ptr<X86Reference> X86Register::ref() {
 	return make_shared<X86Reference>( shared_from_this(), current_size );
+}
+
+shared_ptr<X86Reference> X86Register::ref(int i) {
+	return make_shared<X86Reference>( shared_from_this(), i, current_size );
 }
 
 ///*

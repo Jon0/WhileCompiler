@@ -85,6 +85,7 @@ private:
 	bool debug_out;
 
 	shared_ptr<WhileObject> popRef();
+	shared_ptr<WhileObject> popRefAndCopy();
 
 	// no l0nger using these
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);

@@ -14,6 +14,9 @@ namespace std {
 
 class X86Function {
 public:
+	/**
+	 * parameters: function name, has return value, is external
+	 */
 	X86Function(string, bool, bool);
 	virtual ~X86Function();
 

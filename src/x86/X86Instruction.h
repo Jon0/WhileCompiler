@@ -268,6 +268,31 @@ private:
 	string from, to, type;
 };
 
+class InstrOr: public InstrCode {
+public:
+	InstrOr(string f, string t) {
+		from = f; to = t;
+		type = "q";
+
+		// TODO use register sizes
+		if (f[0] == '$' || f[1] == 'e' || t[1] == 'e') type = "l";
+	}
+
+	InstrOr(string p, string f, string t) {
+		from = f; to = t;
+		type = p;
+	}
+
+	virtual ~InstrOr() {}
+
+	virtual string str() {
+		return "\txor"+type+"\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type;
+};
+
 class InstrXor: public InstrCode {
 public:
 	InstrXor(string f, string t) {

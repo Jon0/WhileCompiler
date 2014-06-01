@@ -19,7 +19,7 @@ void print_v(void *in) {
 		else printf("false");
 		break;
 	case 3:
-		printf("%c", lp[1]);
+		printf("%c", (char)lp[1]);
 		break;
 	case 4:
 		printf("%ld", lp[1]);

@@ -24,6 +24,7 @@ class X86Reference;
 class X86Register;
 
 typedef map<string, shared_ptr<X86Function>> function_map;
+typedef vector<shared_ptr<X86Function>> function_list;
 typedef vector< shared_ptr<X86Reference> > arg_list;
 typedef vector< shared_ptr<WhileObject> > obj_list;
 
@@ -41,6 +42,7 @@ public:
 
 	StackSpace allocateStack(int);
 
+	void declareFunctions(function_list);
 	void beginFunction( string, bool );
 	void endFunction();
 
@@ -50,6 +52,7 @@ public:
 	shared_ptr<X86Register> malloc( shared_ptr<X86Reference> );
 
 	shared_ptr<X86Register> getFreeRegister();
+	shared_ptr<X86Register> getDIRegister();
 	shared_ptr<X86Register> getBPRegister();
 	shared_ptr<X86Register> getSPRegister();
 

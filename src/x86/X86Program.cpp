@@ -63,9 +63,15 @@ StackSpace X86Program::allocateStack(int size) {
 	return stack->nextSpace(size);
 }
 
+void X86Program::declareFunctions(function_list l) {
+	for (shared_ptr<X86Function> f: l) {
+		string fname = f->getName();
+		functions.insert( function_map::value_type(fname, f ) );
+	}
+}
+
 void X86Program::beginFunction( string name, bool has_ret ) {
 	stack->clear();
-	functions.insert( function_map::value_type(name, make_shared<X86Function>(name, has_ret, false) ) );
 
 	// label function
 	addInstruction( "text", make_shared<InstrGlobl>( name ) );	//.globl [function name]
@@ -78,6 +84,7 @@ void X86Program::beginFunction( string name, bool has_ret ) {
 }
 
 void X86Program::endFunction() {
+	// same as leave instruction
 	sp->assign( bp->ref() );
 	addInstruction( "text", make_shared<InstrPop>( bp->ref() ) );
 	addInstruction( "text", make_shared<InstrRet>() );
@@ -98,9 +105,11 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
 		}
 	}
+	stored.push_back(di);
+	addInstruction( "text", make_shared<InstrPush>( di->ref() ) );
 
 	// fix a really weird bug
-	if ((pool.size() % 2) == 1) {
+	if ((stored.size() % 2) == 1) {
 		pad = true;
 		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
 	}
@@ -138,6 +147,16 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 }
 
 shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj_list args ) {
+
+	// push args and return space to stack -- before saving
+	if (f->hasReturn()) {
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+	}
+	for (shared_ptr<WhileObject> wo: args) {
+		wo->pushStack();
+	}
+
 	// save all in use registers
 	vector<shared_ptr<X86Register>> stored;
 	bool pad = false;
@@ -147,35 +166,28 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
 		}
 	}
+	stored.push_back(di);
+	addInstruction( "text", make_shared<InstrPush>( di->ref() ) );
 
-	// fix a really weird bug
-//	if ((pool.size() % 2) == 0) {
-//		pad = true;
-//		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
-//	}
+	// set di to pointer to block of args/return -- after saving registers since di is modified
+	shared_ptr<X86Register> location = di;
+	location->assign( sp->ref() );
+	int relativePlace = 8*(stored.size()) + 16*(args.size() - 1);
+	if (f->hasReturn())	relativePlace += 16;
+	location->add( make_shared<X86Reference>(relativePlace) );
 
-	// push return space to stack
-	shared_ptr<X86Register> location;
-	if (f->hasReturn()) {
-		location = getFreeRegister();
-		location->assign( sp->ref() );
-		location->add( make_shared<X86Reference>(-16) );
-		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
-		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
-	}
 
-	// push args to stack
-	for (shared_ptr<WhileObject> wo: args) {
-		cout << "psss" << endl;
-		wo->pushStack();
-	}
+	// call instruction
 	addInstruction( "text", make_shared<InstrCall>( f->getName() ) );
 
-	// find the result
+
+	// find the result -- it uses the modified rdi register -- must be before restore
 	shared_ptr<WhileObject> returnPlace;
 	if (f->hasReturn()) {
 		returnPlace = make_shared<WhileObject>( shared_from_this() );
-		returnPlace->setLocation( location );	// the returned object must free the register
+		shared_ptr<X86Register> reg = getFreeRegister();
+		reg->assign( location->ref() );
+		returnPlace->setLocation( reg );	// the returned object must free the register
 	}
 
 	// restore used registers
@@ -203,6 +215,10 @@ shared_ptr<X86Register> X86Program::getFreeRegister() {
 	// TODO save to stack
 	cout << "out of registers" << endl;
 	return ax;
+}
+
+shared_ptr<X86Register> X86Program::getDIRegister() {
+	return di;
 }
 
 shared_ptr<X86Register> X86Program::getBPRegister() {
