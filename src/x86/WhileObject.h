@@ -10,6 +10,7 @@
 
 #include <memory>
 
+#include "X86Program.h"
 #include "X86StackFrame.h"
 
 namespace std {
@@ -41,7 +42,7 @@ public:
 
 	// as existing object
 	void setLocation( shared_ptr<X86Register> );
-	void setLocation( shared_ptr<X86Register>,StackSpace );
+	void setLocation( mem_space );
 
 	// a new object
 	void initialise( shared_ptr<X86Reference> v, int type, bool write );
@@ -51,15 +52,13 @@ public:
 	void assign( shared_ptr<WhileObject>, bool );
 	void modifyType(int);
 	void writeMem();
-	void free();
-
 
 	// direct references
 	shared_ptr<X86Reference> tagDirect();
 	shared_ptr<X86Reference> valueDirect();
 
 	// address references
-	shared_ptr<X86Reference> addrRef();
+	shared_ptr<X86RegRef> addrRef();
 	shared_ptr<X86Reference> tagRef();
 	shared_ptr<X86Reference> valueRef();
 
@@ -67,14 +66,16 @@ public:
 
 protected:
 	shared_ptr<X86Program> program;
-	shared_ptr<X86Register> base;
-	StackSpace space;
+
+	// memory space
+	mem_space space;
+	bool initialised;
 
 	// values
 	shared_ptr<X86Reference> ref;
 	shared_ptr<X86Reference> type;
 
-	bool initialised;
+
 };
 
 class WhileList: public WhileObject {

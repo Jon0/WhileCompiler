@@ -61,6 +61,15 @@ InstrMov::InstrMov(string p, shared_ptr<X86Reference> f, shared_ptr<X86Reference
 	if (from[1] == 'e' || to[1] == 'e') type = "l";
 }
 
+InstrLea::InstrLea(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	int toSize = t->typeSize();
+	from = f->place(toSize); to = t->place();
+	type = "q";
+
+	// TODO use register sizes
+	if (from[1] == 'e' || to[1] == 'e') type = "l";
+}
+
 InstrAdd::InstrAdd(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	int toSize = t->typeSize();
 	from = f->place(toSize); to = t->place();

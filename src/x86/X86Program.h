@@ -13,20 +13,25 @@
 #include <string>
 #include <vector>
 
-#include "X86StackFrame.h"
-
 namespace std {
 
 class WhileObject;
 class X86Function;
 class X86Instruction;
 class X86Reference;
+class X86RegAddrRef;
 class X86Register;
+class X86StackFrame;
 
 typedef map<string, shared_ptr<X86Function>> function_map;
 typedef vector<shared_ptr<X86Function>> function_list;
 typedef vector< shared_ptr<X86Reference> > arg_list;
 typedef vector< shared_ptr<WhileObject> > obj_list;
+
+struct mem_space {
+	shared_ptr<X86RegAddrRef> ref;
+	unsigned int size;
+};
 
 class X86Program: public enable_shared_from_this<X86Program> {
 public:
@@ -40,7 +45,7 @@ public:
 
 	void initialise( string );
 
-	StackSpace allocateStack(int);
+	mem_space allocateStack(int);
 
 	void declareFunctions(function_list);
 	void beginFunction( string, bool );

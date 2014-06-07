@@ -11,15 +11,11 @@
 #include <map>
 #include <memory>
 
+#include "X86Reference.h"
 #include "X86Instruction.h"
+#include "X86Program.h"
 
 namespace std {
-
-class Type;
-
-struct StackSpace {
-	int begin, size;
-};
 
 class X86StackFrame {
 public:
@@ -34,7 +30,7 @@ public:
 		return initial;
 	}
 
-	StackSpace nextSpace(int s) {
+	mem_space nextSpace(shared_ptr<X86Program> p, unsigned int s) {
 		size += s;
 
 		// modify initial
@@ -42,7 +38,10 @@ public:
 			initial->modifyLHS("$"+to_string(size));
 		}
 
-		StackSpace ss { -size, s };
+
+
+		shared_ptr<X86RegAddrRef> refr = make_shared<X86RegAddrRef>(p->getBPRegister(), -size, p->addrSize());
+		mem_space ss { refr, s };
 		return ss;
 	}
 
@@ -52,11 +51,11 @@ public:
 	}
 
 private:
-	int size;
+	unsigned int size;
 
 	shared_ptr<InstrSub> initial;
 
-	map<string, StackSpace> spaces; // TODO
+	map<string, mem_space> spaces; // TODO label spaces
 
 };
 

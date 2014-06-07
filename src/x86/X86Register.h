@@ -10,12 +10,15 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 namespace std {
 
 class X86Instruction;
 class X86Program;
 class X86Reference;
+class X86RegRef;
+class X86RegAddrRef;
 
 class X86Register: public enable_shared_from_this<X86Register> {
 public:
@@ -25,8 +28,8 @@ public:
 	string getName();
 
 	bool inUse();
-	void free();
-	void setAsUsed();
+	void free(int);
+	int use();
 
 	int getSize();
 	void setSize(int);
@@ -35,6 +38,9 @@ public:
 	string place(int);	// forced width
 
 	void assign( shared_ptr<X86Reference> );
+	void assignAddrOf( shared_ptr<X86RegAddrRef> );
+
+	// operations
 	void add( shared_ptr<X86Reference> );
 	void sub( shared_ptr<X86Reference> );
 	void multiply( shared_ptr<X86Reference> );
@@ -45,17 +51,18 @@ public:
 	void compare( shared_ptr<X86Reference> );
 	void setFromFlags(string);
 
-	// the thing thats currently assigned
-	shared_ptr<X86Reference> ref();
-	shared_ptr<X86Reference> ref(int);
-
-	int getRefStackOffset();
+	// make refernce to this register
+	shared_ptr<X86RegRef> ref();
+	shared_ptr<X86RegAddrRef> ref(int);
 
 private:
 	shared_ptr<X86Program> program; // register is part of this program
 	string name;
 	int current_size;
-	bool in_use;
+
+	// track usage of this register
+	unordered_set<int> use_id;
+	int next_id;
 
 	string sizeDesc();
 };

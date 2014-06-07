@@ -13,6 +13,7 @@
 #include "X86Program.h"
 #include "X86Reference.h"
 #include "X86Register.h"
+#include "X86StackFrame.h"
 
 namespace std {
 
@@ -59,8 +60,8 @@ void X86Program::initialise(string n) {
 	addInstruction( "text", make_shared<InstrDirective>( "text" ) );
 }
 
-StackSpace X86Program::allocateStack(int size) {
-	return stack->nextSpace(size);
+mem_space  X86Program::allocateStack(int size) {
+	return stack->nextSpace(shared_from_this(), size);
 }
 
 void X86Program::declareFunctions(function_list l) {
@@ -78,7 +79,7 @@ void X86Program::beginFunction( string name, bool has_ret ) {
 	addInstruction( "text", make_shared<InstrFuncLabel>( name ) );
 
 	// save base pointer
-	addInstruction( "text", make_shared<InstrPush>(make_shared<X86Reference>(bp, addr_size)) );
+	addInstruction( "text", make_shared<InstrPush>(make_shared<X86RegRef>(bp, addr_size)) );
 	bp->assign( sp->ref() );
 	addInstruction( "text", stack->allocate() ); // TODO should modify later
 }
@@ -111,7 +112,7 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 	// fix a really weird bug
 	if ((stored.size() % 2) == 1) {
 		pad = true;
-		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86ConstRef>(0) ) );
 	}
 
 	// pass args in registers
@@ -149,8 +150,8 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 
 	// push args and return space to stack -- before saving
 	if (f->hasReturn()) {
-		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
-		addInstruction( "text", make_shared<InstrPush>( make_shared<X86Reference>(0) ) );
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86ConstRef>(0) ) );
+		addInstruction( "text", make_shared<InstrPush>( make_shared<X86ConstRef>(0) ) );
 	}
 	for (shared_ptr<WhileObject> wo: args) {
 		wo->pushStack();
@@ -172,7 +173,7 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 	location->assign( sp->ref() );
 	int relativePlace = 8*(stored.size()) + 16*(args.size() - 1);
 	if (f->hasReturn())	relativePlace += 16;
-	location->add( make_shared<X86Reference>(relativePlace) );
+	location->add( make_shared<X86ConstRef>(relativePlace) );
 
 
 	// call instruction
@@ -211,7 +212,9 @@ shared_ptr<X86Register> X86Program::getFreeRegister() {
 
 	// save to stack
 	cout << "out of registers" << endl;
-	addInstruction( "text", make_shared<InstrPush>( ax->ref() ) );
+
+
+	mem_space s = allocateStack(8);
 
 
 	return ax;

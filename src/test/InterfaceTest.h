@@ -10,10 +10,18 @@
 
 namespace std {
 
+class X86Function;
+
 class InterfaceTest {
 public:
 	InterfaceTest();
 	virtual ~InterfaceTest();
+
+	void test1();
+	void test2();
+
+private:
+	shared_ptr<X86Function> print;
 };
 
 } /* namespace std */

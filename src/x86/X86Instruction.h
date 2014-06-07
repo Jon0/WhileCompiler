@@ -192,6 +192,19 @@ private:
 	string from, to, type, ext;
 };
 
+class InstrLea: public InstrCode {
+public:
+	InstrLea(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
+	virtual ~InstrLea() {}
+
+	virtual string str() {
+		return "\tlea"+type+"\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type;
+};
+
 class InstrAdd: public InstrCode {
 public:
 	InstrAdd(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);

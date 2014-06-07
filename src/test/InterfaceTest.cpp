@@ -25,48 +25,37 @@ InterfaceTest::InterfaceTest() {
 	// define the external print function
 	shared_ptr<X86Function> print = make_shared<X86Function>("print", false, true);
 
+	test2();
+}
 
+InterfaceTest::~InterfaceTest() {
+	// TODO Auto-generated destructor stub
+}
+
+void InterfaceTest::test1() {
 	shared_ptr<X86Program> p = make_shared<X86Program>();
 	p->initialise("test");
 	p->beginFunction( "main", false );
 
 
-	shared_ptr<X86Reference> number1 = make_shared<X86Reference>(16);
+	shared_ptr<X86ConstRef> number1 = make_shared<X86ConstRef>(16);
 	shared_ptr<X86Register> reg = p->getFreeRegister();
 	reg->assign( number1 );
-	reg->add( make_shared<X86Reference>(4) );
+	reg->add( make_shared<X86ConstRef>(4) );
 
 	shared_ptr<WhileList> obj = make_shared<WhileList>(p);
 	obj->putOnStack();
 	obj->initialise( reg->ref(), true );
-	reg->free();
 
 
-	shared_ptr<WhileObject> obj2 = obj->get<WhileObject>( make_shared<X86Reference>(0) );
-	obj2->initialise( make_shared<X86Reference>(42), true );
-	obj2->free();
+	shared_ptr<WhileObject> obj2 = obj->get<WhileObject>( make_shared<X86ConstRef>(0) );
+	obj2->initialise( make_shared<X86ConstRef>(42), true );
 
-	shared_ptr<WhileList> obj3 = obj->get<WhileList>( make_shared<X86Reference>(1) );
-	obj3->initialise( make_shared<X86Reference>(3),true );
-	obj3->free();
-
-
-	reg = p->getFreeRegister();
-	reg->assign( number1 );
-	reg->compare( number1 );	// sets flags
-
-	// TODO branching control
-	string tag1 = ".L0";
-	p->addInstruction( "text", make_shared<InstrJ>( "e", tag1 ) );
-	//out->addInstruction( "text", make_shared<InstrJ>( "mp", tag2 ) );
-	p->addInstruction( "text", make_shared<InstrLabel>( tag1 ) );
-
-	reg->free();
+	shared_ptr<WhileList> obj3 = obj->get<WhileList>( make_shared<X86ConstRef>(1) );
+	obj3->initialise( make_shared<X86ConstRef>(3),true );
 
 	shared_ptr<X86Reference> objAddr = obj->addrRef();
 	p->callFunction(print, arg_list{objAddr});
-	objAddr->free();
-
 
 	p->endFunction();
 
@@ -79,11 +68,34 @@ InterfaceTest::InterfaceTest() {
 	string outStr = pipe.exec("./"+writer->filepath());
 
 	cout << outStr << endl;
-
 }
 
-InterfaceTest::~InterfaceTest() {
-	// TODO Auto-generated destructor stub
+void InterfaceTest::test2() {
+	shared_ptr<X86Program> p = make_shared<X86Program>();
+	p->initialise("test");
+	p->beginFunction( "main", false );
+
+
+	shared_ptr<X86Register> reg = p->getFreeRegister();
+	reg->assign( make_shared<X86ConstRef>(16) );
+	reg->add( make_shared<X86ConstRef>(4) );
+
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(p);
+
+	shared_ptr<X86Reference> objAddr = obj->addrRef();
+	p->callFunction(print, arg_list{objAddr});
+
+	p->endFunction();
+
+	// save executable
+	shared_ptr<X86Writer> writer = make_shared<X86Writer>(p, "bin/", "");
+	writer->writeExecutable();
+
+	// run program record output
+	Pipe pipe;
+	//string outStr = pipe.exec("./"+writer->filepath());
+	cout << "output:" << endl;
+	//cout << outStr << endl;
 }
 
 } /* namespace std */

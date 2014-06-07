@@ -16,7 +16,7 @@ X86Register::X86Register(shared_ptr<X86Program> p, string n) {
 	program = p;
 	name = n;
 	current_size = 8;
-	in_use = false;
+	next_id = 0;
 }
 
 X86Register::~X86Register() {}
@@ -26,17 +26,19 @@ string X86Register::getName() {
 }
 
 bool X86Register::inUse() {
-	return in_use;
+	return (use_id.size() > 0);
 }
 
-void X86Register::free() {
+void X86Register::free(int id) {
 	//cout << "free " << name << endl;
-	in_use = false;
+	use_id.erase(id);
 }
 
-void X86Register::setAsUsed() {
+int X86Register::use() {
 	//cout << "assigning register " << name << endl;
-	in_use = true;
+	int id = next_id++;
+	use_id.insert(id);
+	return id;
 }
 
 int X86Register::getSize() {
@@ -61,10 +63,13 @@ string X86Register::place(int w) {
 }
 
 void X86Register::assign(shared_ptr<X86Reference> r) {
-	setAsUsed();
 	current_size = r->typeSize();
 	program->addInstruction( "text", make_shared<InstrMov>( r, ref() ) );
+}
 
+void X86Register::assignAddrOf(shared_ptr<X86RegAddrRef> r) {
+	current_size = r->typeSize();
+	program->addInstruction( "text", make_shared<InstrLea>( r, ref() ) );
 }
 
 void X86Register::add( shared_ptr<X86Reference> i ) {
@@ -103,35 +108,15 @@ void X86Register::compare( shared_ptr<X86Reference> i ) {
 void X86Register::setFromFlags(string type) {
 	string bytename = "%"+name.substr(0,1)+"l";
 	program->addInstruction( "text", make_shared<InstrSet>( type, bytename ) );
-	program->addInstruction( "text", make_shared<InstrMov>( "zb", make_shared<X86Reference>(bytename), ref() ) );
+	program->addInstruction( "text", make_shared<InstrMov>( "zb", make_shared<X86LabeledRef>(bytename), ref() ) );
 }
 
-
-shared_ptr<X86Reference> X86Register::ref() {
-	return make_shared<X86Reference>( shared_from_this(), current_size );
+shared_ptr<X86RegRef> X86Register::ref() {
+	return make_shared<X86RegRef>( shared_from_this(), current_size );
 }
 
-shared_ptr<X86Reference> X86Register::ref(int i) {
-	return make_shared<X86Reference>( shared_from_this(), i, current_size );
-}
-
-///*
-// * pointer to this object into a register
-// */
-//void X86Reference::assignRegisterPointer(shared_ptr<X86Program> p, shared_ptr<X86Register> r) {
-//	p->addInstruction( "text", make_shared<InstrMov>(  make_shared<X86Reference>(stackBase, 8), make_shared<X86Reference>(r, 8) ) );
-//	p->addInstruction( "text", make_shared<InstrAdd>( "$"+to_string(placement.begin), r->place(8) ) ); // TODO register is no longer a reference
-//}
-
-// probably no longer used
-int X86Register::getRefStackOffset() {
-//	if (ref) {
-//		return ref->stackOffset();
-//	}
-//	else {
-//		return -1;
-//	}
-	return -1;
+shared_ptr<X86RegAddrRef> X86Register::ref(int i) {
+	return make_shared<X86RegAddrRef>( shared_from_this(), i, current_size );
 }
 
 // TODO use current_size to determine label

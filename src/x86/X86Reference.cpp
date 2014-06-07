@@ -11,111 +11,131 @@
 
 namespace std {
 
-X86Reference::X86Reference(string s) {
-	constant = s;
-	reg = NULL;
-	offset = 0;
-	type_size = 8;
-	use_addr = false;
-	is_live = true;
-}
-
-X86Reference::X86Reference(long s) {
-	constant = "$"+to_string(s);
-	reg = NULL;
-	offset = 0;
-	type_size = 8;
-	use_addr = false;
-	is_live = true;
-}
-
-X86Reference::X86Reference(shared_ptr<X86Register> base, int ts) {
-	reg = base;
-	offset = 0;
+X86Reference::X86Reference(int ts) {
 	type_size = ts;
-	use_addr = false;
-	is_live = true;
 }
 
-X86Reference::X86Reference(shared_ptr<X86Register> base, int o, int ts) {
-	reg = base;
-	offset = o;
-	type_size = ts;
-	use_addr = true;
-	is_live = true;
-}
+X86Reference::~X86Reference() {}
 
-X86Reference::X86Reference(shared_ptr<X86Register> base, StackSpace ss):
-		X86Reference(base, ss.begin, ss.size) {}
-
-X86Reference::~X86Reference() {
-	// TODO Auto-generated destructor stub
-}
-
-bool X86Reference::isLive() {
-	return is_live;
-}
-
-void X86Reference::free() {
-	if (reg) {
-		reg->free();
-		is_live = false;
-	}
-}
-
-shared_ptr<X86Reference> X86Reference::index(int b, int s) {
-	return make_shared<X86Reference>( reg, offset + b, s );
+string X86Reference::place() {
+	return place(type_size);
 }
 
 int X86Reference::typeSize() {
 	return type_size;
 }
 
-int X86Reference::getOffset() {
-	return offset;
+X86LabeledRef::X86LabeledRef(string s): X86Reference(8) {
+	constant = s;
 }
 
-string X86Reference::place() {
-	return place(type_size);
+X86LabeledRef::~X86LabeledRef() {}
+
+string X86LabeledRef::place(int) {
+	return constant;
 }
 
-string X86Reference::place(int w) {
+X86ConstRef::X86ConstRef(long s): X86Reference(8) {
+	constant = s;
+}
+
+X86ConstRef::~X86ConstRef() {}
+
+string X86ConstRef::place(int) {
+	return "$"+to_string(constant);
+}
+
+X86RegRef::X86RegRef(shared_ptr<X86Register> base, int ts):
+		X86Reference(ts) {
+	reg = base;
+	reg_link_id = reg->use();
+	is_live = true;
+}
+
+X86RegRef::~X86RegRef() {
+	free();
+}
+
+bool X86RegRef::isLive() {
+	return is_live;
+}
+
+void X86RegRef::free() {
+	if (reg) {
+		reg->free(reg_link_id);
+		is_live = false;
+	}
+}
+
+string X86RegRef::place(int w) {
 	if (!is_live) {
 		cout << "error -- using dead reference" << endl;
 	}
 
-	if (reg && use_addr) {
-		return to_string(offset)+"("+reg->place(w)+")";
-	}
-	else if (reg) {
-		return reg->place(w);
-	}
-	else {
-		return constant;
-	}
+	return reg->place(w);
 }
 
-bool X86Reference::isRegister() {
-	return reg && !use_addr; // a non addressed register
+shared_ptr<X86RegAddrRef> X86RegRef::index(int o, int newsize) {
+	return make_shared<X86RegAddrRef>( reg, o, newsize );
 }
 
-shared_ptr<X86Register> X86Reference::getRegister() {
+shared_ptr<X86RegAddrRef> X86RegRef::index(int o) {
+	return index( o, typeSize() );
+}
+
+shared_ptr<X86Register> X86RegRef::getRegister() {
 	return reg;
 }
 
-/*
- * update stack/heap value -this function no longer used
- */
-// TODO shared_ptr<X86Program> paramater
-shared_ptr<X86Instruction> X86Reference::setValue( shared_ptr<X86Reference> r) {
-	cout << "X86Reference::setValue should no longer be used" << endl;
+X86RegAddrRef::X86RegAddrRef(shared_ptr<X86Register> base, int o, int ts):
+		X86Reference(ts) {
+	reg = base;
+	offset = o;
+	reg_link_id = reg->use();
+	is_live = true;
+}
 
-	// the register will no longer match
+X86RegAddrRef::~X86RegAddrRef() {
+	free();
+}
+
+bool X86RegAddrRef::isLive() {
+	return is_live;
+}
+
+void X86RegAddrRef::free() {
 	if (reg) {
-		reg->assign( NULL );
-		reg = NULL;
+		reg->free(reg_link_id);
+		is_live = false;
 	}
-	return make_shared<InstrMov>( r, shared_from_this() );
+}
+
+string X86RegAddrRef::place(int w) {
+	if (!is_live) {
+		cout << "error -- using dead reference" << endl;
+	}
+
+	string out = "";
+	if (offset) out += to_string(offset);
+	out += "("+reg->place(w)+")";
+
+	return out;
+}
+
+shared_ptr<X86RegAddrRef> X86RegAddrRef::index(int o, int newsize) {
+	return make_shared<X86RegAddrRef>( reg, offset + o, newsize );
+}
+
+shared_ptr<X86RegAddrRef> X86RegAddrRef::index(int o) {
+	return index( o, typeSize() );
+}
+
+int X86RegAddrRef::getOffset() {
+	return offset;
+}
+
+shared_ptr<X86Register> X86RegAddrRef::getRegister() {
+	return reg;
 }
 
 } /* namespace std */
