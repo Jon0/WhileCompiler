@@ -145,16 +145,6 @@ public:
 	string width(shared_ptr<X86Reference> r);
 };
 
-class InstrSkip: public InstrCode {
-public:
-	InstrSkip() {}
-	virtual ~InstrSkip() {}
-
-	virtual string str() {
-		return "";
-	}
-};
-
 class InstrPush: public InstrCode {
 public:
 	InstrPush(shared_ptr<X86Reference>);

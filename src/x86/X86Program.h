@@ -25,8 +25,9 @@ class X86StackFrame;
 
 typedef map<string, shared_ptr<X86Function>> function_map;
 typedef vector<shared_ptr<X86Function>> function_list;
-typedef vector< shared_ptr<X86Reference> > arg_list;
-typedef vector< shared_ptr<WhileObject> > obj_list;
+typedef vector<shared_ptr<X86Register> > reg_list;
+typedef vector<shared_ptr<X86Reference> > arg_list;
+typedef vector<shared_ptr<WhileObject> > obj_list;
 
 struct mem_space {
 	shared_ptr<X86RegAddrRef> ref;
@@ -60,6 +61,9 @@ public:
 	shared_ptr<X86Register> getDIRegister();
 	shared_ptr<X86Register> getBPRegister();
 	shared_ptr<X86Register> getSPRegister();
+
+	reg_list pushUsedRegisters();
+	void popRegisters(reg_list);
 
 	string availableRegisters(); // debug register use
 

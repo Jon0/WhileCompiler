@@ -23,7 +23,7 @@ namespace std {
 
 InterfaceTest::InterfaceTest() {
 	// define the external print function
-	shared_ptr<X86Function> print = make_shared<X86Function>("print", false, true);
+	print = make_shared<X86Function>("print", false, true);
 
 	test2();
 }
@@ -76,14 +76,28 @@ void InterfaceTest::test2() {
 	p->beginFunction( "main", false );
 
 
-	shared_ptr<X86Register> reg = p->getFreeRegister();
-	reg->assign( make_shared<X86ConstRef>(16) );
-	reg->add( make_shared<X86ConstRef>(4) );
 
 	shared_ptr<WhileObject> obj = make_shared<WhileObject>(p);
+	obj->putOnStack();
+	obj->initialise( make_shared<X86RealRef>(0.5), 5, true );
 
-	shared_ptr<X86Reference> objAddr = obj->addrRef();
-	p->callFunction(print, arg_list{objAddr});
+
+	shared_ptr<WhileObject> obj2 = make_shared<WhileObject>(p);
+	obj2->putOnStack();
+	obj2->initialise( make_shared<X86RealRef>(0.5634973452), 5, true );
+
+
+
+	//shared_ptr<X86Register> r2 = make_shared<X86Register>(p, "xmm1");
+	//r2->assign( make_shared<X86RealRef>(0.555) );
+
+	shared_ptr<X86Register> r = make_shared<X86Register>(p, "xmm0");
+	r->assign( obj->valueDirect() );
+	r->add( obj->valueDirect() );
+	r->add( obj2->valueDirect() );
+	obj->assign(r->ref(), true);
+
+	p->callFunction(print, arg_list{obj->addrRef()});
 
 	p->endFunction();
 
@@ -93,9 +107,9 @@ void InterfaceTest::test2() {
 
 	// run program record output
 	Pipe pipe;
-	//string outStr = pipe.exec("./"+writer->filepath());
+	string outStr = pipe.exec("./"+writer->filepath());
 	cout << "output:" << endl;
-	//cout << outStr << endl;
+	cout << outStr << endl;
 }
 
 } /* namespace std */

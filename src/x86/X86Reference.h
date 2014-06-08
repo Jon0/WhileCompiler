@@ -84,7 +84,22 @@ public:
 	virtual string place(int);
 
 	string debug() {
-		return "X86LabeledRef c:" + to_string(constant);
+		return "X86ConstRef c:" + to_string(constant);
+	}
+
+private:
+	long constant;
+};
+
+class X86RealRef: public X86Reference, public enable_shared_from_this<X86RealRef> {
+public:
+	X86RealRef(double);
+	virtual ~X86RealRef();
+
+	virtual string place(int);
+
+	string debug() {
+		return "X86RealRef c:" + to_string(constant);
 	}
 
 private:

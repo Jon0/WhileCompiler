@@ -17,6 +17,7 @@ X86Register::X86Register(shared_ptr<X86Program> p, string n) {
 	name = n;
 	current_size = 8;
 	next_id = 0;
+	use_size = n[0] != 'x'; // for xmm registers
 }
 
 X86Register::~X86Register() {}
@@ -51,15 +52,16 @@ void X86Register::setSize(int i) {
 
 
 string X86Register::place() {
-	return "%"+sizeDesc()+name;
+	return place( current_size );
 }
 
 string X86Register::place(int w) {
-	string size = "";
-	if (w == 4) size = "e";
-	else if (w >= 8) size = "r";
+	string out = "%";
+	if (use_size && w == 4) out += "e";
+	else if (use_size && w >= 8) out += "r";
+	out += name;
 
-	return "%"+size+name;
+	return out;
 }
 
 void X86Register::assign(shared_ptr<X86Reference> r) {
@@ -73,23 +75,23 @@ void X86Register::assignAddrOf(shared_ptr<X86RegAddrRef> r) {
 }
 
 void X86Register::add( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrAdd>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrAdd>( i, ref() ) );
 }
 
 void X86Register::sub( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrSub>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrSub>( i, ref() ) );
 }
 
 void X86Register::multiply( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrMul>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrMul>( i, ref() ) );
 }
 
 void X86Register::divide( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrDiv>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrDiv>( i, ref() ) );
 }
 
 void X86Register::mod( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrDiv>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrDiv>( i, ref() ) );
 	// TODO remainder in dx register
 }
 

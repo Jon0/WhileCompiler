@@ -5,6 +5,7 @@
  *      Author: remnanjona
  */
 
+#include <cstring>
 #include <iostream>
 
 #include "X86Reference.h"
@@ -44,6 +45,17 @@ X86ConstRef::~X86ConstRef() {}
 string X86ConstRef::place(int) {
 	return "$"+to_string(constant);
 }
+
+X86RealRef::X86RealRef(double s): X86Reference(8) {
+	memcpy(&constant, &s, sizeof(long));
+}
+
+X86RealRef::~X86RealRef() {}
+
+string X86RealRef::place(int) {
+	return "$"+to_string(constant);
+}
+
 
 X86RegRef::X86RegRef(shared_ptr<X86Register> base, int ts):
 		X86Reference(ts) {

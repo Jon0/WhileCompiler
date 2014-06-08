@@ -59,6 +59,7 @@ private:
 	shared_ptr<X86Program> program; // register is part of this program
 	string name;
 	int current_size;
+	bool use_size;
 
 	// track usage of this register
 	unordered_set<int> use_id;

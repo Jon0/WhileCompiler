@@ -47,7 +47,9 @@ InstrMov::InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	ext = "";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || to[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || to[1] == 'e') type = "l";
+
 }
 
 InstrMov::InstrMov(string p, shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
@@ -76,7 +78,8 @@ InstrAdd::InstrAdd(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	type = "q";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || type[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 InstrAdd::InstrAdd(int f, shared_ptr<X86Reference> t) {
@@ -93,7 +96,8 @@ InstrSub::InstrSub(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	type = "q";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || type[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 InstrSub::InstrSub(int f, shared_ptr<X86Reference> t) {
@@ -101,7 +105,8 @@ InstrSub::InstrSub(int f, shared_ptr<X86Reference> t) {
 	type = "q";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || type[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 InstrMul::InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
@@ -110,7 +115,8 @@ InstrMul::InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	type = "q";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || type[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 InstrMul::InstrMul(int f, shared_ptr<X86Reference> t) {
@@ -127,7 +133,8 @@ InstrDiv::InstrDiv(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	type = "q";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || type[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 InstrDiv::InstrDiv(int f, shared_ptr<X86Reference> t) {
@@ -135,7 +142,8 @@ InstrDiv::InstrDiv(int f, shared_ptr<X86Reference> t) {
 	type = "q";
 
 	// TODO use register sizes
-	if (from[1] == 'e' || type[1] == 'e') type = "l";
+	if (to[1] == 'x') type = "sd";
+	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 } /* namespace std */

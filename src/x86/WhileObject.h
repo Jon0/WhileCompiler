@@ -37,6 +37,8 @@ public:
 	 * copy values into registers
 	 * update memory values with next writeMem() call
 	 */
+	void attachRegister(shared_ptr<X86Register>);
+	void attachRegisterType(shared_ptr<X86Register>);
 	shared_ptr<X86Register> attachRegister();
 	shared_ptr<X86Register> attachRegisterType();
 
@@ -50,7 +52,8 @@ public:
 
 	// ...
 	void assign( shared_ptr<WhileObject>, bool );
-	void modifyType(int);
+	void assign( shared_ptr<X86Reference>, bool );
+	void assignType( shared_ptr<X86Reference>, bool );
 	void writeMem();
 
 	// direct references

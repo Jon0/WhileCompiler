@@ -17,7 +17,7 @@ void print_v(void *in) {
 	long *lp = in;
 	long *location;
 	const char *str_location;
-	double *d_location;
+	double d_value;
 	long arg;
 	long i;
 
@@ -36,8 +36,8 @@ void print_v(void *in) {
 		printf("%ld", lp[1]);
 		break;
 	case 5:
-		d_location = (double *)lp;
-		printf("%g", d_location[1]);
+		memcpy(&d_value, &lp[1], sizeof(double));
+		printf("%f", d_value);
 		break;
 	case 7:
 		location = (long *)lp[1];

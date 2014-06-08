@@ -197,10 +197,10 @@ public:
 
 	virtual void typeCheck( CheckState &cs );
 
-	shared_ptr<Expr> getSwitch();
-	map<shared_ptr<Expr>, shared_ptr<Stmt>> getCases();
-	shared_ptr<Stmt> getDefCase();
-	bool hasDefCase();
+	shared_ptr<Expr> getSwitch() const;
+	map<shared_ptr<Expr>, shared_ptr<Stmt>> getCases() const;
+	shared_ptr<Stmt> getDefCase() const;
+	bool hasDefCase() const;
 
 	virtual void visit(shared_ptr<SyntaxVisitor>);
 

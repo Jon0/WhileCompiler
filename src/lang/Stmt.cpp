@@ -436,19 +436,19 @@ void SwitchStmt::typeCheck( CheckState &cs ) {
 	}
 }
 
-shared_ptr<Expr> SwitchStmt::getSwitch() {
+shared_ptr<Expr> SwitchStmt::getSwitch() const {
 	return expr;
 }
 
-map<shared_ptr<Expr>, shared_ptr<Stmt>> SwitchStmt::getCases() {
+map<shared_ptr<Expr>, shared_ptr<Stmt>> SwitchStmt::getCases() const {
 	return list;
 }
 
-shared_ptr<Stmt> SwitchStmt::getDefCase() {
+shared_ptr<Stmt> SwitchStmt::getDefCase() const {
 	return def_stmt;
 }
 
-bool SwitchStmt::hasDefCase() {
+bool SwitchStmt::hasDefCase() const {
 	return def_stmt != NULL;
 }
 

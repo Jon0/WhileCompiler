@@ -98,16 +98,9 @@ shared_ptr<X86Function> X86Program::getFunction( string s ) {
 shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg_list args ) {
 
 	// save all in use registers
-	vector<shared_ptr<X86Register>> stored;
+	reg_list stored = pushUsedRegisters();
 	bool pad = false;
-	for (shared_ptr<X86Register> r: pool) {
-		if (r->inUse()) {
-			stored.push_back(r);
-			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
-		}
-	}
-	stored.push_back(di);
-	addInstruction( "text", make_shared<InstrPush>( di->ref() ) );
+
 
 	// fix a really weird bug
 	if ((stored.size() % 2) == 1) {
@@ -138,10 +131,7 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 
 	// restore used registers
 	if (pad) addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
-	while (!stored.empty()) {
-		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
-		stored.pop_back();
-	}
+	popRegisters(stored);
 
 	return nr;
 }
@@ -158,15 +148,7 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 	}
 
 	// save all in use registers
-	vector<shared_ptr<X86Register>> stored;
-	for (shared_ptr<X86Register> r: pool) {
-		if (r->inUse()) {
-			stored.push_back(r);
-			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
-		}
-	}
-	stored.push_back(di);
-	addInstruction( "text", make_shared<InstrPush>( di->ref() ) );
+	reg_list stored = pushUsedRegisters();
 
 	// set di to pointer to block of args/return -- after saving registers since di is modified
 	shared_ptr<X86Register> location = di;
@@ -190,10 +172,7 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 	}
 
 	// restore used registers
-	while (!stored.empty()) {
-		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
-		stored.pop_back();
-	}
+	popRegisters(stored);
 
 	return returnPlace;
 }
@@ -230,6 +209,26 @@ shared_ptr<X86Register> X86Program::getBPRegister() {
 
 shared_ptr<X86Register> X86Program::getSPRegister() {
 	return sp;
+}
+
+reg_list X86Program::pushUsedRegisters() {
+	reg_list stored;
+	for (shared_ptr<X86Register> r: pool) {
+		if (r->inUse()) {
+			stored.push_back(r);
+			addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
+		}
+	}
+	stored.push_back(di);
+	addInstruction( "text", make_shared<InstrPush>( di->ref() ) );
+	return stored;
+}
+
+void X86Program::popRegisters(reg_list stored) {
+	while (!stored.empty()) {
+		addInstruction( "text", make_shared<InstrPop>( stored.back()->ref() ) );
+		stored.pop_back();
+	}
 }
 
 string X86Program::availableRegisters() {
