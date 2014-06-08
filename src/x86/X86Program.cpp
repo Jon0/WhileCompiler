@@ -7,6 +7,7 @@
 
 #include <iostream>
 
+#include "../lang/Type.h"
 #include "WhileObject.h"
 #include "X86Function.h"
 #include "X86Instruction.h"
@@ -136,7 +137,7 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 	return nr;
 }
 
-shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj_list args ) {
+shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, shared_ptr<Type> rt, obj_list args ) {
 
 	// push args and return space to stack -- before saving
 	if (f->hasReturn()) {
@@ -165,10 +166,10 @@ shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, obj
 	// find the result -- it uses the modified rdi register -- must be before restore
 	shared_ptr<WhileObject> returnPlace;
 	if (f->hasReturn()) {
-		returnPlace = make_shared<WhileObject>( shared_from_this() );
+		returnPlace = make_obj( shared_from_this(), rt );
 		shared_ptr<X86Register> reg = getFreeRegister();
 		reg->assign( location->ref() );
-		returnPlace->setLocation( reg );	// the returned object must free the register
+		returnPlace->setLocation( reg, false );	// the returned object must free the register
 	}
 
 	// restore used registers

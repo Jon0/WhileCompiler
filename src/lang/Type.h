@@ -217,6 +217,12 @@ private:
 	string name;
 };
 
+static shared_ptr<AtomicType<char>> charType = make_shared<AtomicType<char>>("char");
+static shared_ptr<AtomicType<bool>> boolType = make_shared<AtomicType<bool>>("bool");
+static shared_ptr<AtomicType<int>> intType = make_shared<AtomicType<int>>("int");
+static shared_ptr<AtomicType<double>> realType = make_shared<AtomicType<double>>("real");
+
+
 class ListType: public Type {
 public:
 	ListType() {

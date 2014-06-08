@@ -15,6 +15,7 @@
 
 namespace std {
 
+class Type;
 class WhileObject;
 class X86Function;
 class X86Instruction;
@@ -54,7 +55,7 @@ public:
 
 	shared_ptr<X86Function> getFunction( string );
 	shared_ptr<X86Register> callFunction( shared_ptr<X86Function>, arg_list );
-	shared_ptr<WhileObject> callFunction( shared_ptr<X86Function>, obj_list );
+	shared_ptr<WhileObject> callFunction( shared_ptr<X86Function>, shared_ptr<Type>, obj_list );
 	shared_ptr<X86Register> malloc( shared_ptr<X86Reference> );
 
 	shared_ptr<X86Register> getFreeRegister();

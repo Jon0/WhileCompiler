@@ -43,7 +43,7 @@ void InterfaceTest::test1() {
 	reg->assign( number1 );
 	reg->add( make_shared<X86ConstRef>(4) );
 
-	shared_ptr<WhileList> obj = make_shared<WhileList>(p);
+	shared_ptr<WhileList> obj = make_shared<WhileList>(p, make_shared<ListType>(intType));
 	obj->putOnStack();
 	obj->initialise( reg->ref(), true );
 
@@ -77,14 +77,14 @@ void InterfaceTest::test2() {
 
 
 
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(p);
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(p, realType);
 	obj->putOnStack();
-	obj->initialise( make_shared<X86RealRef>(0.5), 5, true );
+	obj->initialise( make_shared<X86RealRef>(0.5), true );
 
 
-	shared_ptr<WhileObject> obj2 = make_shared<WhileObject>(p);
+	shared_ptr<WhileObject> obj2 = make_shared<WhileObject>(p, realType);
 	obj2->putOnStack();
-	obj2->initialise( make_shared<X86RealRef>(0.5634973452), 5, true );
+	obj2->initialise( make_shared<X86RealRef>(0.5634973452), true );
 
 
 

@@ -91,7 +91,7 @@ private:
  */
 class IsTypeExpr: public Expr, public enable_shared_from_this<IsTypeExpr> {
 public:
-	IsTypeExpr( Token tok, shared_ptr<Expr> e, shared_ptr<Type> t): Expr( tok, shared_ptr<Type>( new AtomicType<bool>("bool") )  ) {
+	IsTypeExpr( Token tok, shared_ptr<Expr> e, shared_ptr<Type> t): Expr( tok, boolType  ) {
 		to_check = e;
 		type = t;
 		addChild(to_check);
@@ -245,7 +245,7 @@ private:
 
 class ListLengthExpr: public Expr, public enable_shared_from_this<ListLengthExpr> {
 public:
-	ListLengthExpr( Token tok, shared_ptr<Expr> v ): Expr( tok, shared_ptr<Type>( new AtomicType<int>("int") ) ) {
+	ListLengthExpr( Token tok, shared_ptr<Expr> v ): Expr( tok, intType ) {
 		e = v;
 		addChild(e);
 	}
@@ -295,7 +295,7 @@ public:
 		if ( !second->getType()->isList() ) {
 			if (getType()->nameStr() == "string") {
 				string insert = second->eval(s,m)->asString();
-				shared_ptr<Type> inner_type = shared_ptr<Type>(new AtomicType<char>("char"));
+				shared_ptr<Type> inner_type = charType;
 				for (char c: insert) {
 					newList.push_back( makeValue<char>(inner_type, c) );
 				}
@@ -308,7 +308,7 @@ public:
 			// hack to make strings work
 			if (getType()->nameStr() == "string") {
 				string insert = second->eval(s,m)->asString();
-				shared_ptr<Type> inner_type = shared_ptr<Type>(new AtomicType<char>("char"));
+				shared_ptr<Type> inner_type = charType;
 				for (char c: insert) {
 					newList.push_back( makeValue<char>(inner_type, c) );
 				}

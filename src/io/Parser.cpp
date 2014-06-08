@@ -14,10 +14,10 @@ Parser::Parser(Lexer &lexer) :
 	vector<shared_ptr<Type>> initial_types {
 		shared_ptr<Type>(new VoidType()),
 		shared_ptr<Type>(new NullType()),
-		shared_ptr<Type>(new AtomicType<bool>("bool")),
-		shared_ptr<Type>(new AtomicType<char>("char")),
-		shared_ptr<Type>(new AtomicType<int>("int")),
-		shared_ptr<Type>(new AtomicType<double>("real")),
+		boolType,
+		charType,
+		intType,
+		realType,
 	};
 
 	for (shared_ptr<Type> p: initial_types) {

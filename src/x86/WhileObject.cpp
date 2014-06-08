@@ -14,15 +14,21 @@
 
 namespace std {
 
-WhileObject::WhileObject( shared_ptr<X86Program> p ) {
+WhileObject::WhileObject( shared_ptr<X86Program> p, shared_ptr<Type> wt ) {
 	program = p;
+	w_type = wt;
+	ref = NULL;
+	type = NULL;
 	space.ref = 0;
 	space.size = 0;
-	type = 0;
 	initialised = false;
 }
 
 WhileObject::~WhileObject() {}
+
+shared_ptr<Type> WhileObject::getType() {
+	return w_type;
+}
 
 void WhileObject::putOnStack() {
 	mem_space newspace = program->allocateStack(16);
@@ -74,7 +80,20 @@ shared_ptr<X86Register> WhileObject::attachRegister() {
 			return regref->getRegister();
 		}
 	}
-	shared_ptr<X86Register> r = program->getFreeRegister();
+
+
+
+	// if type is real use mmx register
+	shared_ptr<X86Register> r;
+	if (w_type->nameStr() == "real") {
+		r = make_shared<X86Register>(program, "xmm0");
+	}
+	else {
+		r = program->getFreeRegister();
+	}
+
+
+
 	attachRegister( r );
 	return r;
 }
@@ -84,40 +103,46 @@ shared_ptr<X86Register> WhileObject::attachRegisterType() {
 		if ( type->isRegister() ) {
 			shared_ptr<X86RegRef> regref = static_pointer_cast<X86RegRef, X86Reference>( type );
 			return regref->getRegister();
-		};
+		}
 	}
 	shared_ptr<X86Register> r = program->getFreeRegister();
 	attachRegisterType( r );
 	return r;
 }
 
+
 /**
  * set an existing location
  */
-void WhileObject::setLocation( shared_ptr<X86Register> r ) {
+void WhileObject::setLocation( shared_ptr<X86Register> r, bool write ) {
 	space = mem_space{ r->ref(0), 0 };
-	ref = NULL;
-	type = NULL;
-	initialised = true;
-}
 
-void WhileObject::setLocation( mem_space m ) {
-	space = m;
-	ref = NULL;
-	type = NULL;
-	initialised = true;
-}
-
-void WhileObject::initialise( shared_ptr<X86Reference> v, int t, bool write ) {
-	ref = v;
-	type = make_shared<X86ConstRef>(t);
-	if ( write ) {
+	if (write) {
 		writeMem();
 	}
+	ref = NULL;
+	type = NULL;
+	initialised = true;
+}
+
+void WhileObject::setLocation( mem_space m, bool write ) {
+	space = m;
+
+	if (write) {
+		writeMem();
+	}
+	ref = NULL;
+	type = NULL;
+	initialised = true;
 }
 
 void WhileObject::initialise( shared_ptr<X86Reference> v, bool write ) {
-	initialise( v, 4, write );
+	ref = v;
+	type = make_shared<X86ConstRef>(getTypeTag(w_type));
+
+	if ( write ) {
+		writeMem();
+	}
 }
 
 void WhileObject::assign( shared_ptr<WhileObject> other, bool write ) {
@@ -137,8 +162,9 @@ void WhileObject::assign( shared_ptr<X86Reference> other, bool write ) {
 	}
 }
 
-void WhileObject::assignType( shared_ptr<X86Reference> t, bool write ) {
-	type = t;
+void WhileObject::assignType( shared_ptr<Type> t, bool write ) {
+	w_type = t;
+	type = make_shared<X86ConstRef>(getTypeTag(t));
 
 	if ( write ) {
 		writeMem();
@@ -146,18 +172,18 @@ void WhileObject::assignType( shared_ptr<X86Reference> t, bool write ) {
 }
 
 void WhileObject::writeMem() {
-	shared_ptr<X86Register> r = program->getFreeRegister();
-	r->setSize(8);
+	shared_ptr<X86Register> reg = program->getFreeRegister();
+	reg->setSize(8);
 
 	if (type) {
-		program->addInstruction( "text", make_shared<InstrMov>( type, r->ref() ) );
-		program->addInstruction( "text", make_shared<InstrMov>( r->ref(), tagRef() ) );
+		reg->assign( type );
+		program->addInstruction( "text", make_shared<InstrMov>( reg->ref(), tagRef() ) );
 		type = NULL; 	// should not be used once assigned a memory location
 	}
 
 	if (ref) {
-		program->addInstruction( "text", make_shared<InstrMov>( ref, r->ref() ) );
-		program->addInstruction( "text", make_shared<InstrMov>( r->ref(), valueRef() ) );
+		reg->assign( ref );
+		program->addInstruction( "text", make_shared<InstrMov>( reg->ref(), valueRef() ) );
 		ref = NULL;
 	}
 
@@ -210,7 +236,44 @@ string WhileObject::debug() {
 		return result;
 }
 
-WhileList::WhileList( shared_ptr<X86Program> p ): WhileObject(p) {}
+int WhileObject::getTypeSize(shared_ptr<Type> t) {
+	// all while types are 8+8 bytes
+	return 16;
+}
+
+int WhileObject::getTypeTag(shared_ptr<Type> t) {
+	if ( t->nameStr() == "null") {
+		return 1;
+	}
+	else if ( t->nameStr() == "bool") {
+		return 2;
+	}
+	else if ( t->nameStr() == "char") {
+		return 3;
+	}
+	else if ( t->nameStr() == "int") {
+		return 4;
+	}
+	else if ( t->nameStr() == "real") {
+		return 5;
+	}
+	else if (t->nameStr() == "string") {
+		return 7;
+	}
+	else if (t->isList()) {
+		return 8;
+	}
+	else if (t->isRecord()) {
+		return 16;
+	}
+	return 0;
+}
+
+WhileList::WhileList( shared_ptr<X86Program> p, shared_ptr<Type> wt ):
+		WhileObject(p, wt) {
+	shared_ptr<ListType> n = static_pointer_cast<ListType, Type>( wt );
+	inner_type = n->innerType();
+}
 WhileList::~WhileList() {}
 
 void WhileList::initialise(shared_ptr<X86Reference> v, bool write) {
@@ -226,7 +289,7 @@ void WhileList::initialise(shared_ptr<X86Reference> v, bool write) {
 
 
 	// set length
-	shared_ptr<WhileObject> l = make_shared<WhileObject>(program);
+	shared_ptr<WhileObject> l = make_shared<WhileObject>(program, intType);
 	length(l);
 	program->addInstruction( "text", make_shared<InstrMov>( make_shared<X86ConstRef>(4), l->tagRef() ) );
 	program->addInstruction( "text", make_shared<InstrMov>( v, l->valueRef() ) );
@@ -236,10 +299,18 @@ void WhileList::initialise(shared_ptr<X86Reference> v, bool write) {
 	}
 }
 
+string WhileList::debug() {
+	string result = "List: ";
+	if (ref) result += "[ref] "+ref->place()+"\t";
+	if (type) result += "[type] "+type->place()+"\t";
+	if (space.ref) result += "[base] "+space.ref->place(0)+"\t";
+	return result;
+}
+
 void WhileList::length(shared_ptr<WhileObject> inout) {
 	shared_ptr<X86Register> r = program->getFreeRegister();
 	r->assign( valueDirect() );
-	inout->setLocation(r);
+	inout->setLocation(r, false);
 	//return make_shared<WhileObject>(program, r, 4);
 }
 
@@ -250,11 +321,12 @@ void WhileList::get(shared_ptr<WhileObject> inout, shared_ptr<X86Reference> ref)
 	r->multiply( make_shared<X86ConstRef>(16) );
 	r->setSize(8);
 	r->add( valueDirect() );
-	inout->setLocation(r);
+	inout->setLocation(r, false);
 	//return make_shared<WhileObject>(program, r, inner_type);
 }
 
-WhileRecord::WhileRecord( shared_ptr<X86Program> p ): WhileObject(p) {}
+WhileRecord::WhileRecord( shared_ptr<X86Program> p, shared_ptr<Type> wt ):
+		WhileObject(p, wt) {}
 WhileRecord::~WhileRecord() {}
 
 void WhileRecord::initialise(shared_ptr<X86Reference> v, bool write) {
@@ -271,6 +343,18 @@ void WhileRecord::initialise(shared_ptr<X86Reference> v, bool write) {
 
 	if (write) {
 		writeMem();
+	}
+}
+
+shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<Type> wt) {
+	if (wt->isList()) {
+		return make_shared<WhileList>(p, wt);
+	}
+	else if (wt->isRecord()) {
+		return make_shared<WhileRecord>(p, wt);
+	}
+	else {
+		return make_shared<WhileObject>(p, wt);
 	}
 }
 

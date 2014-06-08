@@ -61,17 +61,18 @@ void WhileToX86::accept(shared_ptr<Func> f) {
 	// args should be on top of the stack
 	int vi = 0;
 	if (has_ret) {
-		returnSpace = make_shared<WhileObject>(out);
-		unsigned int argsize = getTypeSize( f->returnType() );
-		returnSpace->setLocation( mem_space{ out->getDIRegister()->ref(vi), argsize } );
+		returnSpace = make_obj( out, f->returnType() );
+		unsigned int argsize = WhileObject::getTypeSize( f->returnType() );
+		returnSpace->setLocation( mem_space{ out->getDIRegister()->ref(vi), argsize }, false );
 		vi -= argsize;
 	}
+	int argnum = 0;
 	for (Var var: f->getArgs()) {
 		string vname = var.name();
-		unsigned int argsize = getTypeSize(var.type());
+		unsigned int argsize = WhileObject::getTypeSize(var.type());
 
-		shared_ptr<WhileObject> obj = make_shared<WhileObject>(out);
-		obj->setLocation( mem_space{ out->getDIRegister()->ref(vi), argsize } );
+		shared_ptr<WhileObject> obj = make_obj(out, f->argType(argnum++));
+		obj->setLocation( mem_space{ out->getDIRegister()->ref(vi), argsize }, false );
 		refs.insert( objmap::value_type(vname, obj) );
 		vi -= argsize;
 	}
@@ -105,7 +106,7 @@ void WhileToX86::accept(shared_ptr<InitStmt> e) {
 		obj = popRef();
 	}
 	else {
-		obj = make_shared<WhileObject>(out);
+		obj = make_obj(out, vtype);
 	}
 
 	obj->putOnStack();
@@ -295,34 +296,34 @@ void WhileToX86::accept(shared_ptr<ConstExpr> e) {
 	shared_ptr<WhileObject> obj;
 
 	if ( v->type()->nameStr() == "null") {
-		obj = make_shared<WhileObject>(out);
-		obj->initialise( make_shared<X86ConstRef>( 0 ), 1, false );
+		obj = make_shared<WhileObject>(out, v->type());
+		obj->initialise( make_shared<X86ConstRef>( 0 ), false );
 	}
 	else if ( v->type()->nameStr() == "bool") {
-		obj = make_shared<WhileObject>(out);
+		obj = make_shared<WhileObject>(out, v->type());
 		shared_ptr<TypedValue<bool>> b = static_pointer_cast<TypedValue<bool>, Value>( v );
-		obj->initialise( make_shared<X86ConstRef>( b->value() ), 2, false );
+		obj->initialise( make_shared<X86ConstRef>( b->value() ), false );
 	}
 	else if ( v->type()->nameStr() == "char") {
-		obj = make_shared<WhileObject>(out);
+		obj = make_shared<WhileObject>(out, v->type());
 		shared_ptr<TypedValue<char>> b = static_pointer_cast<TypedValue<char>, Value>( v );
-		obj->initialise( make_shared<X86ConstRef>( b->value() ), 3, false );
+		obj->initialise( make_shared<X86ConstRef>( b->value() ), false );
 	}
 	else if ( v->type()->nameStr() == "int") {
-		obj = make_shared<WhileObject>(out);
+		obj = make_shared<WhileObject>(out, v->type());
 		shared_ptr<TypedValue<int>> b = static_pointer_cast<TypedValue<int>, Value>( v );
-		obj->initialise( make_shared<X86ConstRef>( b->value() ), 4, false );
+		obj->initialise( make_shared<X86ConstRef>( b->value() ), false );
 	}
 	else if ( v->type()->nameStr() == "real") {
-		obj = make_shared<WhileObject>(out);
+		obj = make_shared<WhileObject>(out, v->type());
 		shared_ptr<TypedValue<double>> b = static_pointer_cast<TypedValue<double>, Value>( v );
 
-		// mmx register needs loading from memory
-		obj->putOnStack();
-		obj->initialise( make_shared<X86RealRef>( b->value() ), 5, true );
+		// mmx register needs loading from memory?
+		//obj->putOnStack();
+		obj->initialise( make_shared<X86RealRef>( b->value() ), false ); // true
 	}
 	else if (v->type()->nameStr() == "string") {
-		shared_ptr<WhileList> objl = make_shared<WhileList>(out);
+		shared_ptr<WhileList> objl = make_shared<WhileList>(out, v->type());
 		string text = v->asString();
 
 //		dLabel++;
@@ -336,12 +337,12 @@ void WhileToX86::accept(shared_ptr<ConstExpr> e) {
 		reg->assign( make_shared<X86ConstRef>( length ) );
 
 		objl->initialise( reg->ref(), false );
-		objl->assignType( make_shared<X86ConstRef>(7), false );
+		objl->assignType( v->type(), false );
 
 		// set characters
 		for (int i = 0; i < length; ++i) {
 			shared_ptr<WhileObject> obj2 = objl->get<WhileObject>( make_shared<X86ConstRef>(i) );
-			obj2->initialise( make_shared<X86ConstRef>(text[i]), 3, true );
+			obj2->initialise( make_shared<X86ConstRef>(text[i]), true );
 		}
 
 		obj = objl;
@@ -359,12 +360,12 @@ void WhileToX86::accept(shared_ptr<IsTypeExpr> e) {
 
 	shared_ptr<WhileObject> obj = popRefAndCopy();
 	shared_ptr<X86Register> r = obj->attachRegisterType();
-	r->compare( make_shared<X86ConstRef>( getTypeTag( e->getRHS() ) ) );
+	r->compare( make_shared<X86ConstRef>( WhileObject::getTypeTag( e->getRHS() ) ) );
 
 	shared_ptr<X86Register> r2 = obj->attachRegister();
 	r2->setFromFlags("e");
 
-	obj->assignType( make_shared<X86ConstRef>(2), false); // bool result
+	obj->assignType( boolType, false ); // bool result
 
 	top.push_back( obj );
 }
@@ -408,7 +409,7 @@ void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
 		cout << "function " << fname << " not found" << endl;
 		return;
 	}
-	shared_ptr<WhileObject> ret = out->callFunction( x86func, ol );
+	shared_ptr<WhileObject> ret = out->callFunction( x86func, f->getFunc()->returnType(), ol );
 
 	// result gets returned
 	if (ret) {
@@ -416,13 +417,13 @@ void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
 	}
 }
 
-void WhileToX86::accept(shared_ptr<RecordExpr>) {
+void WhileToX86::accept(shared_ptr<RecordExpr> e) {
 	if (debug_out) {
 		cout << "@record" << endl;
 		out->addInstruction( "text", make_shared<InstrComment>( "@record" ) );
 	}
 
-	shared_ptr<WhileRecord> obj = make_shared<WhileRecord>(out);
+	shared_ptr<WhileRecord> obj = make_shared<WhileRecord>(out, e->getType());
 	obj->initialise( make_shared<X86ConstRef>(64), false );
 	top.push_back( obj );
 }
@@ -437,7 +438,7 @@ void WhileToX86::accept(shared_ptr<ListExpr> e) {
 	shared_ptr<X86Register> reg = out->getFreeRegister();
 	reg->assign( make_shared<X86ConstRef>( length ) );
 
-	shared_ptr<WhileList> obj = make_shared<WhileList>(out);
+	shared_ptr<WhileList> obj = make_shared<WhileList>(out, e->getType());
 	obj->initialise( reg->ref(), false );
 
 	for (int i = 0; i < length; ++i) {
@@ -460,8 +461,7 @@ void WhileToX86::accept(shared_ptr<ListLengthExpr> e) {
 	// which list
 	e->getExpr()->visit( shared_from_this() );
 	shared_ptr<WhileList> expr = static_pointer_cast<WhileList, WhileObject>( popRef() );
-
-	shared_ptr<WhileObject> l = make_shared<WhileObject>(out);
+	shared_ptr<WhileObject> l = make_shared<WhileObject>(out, e->getType());
 	expr->length(l);
 	top.push_back( l );
 }
@@ -482,8 +482,8 @@ void WhileToX86::accept(shared_ptr<ConcatExpr> e) {
 	// use a c function to compare objects
 	shared_ptr<X86Register> r = out->callFunction(append, arg_list{objAddr1, objAddr2});
 
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out);
-	obj->setLocation( r );	// list result
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out, e->getType());
+	obj->setLocation( r, false );	// list result
 	top.push_back( obj );
 }
 
@@ -497,11 +497,15 @@ void WhileToX86::accept(shared_ptr<ListLookupExpr> e) {
 	e->getExpr()->visit( shared_from_this() );
 	shared_ptr<WhileList> expr = static_pointer_cast<WhileList, WhileObject>( popRef() );
 
+
+	cout << expr->getType()->nameStr() << endl;
+	cout << expr->debug() << endl;
+
 	// index
 	e->getIndex()->visit( shared_from_this() );
 	shared_ptr<WhileObject> index = popRef();
 
-	top.push_back( expr->get<WhileObject>( index->valueDirect() ) );
+	top.push_back( expr->get( index->valueDirect() ) );
 }
 
 void WhileToX86::accept(shared_ptr<RecordMemberExpr>) {
@@ -549,7 +553,7 @@ void WhileToX86::accept(shared_ptr<AbstractOpExpr> e) {
 			r->setFromFlags("l"); // less
 		}
 
-		obj->assignType( make_shared<X86ConstRef>(2), false ); // bool result
+		obj->assignType( boolType, false ); // bool result
 	}
 	else {
 		if (e->opcode() == '+') {
@@ -583,8 +587,8 @@ void WhileToX86::accept(shared_ptr<EquivOp> e) {
 	// use a c function to compare objects
 	shared_ptr<X86Register> r = out->callFunction(equiv, arg_list{popRef()->addrRef(), popRef()->addrRef()});
 
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out);
-	obj->initialise( r->ref(), 2, false );	// bool result
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out, e->getType());
+	obj->initialise( r->ref(), false );	// bool result
 	top.push_back( obj );
 }
 
@@ -601,8 +605,8 @@ void WhileToX86::accept(shared_ptr<NotEquivOp> e) {
 	r->compare( make_shared<X86ConstRef>( 0 ) );
 	r->setFromFlags("ne"); // not equal
 
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out);
-	obj->initialise( r->ref(), 2, false );	// retype as bool
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>( out, e->getType() );
+	obj->initialise( r->ref(), false );	// retype as bool
 	top.push_back( obj );
 }
 
@@ -643,7 +647,7 @@ void WhileToX86::accept(shared_ptr<NotExpr> e) {
 	}
 
 	e->visitChildren( shared_from_this() );
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out);
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out, e->getType());
 	shared_ptr<WhileObject> inner = popRef();
 	obj->assign( inner, false );	// copy
 	shared_ptr<X86Register> r = obj->attachRegister();
@@ -655,8 +659,7 @@ void WhileToX86::accept(shared_ptr<NotExpr> e) {
 
 shared_ptr<WhileObject> WhileToX86::popRef() {
 	if (top.empty()) {
-		cout << "error: stack empty" << endl;
-		return make_shared<WhileObject>( out );
+		throw runtime_error("error: stack empty");
 	}
 
 	shared_ptr<WhileObject> rr = top.back();
@@ -665,8 +668,8 @@ shared_ptr<WhileObject> WhileToX86::popRef() {
 }
 
 shared_ptr<WhileObject> WhileToX86::popRefAndCopy() {
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out);
 	shared_ptr<WhileObject> lhs = popRef();
+	shared_ptr<WhileObject> obj = make_obj(out, lhs->getType());
 	obj->assign( lhs, false );	// copy
 	return obj;
 }
@@ -675,39 +678,6 @@ shared_ptr<X86Register> WhileToX86::refIntoReg(shared_ptr<X86Reference> ref) {
 	shared_ptr<X86Register> reg = out->getFreeRegister();
 	reg->assign( ref );
 	return reg;
-}
-
-int WhileToX86::getTypeSize(shared_ptr<Type> t) {
-	// all while types are 8+8 bytes
-	return 16;
-}
-
-int WhileToX86::getTypeTag(shared_ptr<Type> t) {
-	if ( t->nameStr() == "null") {
-		return 1;
-	}
-	else if ( t->nameStr() == "bool") {
-		return 2;
-	}
-	else if ( t->nameStr() == "char") {
-		return 3;
-	}
-	else if ( t->nameStr() == "int") {
-		return 4;
-	}
-	else if ( t->nameStr() == "real") {
-		return 5;
-	}
-	else if (t->nameStr() == "string") {
-		return 7;
-	}
-	else if (t->isList()) {
-		return 8;
-	}
-	else if (t->isRecord()) {
-		return 16;
-	}
-	return 0;
 }
 
 } /* namespace std */

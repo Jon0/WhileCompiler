@@ -17,7 +17,7 @@ X86Register::X86Register(shared_ptr<X86Program> p, string n) {
 	name = n;
 	current_size = 8;
 	next_id = 0;
-	use_size = n[0] != 'x'; // for xmm registers
+	is_mmx = n[0] == 'x'; // for xmm registers
 }
 
 X86Register::~X86Register() {}
@@ -57,16 +57,24 @@ string X86Register::place() {
 
 string X86Register::place(int w) {
 	string out = "%";
-	if (use_size && w == 4) out += "e";
-	else if (use_size && w >= 8) out += "r";
+	if (!is_mmx && w == 4) out += "e";
+	else if (!is_mmx && w >= 8) out += "r";
 	out += name;
 
 	return out;
 }
 
-void X86Register::assign(shared_ptr<X86Reference> r) {
-	current_size = r->typeSize();
-	program->addInstruction( "text", make_shared<InstrMov>( r, ref() ) );
+void X86Register::assign(shared_ptr<X86Reference> i) {
+	current_size = i->typeSize();
+
+	shared_ptr<X86Reference> source = i;
+	if (i->place()[1] == 'x') {
+		mem_space ms = program->allocateStack(8);
+		source = ms.ref;
+		program->addInstruction( "text", make_shared<InstrMov>( i, source ) );
+	}
+
+	program->addInstruction( "text", make_shared<InstrMov>( source, ref() ) );
 }
 
 void X86Register::assignAddrOf(shared_ptr<X86RegAddrRef> r) {
@@ -75,7 +83,20 @@ void X86Register::assignAddrOf(shared_ptr<X86RegAddrRef> r) {
 }
 
 void X86Register::add( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrAdd>( i, ref() ) );
+	shared_ptr<X86Reference> source = i;
+
+
+	if (is_mmx) {
+		mem_space ms = program->allocateStack(8);
+		source = ms.ref;
+
+		shared_ptr<X86Register> reg = program->getFreeRegister();
+
+		program->addInstruction( "text", make_shared<InstrMov>( i, reg->ref() ) );
+		program->addInstruction( "text", make_shared<InstrMov>( reg->ref(), source ) );
+	}
+
+	program->addInstruction( "text", make_shared<InstrAdd>( source, ref() ) );
 }
 
 void X86Register::sub( shared_ptr<X86Reference> i ) {
