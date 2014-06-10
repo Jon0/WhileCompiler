@@ -18,7 +18,10 @@
 
 namespace std {
 
+class X86Reference;
 class X86RegAddrRef;
+
+typedef shared_ptr<X86Reference> sp_ref;
 
 /*
  * gives access to variables
@@ -31,10 +34,13 @@ public:
 	X86Reference(int);
 	virtual ~X86Reference();
 
+	// save content to memory location
+	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> ) = 0;
+
 	/*
 	 * return assembly style string
 	 */
-	string place();
+	virtual string place();
 	virtual string place(int) = 0;	// force type width
 
 	/*
@@ -42,10 +48,22 @@ public:
 	 */
 	int typeSize();
 
+	virtual bool isConst() {
+		return false;
+	}
+
 	/*
 	 * a non addressed register
 	 */
 	virtual bool isRegister() {
+		return false;
+	}
+
+	virtual bool isMmx() {
+		return false;
+	}
+
+	virtual bool isAddrReg() {
 		return false;
 	}
 
@@ -62,10 +80,16 @@ public:
 	X86LabeledRef(string);
 	virtual ~X86LabeledRef();
 
+	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> );
+
 	virtual string place(int);
 
 	string debug() {
 		return "X86LabeledRef c:" + constant;
+	}
+
+	virtual bool isConst() {
+		return true;
 	}
 
 private:
@@ -81,10 +105,16 @@ public:
 	X86ConstRef(long);
 	virtual ~X86ConstRef();
 
+	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> );
+
 	virtual string place(int);
 
 	string debug() {
 		return "X86ConstRef c:" + to_string(constant);
+	}
+
+	virtual bool isConst() {
+		return true;
 	}
 
 private:
@@ -96,10 +126,16 @@ public:
 	X86RealRef(double);
 	virtual ~X86RealRef();
 
+	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> );
+
 	virtual string place(int);
 
 	string debug() {
 		return "X86RealRef c:" + to_string(constant);
+	}
+
+	virtual bool isConst() {
+		return true;
 	}
 
 private:
@@ -115,6 +151,8 @@ public:
 	X86RegRef(shared_ptr<X86Register>, int);
 	virtual ~X86RegRef();
 
+	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> );
+
 	bool isLive();
 	void free();
 
@@ -128,6 +166,10 @@ public:
 
 	virtual bool isRegister() {
 		return true;
+	}
+
+	virtual bool isMmx() {
+		return reg->isMmx();
 	}
 
 	shared_ptr<X86Register> getRegister();
@@ -147,6 +189,8 @@ public:
 	X86RegAddrRef(shared_ptr<X86Register>, int, int);
 	virtual ~X86RegAddrRef();
 
+	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> );
+
 	bool isLive();
 	void free();
 
@@ -164,6 +208,10 @@ public:
 	int getOffset();
 
 	shared_ptr<X86Register> getRegister();
+
+	virtual bool isAddrReg() {
+		return true;
+	}
 
 private:
 	shared_ptr<X86Register> reg;

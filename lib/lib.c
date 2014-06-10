@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 
+// 0 - void
 // 1 - null
 // 2 - bool
 // 3 - char
@@ -12,8 +13,26 @@
 // 8 - list
 // 16 - record
 
+void *makestr(const char *text) {
+	long length = strlen(text), i;
+	long *list = malloc( (length+1) * 16 );
+	list[0] = 4; // is int
+	list[1] = length;
+	for (i = 0; i < length; ++i) {
+		list[(i+1)*2] = 3; // char
+		list[(i+1)*2 + 1] = text[i];
+	}
 
-void print_v(void *in) {
+
+	long *obj = malloc(16);
+	obj[0] = 7; // is string
+	obj[1] = (long) list;
+	return obj;
+}
+
+
+const char *strobj(void *in) {
+	char *buf = malloc(256);
 	long *lp = in;
 	long *location;
 	const char *str_location;
@@ -23,79 +42,165 @@ void print_v(void *in) {
 
 	switch (lp[0]) {
 	case 1:
-		printf("null");
+		sprintf(buf, "null");
 		break;
 	case 2:
-		if (lp[1]) printf("true");
-		else printf("false");
+		if (lp[1]) sprintf(buf, "true");
+		else sprintf(buf, "false");
 		break;
 	case 3:
-		printf("%c", (char)lp[1]);
+		sprintf(buf, "%c", (char)lp[1]);
 		break;
 	case 4:
-		printf("%ld", lp[1]);
+		sprintf(buf, "%ld", lp[1]);
 		break;
 	case 5:
 		memcpy(&d_value, &lp[1], sizeof(double));
-		printf("%f", d_value);
+		char fltbuf [64];
+		str_location = (const char *)&fltbuf;
+		sprintf(fltbuf, "%g", d_value);
+		if (!(strstr(str_location, ".") || strstr(str_location, "e"))) {
+			strcat(&fltbuf[0], ".0");
+		}
+		sprintf(buf, "%s", fltbuf);
 		break;
 	case 7:
 		location = (long *)lp[1];
-		//printf("[str length %ld]", location[1]);
 		for (i = 0; i < location[1]; ++i) {
-			print_v( &location[(i+1)*2] );
+			strcat(buf, strobj( &location[(i+1)*2] ));
 		}
 		break;
 	case 8:
 		location = (long *)lp[1];
-		//printf("[length %ld]", location[1]);
-		printf("[");
+		sprintf(buf, "[");
 		for (i = 0; i < location[1]; ++i) {
-			print_v( &location[(i+1)*2] );
-			if (i < location[1]-1) printf(", ");
+			strcat(buf, strobj( &location[(i+1)*2] ));
+			if (i < location[1]-1) strcat(buf, ", ");
 		}
-		printf("]");
+		strcat(buf, "]");
 		break;
 	case 16:
-		printf("{}");
+		sprintf(buf, "{}");
 		break;
 	default:
-		printf("t%ld?", lp[0]);
+		sprintf(buf, "t%ld?", lp[0]);
 		break;
 	}
+	return buf;
 }
 
 void print(void *f) {
 	//printf("print is called with arg %p\r\n", f);
-	print_v(f);
-	printf("\r\n");
+	printf("%s\n", strobj(f));
 }
 
 int equiv(void *a, void *b) {
-	//printf("equiv is called with arg %p, %p\r\n", a, b);
 	long *la = a;
 	long *lb = b;
+	int i, offset;
+	long *inla, *inlb;
 
-	//printf("comparing %ld == %ld, get %d\n", la[1], lb[1], (la[1] == lb[1]));
-
+	// different types
 	if (la[0] != lb[0]) {
-		//printf("comparing types differ");
-		return 0; // different types
+		return 0;
 	}
+
+	long type = la[0];
+	switch (type) {
+	case 1:
+		return 1;
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		return la[1] == lb[1];
+	case 7:
+	case 8:
+		inla = (long *)la[1];
+		inlb = (long *)lb[1];
+
+		// check lengths
+		if (!equiv(inla, inlb)) return 0;
+
+		// check elements
+		for (i = 0; i < inla[1]; ++i) {
+			offset = (i+1)*2;
+			if ( !equiv( &inla[offset], &inlb[offset] ) ) return 0;
+		}
+		return 1;
+	case 16:
+		return 1;
+	default:
+		return 0;
+	}
+
+
+
 	return la[1] == lb[1]; // TODO pointer types
+}
+
+void *clone(void *a) {
+	long *la = a;
+	int i, offset;
+	long *inla;
+	long *newspace, *innerspace, *vv;
+
+	long type = la[0];
+	switch (type) {
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		newspace = malloc(16);
+		newspace[0] = la[0];
+		newspace[1] = la[1];
+		return newspace;
+	case 7:
+	case 8:
+		inla = (long *)la[1];
+		innerspace = malloc( (inla[1] + 1) * 16 );
+
+		// clone length and  elements
+		for (i = 0; i < inla[1] + 1; ++i) {
+			offset = i*2;
+			vv = clone(&inla[offset]);
+			innerspace[offset] = vv[0];
+			innerspace[offset+1] = vv[1];
+		}
+
+		newspace = malloc(16);
+		newspace[0] = la[0];
+		newspace[1] = (long) innerspace;
+		return newspace;
+	case 16:
+		return a;
+	default:
+		return a;
+	}
+
+
+
+
+	return a;
 }
 
 void *append(void *a, void *b) {
 	long *obj_a = a;
-	long *alocation = (long *)obj_a[1];
-	long alength = alocation[1];
+	long *alocation = (long *)obj_a[1]; // pointer to object content
+	long alength = alocation[1];		// length of a
 
 	long *obj_b = b;
+
+	// append in string mode
+	if (obj_a[0] == 7 && obj_b[0] == 8) {
+		obj_b = makestr( strobj( obj_b ) );
+	}
+
+	// append non list type
+	int copy_single = !(obj_b[0] == 7 || obj_b[0] == 8);
 	long *blocation = (long *)obj_b[1];
 	long blength;
-
-	int copy_single = !(obj_b[0] == 7 || obj_b[0] == 8);
-
 	if (copy_single) {
 		blength = 1;
 	}

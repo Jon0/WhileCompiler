@@ -17,6 +17,7 @@
 
 namespace std {
 
+class Expr;
 class WhileObject;
 
 typedef map<string, shared_ptr<WhileObject>> objmap;
@@ -73,22 +74,22 @@ private:
 
 
 	// used to track values
-	string loopbreak; // tag to leave current loop
+	bool clone_objs;	// variable expressions use cloning
+	string loopbreak; 	// tag to leave current loop
 	objmap refs;
 	objstack top;
 	shared_ptr<WhileObject> returnSpace;
 
 	// define the external library functions
 	// these get linked with gcc
-	shared_ptr<X86Function> print;
-	shared_ptr<X86Function> equiv;
-	shared_ptr<X86Function> append;
+	shared_ptr<X86Function> print, equiv, clone, append;
 
 	// add debug annotations
 	bool debug_out;
 
 	shared_ptr<WhileObject> popRef();
 	shared_ptr<WhileObject> popRefAndCopy();
+	shared_ptr<WhileObject> objFromExpr( shared_ptr<Expr>, bool );
 
 	// no l0nger using these
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);

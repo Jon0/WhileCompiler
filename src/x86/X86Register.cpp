@@ -26,6 +26,10 @@ string X86Register::getName() {
 	return name;
 }
 
+bool X86Register::isMmx() {
+	return is_mmx;
+}
+
 bool X86Register::inUse() {
 	return (use_id.size() > 0);
 }
@@ -66,66 +70,44 @@ string X86Register::place(int w) {
 
 void X86Register::assign(shared_ptr<X86Reference> i) {
 	current_size = i->typeSize();
-
-	shared_ptr<X86Reference> source = i;
-	if (i->place()[1] == 'x') {
-		mem_space ms = program->allocateStack(8);
-		source = ms.ref;
-		program->addInstruction( "text", make_shared<InstrMov>( i, source ) );
-	}
-
-	program->addInstruction( "text", make_shared<InstrMov>( source, ref() ) );
+	program->addInstruction( "text", make_shared<InstrMov>( check(i), ref() ) );
 }
 
 void X86Register::assignAddrOf(shared_ptr<X86RegAddrRef> r) {
-	current_size = r->typeSize();
+	current_size = 8;
 	program->addInstruction( "text", make_shared<InstrLea>( r, ref() ) );
 }
 
 void X86Register::add( shared_ptr<X86Reference> i ) {
-	shared_ptr<X86Reference> source = i;
-
-
-	if (is_mmx) {
-		mem_space ms = program->allocateStack(8);
-		source = ms.ref;
-
-		shared_ptr<X86Register> reg = program->getFreeRegister();
-
-		program->addInstruction( "text", make_shared<InstrMov>( i, reg->ref() ) );
-		program->addInstruction( "text", make_shared<InstrMov>( reg->ref(), source ) );
-	}
-
-	program->addInstruction( "text", make_shared<InstrAdd>( source, ref() ) );
+	program->addInstruction( "text", make_shared<InstrAdd>( check(i), ref() ) );
 }
 
 void X86Register::sub( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrSub>( i, ref() ) );
+	program->addInstruction( "text", make_shared<InstrSub>( check(i), ref() ) );
 }
 
 void X86Register::multiply( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrMul>( i, ref() ) );
+	program->addInstruction( "text", make_shared<InstrMul>( check(i), ref() ) );
 }
 
 void X86Register::divide( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrDiv>( i, ref() ) );
+	assign( program->intdivide(ref(), i, false) );
 }
 
 void X86Register::mod( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrDiv>( i, ref() ) );
-	// TODO remainder in dx register
+	assign( program->intdivide(ref(), i, true) );
 }
 
 void X86Register::andBitwise( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrAnd>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrAnd>( check(i)->place(), place() ) );
 }
 
 void X86Register::orBitwise( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrOr>( i->place(), place() ) );
+	program->addInstruction( "text", make_shared<InstrOr>( check(i)->place(), place() ) );
 }
 
 void X86Register::compare( shared_ptr<X86Reference> i ) {
-	program->addInstruction( "text", make_shared<InstrCmp>( i->place(), place() ) ); // sets flags
+	program->addInstruction( "text", make_shared<InstrCmp>( check(i)->place(), place() ) ); // sets flags
 }
 
 void X86Register::setFromFlags(string type) {
@@ -150,6 +132,14 @@ string X86Register::sizeDesc() {
 	else {
 		return "e";
 	}
+}
+
+shared_ptr<X86Reference> X86Register::check( shared_ptr<X86Reference> i ) {
+	shared_ptr<X86Reference> source = i;
+	if (is_mmx != i->isMmx()) {
+		source = i->save(program);
+	}
+	return source;
 }
 
 } /* namespace std */

@@ -95,9 +95,8 @@ void InterfaceTest::test2() {
 	r->assign( obj->valueDirect() );
 	r->add( obj->valueDirect() );
 	r->add( obj2->valueDirect() );
-	obj->assign(r->ref(), true);
-
-	p->callFunction(print, arg_list{obj->addrRef()});
+	//obj->assign(r->ref(), true);
+	//p->callFunction(print, arg_list{obj->addrRef()});
 
 	p->endFunction();
 

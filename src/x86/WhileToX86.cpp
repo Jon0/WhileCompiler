@@ -25,8 +25,10 @@ WhileToX86::WhileToX86(shared_ptr<X86Program> o, bool add_debug) {
 	out = o;
 	dLabel = -1;
 	tagCount = 1;
+	clone_objs = false;
 	print = make_shared<X86Function>("print", false, true);
 	equiv = make_shared<X86Function>("equiv", true, true);
+	clone = make_shared<X86Function>("clone", true, true);
 	append = make_shared<X86Function>("append", true, true);
 	debug_out = add_debug;
 }
@@ -46,6 +48,8 @@ void WhileToX86::accept(shared_ptr<Program> p) {
 	out->declareFunctions(flist);
 
 	p->visitChildren( shared_from_this() );
+
+	if (debug_out) cout << "completed build" << endl;
 }
 
 void WhileToX86::accept(shared_ptr<Func> f) {
@@ -102,14 +106,13 @@ void WhileToX86::accept(shared_ptr<InitStmt> e) {
 
 	shared_ptr<WhileObject> obj;
 	if (e->hasInit()) {
-		e->getExpr()->visit(shared_from_this());
-		obj = popRef();
+		obj = objFromExpr( e->getExpr(), true );
 	}
 	else {
 		obj = make_obj(out, vtype);
+		obj->putOnStack();
 	}
 
-	obj->putOnStack();
 	refs.insert( objmap::value_type(vname, obj) );
 }
 
@@ -119,12 +122,8 @@ void WhileToX86::accept(shared_ptr<AssignStmt> e) {
 		out->addInstruction( "text", make_shared<InstrComment>( "@assign" ) );
 	}
 
-	e->getLHS()->visit( shared_from_this() );
-	shared_ptr<WhileObject> lhs = popRef();
-
-	e->getRHS()->visit( shared_from_this() );
-	shared_ptr<WhileObject> rhs = popRef();
-
+	shared_ptr<WhileObject> lhs = objFromExpr( e->getLHS(), false );
+	shared_ptr<WhileObject> rhs = objFromExpr( e->getRHS(), true );
 	lhs->assign( rhs, true );
 }
 
@@ -380,7 +379,18 @@ void WhileToX86::accept(shared_ptr<VariableExpr> e) {
 	if (a) {
 		string vname = a->name();
 		if (refs.count(vname) > 0) {
-			top.push_back( refs[vname] );
+
+			if (clone_objs) {
+				shared_ptr<X86Register> r = out->callFunction(clone, arg_list{refs[vname]->addrRef()});
+				shared_ptr<X86Reference> rr = r->ref();
+				shared_ptr<WhileObject> obj = make_obj(out, e->getType());
+				obj->setLocation( r, false );	// object result
+				obj->putOnStack();
+				top.push_back( obj );
+			}
+			else {
+				top.push_back( refs[vname] );
+			}
 		}
 		else {
 			cout << "variable not named" << endl;
@@ -401,6 +411,8 @@ void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
 	for (shared_ptr<Expr> e: f->getArgs()) {
 		e->visit( shared_from_this() );
 		ol.push_back( popRef() );
+
+		//ol.push_back( objFromExpr( e, true ) ); // clone items
 	}
 
 	string fname = f->getFunc()->name();
@@ -444,7 +456,7 @@ void WhileToX86::accept(shared_ptr<ListExpr> e) {
 	for (int i = 0; i < length; ++i) {
 		e->getExpr(i)->visit( shared_from_this() );
 		shared_ptr<WhileObject> expr = popRef();
-		shared_ptr<WhileObject> obj2 = obj->get<WhileObject>( make_shared<X86ConstRef>(i) );
+		shared_ptr<WhileObject> obj2 = obj->get( make_shared<X86ConstRef>(i) );
 		obj2->assign( expr, true );
 	}
 
@@ -603,7 +615,7 @@ void WhileToX86::accept(shared_ptr<NotEquivOp> e) {
 
 	// negate r
 	r->compare( make_shared<X86ConstRef>( 0 ) );
-	r->setFromFlags("ne"); // not equal
+	r->setFromFlags("e"); // equal to zero
 
 	shared_ptr<WhileObject> obj = make_shared<WhileObject>( out, e->getType() );
 	obj->initialise( r->ref(), false );	// retype as bool
@@ -672,6 +684,13 @@ shared_ptr<WhileObject> WhileToX86::popRefAndCopy() {
 	shared_ptr<WhileObject> obj = make_obj(out, lhs->getType());
 	obj->assign( lhs, false );	// copy
 	return obj;
+}
+
+shared_ptr<WhileObject>  WhileToX86::objFromExpr( shared_ptr<Expr> e, bool clone ) {
+	clone_objs = clone;
+	e->visit( shared_from_this() );
+	clone_objs = false;
+	return popRef();
 }
 
 shared_ptr<X86Register> WhileToX86::refIntoReg(shared_ptr<X86Reference> ref) {

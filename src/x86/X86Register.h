@@ -20,12 +20,18 @@ class X86Reference;
 class X86RegRef;
 class X86RegAddrRef;
 
+enum instruction {
+	add,
+	sub
+};
+
 class X86Register: public enable_shared_from_this<X86Register> {
 public:
 	X86Register(shared_ptr<X86Program>, string);
 	virtual ~X86Register();
 
 	string getName();
+	bool isMmx();
 
 	bool inUse();
 	void free(int);
@@ -66,6 +72,7 @@ private:
 	int next_id;
 
 	string sizeDesc();
+	shared_ptr<X86Reference> check( shared_ptr<X86Reference> );
 };
 
 } /* namespace std */

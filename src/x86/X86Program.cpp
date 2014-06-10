@@ -54,6 +54,14 @@ void X86Program::initialise(string n) {
 	di = makeRegister("di", false);
 	sp = makeRegister("sp", false);
 	bp = makeRegister("bp", false);
+	makeRegister("xmm0", true);
+	makeRegister("xmm1", true);
+	makeRegister("xmm2", true);
+	makeRegister("xmm3", true);
+	makeRegister("xmm4", true);
+	makeRegister("xmm5", true);
+	makeRegister("xmm6", true);
+	makeRegister("xmm7", true);
 	stack = make_shared<X86StackFrame>();
 
 	name = n;
@@ -183,21 +191,11 @@ shared_ptr<X86Register> X86Program::malloc( shared_ptr<X86Reference> r ) {
 }
 
 shared_ptr<X86Register> X86Program::getFreeRegister() {
-	for (shared_ptr<X86Register> r: pool) {
-		if (!r->inUse()) {
-			r->setSize(8);
-			return r;
-		}
-	}
+	return getRegisterFromPool(pool);
+}
 
-	// save to stack
-	cout << "out of registers" << endl;
-
-
-	mem_space s = allocateStack(8);
-
-
-	return ax;
+shared_ptr<X86Register> X86Program::getFreeMmxRegister() {
+	return getRegisterFromPool(mmx_pool);
 }
 
 shared_ptr<X86Register> X86Program::getDIRegister() {
@@ -257,10 +255,55 @@ void X86Program::addInstruction( string s, shared_ptr<X86Instruction> i ) {
 	sections[s].push_back(i);
 }
 
+shared_ptr<X86Reference> X86Program::intdivide( shared_ptr<X86Reference> a, shared_ptr<X86Reference> b, bool rem ) {
+	// push ax and dx
+	addInstruction( "text", make_shared<InstrPush>( ax->ref() ) );
+	addInstruction( "text", make_shared<InstrPush>( dx->ref() ) );
+
+	// cdq
+	ax->assign(a);
+	addInstruction( "text", make_shared<InstrCdq>() );
+
+	// divide by b
+	addInstruction( "text", make_shared<InstrDiv>( b ) );
+
+	shared_ptr<X86Register> result = getFreeRegister();
+	if (rem) {
+		result->assign(dx->ref());
+	}
+	else {
+		result->assign(ax->ref());
+	}
+
+	// restore ax and dx
+	addInstruction( "text", make_shared<InstrPop>( dx->ref() ) );
+	addInstruction( "text", make_shared<InstrPop>( ax->ref() ) );
+
+	return result->ref();
+}
+
 shared_ptr<X86Register> X86Program::makeRegister(string s, bool add) {
 	shared_ptr<X86Register> r = make_shared<X86Register>(shared_from_this(), s);
-	if (add) pool.push_back(r);
+	if (add) {
+		if (s[0] == 'x') mmx_pool.push_back(r);
+		else pool.push_back(r);
+	}
 	return r;
+}
+
+shared_ptr<X86Register> X86Program::getRegisterFromPool(reg_list pl) {
+	for (shared_ptr<X86Register> r: pl) {
+		if (!r->inUse()) {
+			r->setSize(8);
+			return r;
+		}
+	}
+
+	// save to stack
+	cout << "out of registers" << endl;
+	mem_space s = allocateStack(8);
+
+	return ax;
 }
 
 } /* namespace std */

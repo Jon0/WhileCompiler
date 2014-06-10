@@ -5,6 +5,8 @@
  *      Author: remnanjona
  */
 
+#include <algorithm>
+#include <cstring>
 #include <streambuf>
 #include <vector>
 #include <memory>
@@ -79,25 +81,37 @@ void Test::runTest(string in, string out) {
 		ifstream t(in+cmpExt);
 		string expected((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());
 
+
+		// remove return characters from strings
+		string outNR = outStr, expectNR = expected;
+		char chars[] = "\r\n";
+		for (unsigned int i = 0; i < strlen(chars); ++i) {
+			// you need include <algorithm> to use general algorithms like std::remove()
+			outNR.erase(remove(outNR.begin(), outNR.end(), chars[i]), outNR.end());
+			expectNR.erase(remove(expectNR.begin(), expectNR.end(), chars[i]), expectNR.end());
+		}
+
+
 		// compare to expected output
 		//expected = expected.substr(0, expected.length() - 1); // buffer ends with "\r"
-		if (outStr != expected) {
+		if (outNR != expectNR) {
 			cout << endl;
 			cout << "test failed - " << in << endl;
-			cout << "have:\t" << outStr << endl;
-			cout << "expect:\t" << expected << endl;
+			cout << "have:\n" << outStr << endl;
+			cout << "expect:\n" << expected << endl;
 			cout << "----------------------" << endl;
 		}
 		else {
 			cout << "test passed - " << in << endl;
 			passed++;
 		}
-		completed++;
+
 
 	}
 	catch (exception &e) {
 		cout << "error in test " << in << ", " << e.what() << endl;
 	}
+	completed++;
 }
 
 

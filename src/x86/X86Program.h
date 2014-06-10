@@ -59,6 +59,7 @@ public:
 	shared_ptr<X86Register> malloc( shared_ptr<X86Reference> );
 
 	shared_ptr<X86Register> getFreeRegister();
+	shared_ptr<X86Register> getFreeMmxRegister();
 	shared_ptr<X86Register> getDIRegister();
 	shared_ptr<X86Register> getBPRegister();
 	shared_ptr<X86Register> getSPRegister();
@@ -71,7 +72,7 @@ public:
 	// make this private
 	void addInstruction( string, shared_ptr<X86Instruction> );
 
-
+	shared_ptr<X86Reference> intdivide( shared_ptr<X86Reference>, shared_ptr<X86Reference>, bool );
 
 private:
 	string name;
@@ -84,22 +85,17 @@ private:
 	map<string, shared_ptr<X86Instruction>> labels;
 
 	// program state
-	vector<shared_ptr<X86Register>> pool;
-	shared_ptr<X86Register> ax;
-	shared_ptr<X86Register> bx;
-	shared_ptr<X86Register> cx;
-	shared_ptr<X86Register> dx;
-	shared_ptr<X86Register> si;
-	shared_ptr<X86Register> di;
-	shared_ptr<X86Register> sp;
-	shared_ptr<X86Register> bp;
-
+	reg_list pool, mmx_pool;
+	shared_ptr<X86Register> ax, bx, cx, dx;
+	shared_ptr<X86Register> si, di, sp, bp;
 
 	shared_ptr<X86StackFrame> stack;
 
 	int addr_size;
 
 	shared_ptr<X86Register> makeRegister(string, bool);
+
+	shared_ptr<X86Register> getRegisterFromPool(reg_list);
 };
 
 } /* namespace std */

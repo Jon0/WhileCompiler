@@ -35,13 +35,12 @@ void WhileObject::putOnStack() {
 
 	// if the object already has a memory location
 	if (initialised) {
-		shared_ptr<X86Register> r = program->getFreeRegister();
-		r->setSize(8);
-		program->addInstruction( "text", make_shared<InstrMov>( tagRef(), r->ref() ) );
-		program->addInstruction( "text", make_shared<InstrMov>( r->ref(), newspace.ref ) );
-		program->addInstruction( "text", make_shared<InstrMov>( valueRef(), r->ref() ) );
-		program->addInstruction( "text", make_shared<InstrMov>( r->ref(), newspace.ref->index(8) ) );
-		space.ref->free(); // free any existing register
+		shared_ptr<X86Reference> r = program->getFreeRegister()->ref();
+		program->addInstruction( "text", make_shared<InstrMov>( tagRef(), r ) );
+		program->addInstruction( "text", make_shared<InstrMov>( r, newspace.ref ) );
+		program->addInstruction( "text", make_shared<InstrMov>( valueRef(), r ) );
+		program->addInstruction( "text", make_shared<InstrMov>( r, newspace.ref->index(8) ) );
+		//space.ref->free(); // free any existing register
 	}
 
 	space = newspace;
@@ -58,8 +57,18 @@ void WhileObject::pushStack() {
 		program->addInstruction( "text", make_shared<InstrPush>( tagRef() ) );
 	}
 	else {
-		program->addInstruction( "text", make_shared<InstrPush>( valueDirect() ) );
-		program->addInstruction( "text", make_shared<InstrPush>( tagDirect() ) );
+		if (w_type->nameStr() == "real") {
+			shared_ptr<X86Register> r = program->getFreeRegister();
+			r->assign(valueDirect());
+			program->addInstruction( "text", make_shared<InstrPush>( r->ref() ) );
+			program->addInstruction( "text", make_shared<InstrPush>( tagDirect() ) );
+		}
+		else {
+			program->addInstruction( "text", make_shared<InstrPush>( valueDirect() ) );
+			program->addInstruction( "text", make_shared<InstrPush>( tagDirect() ) );
+		}
+
+
 	}
 }
 
@@ -86,7 +95,7 @@ shared_ptr<X86Register> WhileObject::attachRegister() {
 	// if type is real use mmx register
 	shared_ptr<X86Register> r;
 	if (w_type->nameStr() == "real") {
-		r = make_shared<X86Register>(program, "xmm0");
+		r = program->getFreeMmxRegister();
 	}
 	else {
 		r = program->getFreeRegister();

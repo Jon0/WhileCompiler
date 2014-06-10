@@ -32,6 +32,14 @@ X86LabeledRef::X86LabeledRef(string s): X86Reference(8) {
 
 X86LabeledRef::~X86LabeledRef() {}
 
+shared_ptr<X86RegAddrRef> X86LabeledRef::save( shared_ptr<X86Program> p ) {
+	shared_ptr<X86Register> r = p->getFreeRegister();
+	mem_space ms = p->allocateStack(8);
+	p->addInstruction( "text", make_shared<InstrMov>( shared_from_this(), r->ref() ) );
+	p->addInstruction( "text", make_shared<InstrMov>( r->ref(), ms.ref ) );
+	return ms.ref;
+}
+
 string X86LabeledRef::place(int) {
 	return constant;
 }
@@ -42,6 +50,14 @@ X86ConstRef::X86ConstRef(long s): X86Reference(8) {
 
 X86ConstRef::~X86ConstRef() {}
 
+shared_ptr<X86RegAddrRef> X86ConstRef::save( shared_ptr<X86Program> p ) {
+	shared_ptr<X86Register> r = p->getFreeRegister();
+	mem_space ms = p->allocateStack(8);
+	p->addInstruction( "text", make_shared<InstrMov>( shared_from_this(), r->ref() ) );
+	p->addInstruction( "text", make_shared<InstrMov>( r->ref(), ms.ref ) );
+	return ms.ref;
+}
+
 string X86ConstRef::place(int) {
 	return "$"+to_string(constant);
 }
@@ -51,6 +67,14 @@ X86RealRef::X86RealRef(double s): X86Reference(8) {
 }
 
 X86RealRef::~X86RealRef() {}
+
+shared_ptr<X86RegAddrRef> X86RealRef::save( shared_ptr<X86Program> p ) {
+	shared_ptr<X86Register> r = p->getFreeRegister();
+	mem_space ms = p->allocateStack(8);
+	p->addInstruction( "text", make_shared<InstrMov>( shared_from_this(), r->ref() ) );
+	p->addInstruction( "text", make_shared<InstrMov>( r->ref(), ms.ref ) );
+	return ms.ref;
+}
 
 string X86RealRef::place(int) {
 	return "$"+to_string(constant);
@@ -66,6 +90,12 @@ X86RegRef::X86RegRef(shared_ptr<X86Register> base, int ts):
 
 X86RegRef::~X86RegRef() {
 	free();
+}
+
+shared_ptr<X86RegAddrRef> X86RegRef::save( shared_ptr<X86Program> p ) {
+	mem_space ms = p->allocateStack(8);
+	p->addInstruction( "text", make_shared<InstrMov>( shared_from_this(), ms.ref ) );
+	return ms.ref;
 }
 
 bool X86RegRef::isLive() {
@@ -109,6 +139,10 @@ X86RegAddrRef::X86RegAddrRef(shared_ptr<X86Register> base, int o, int ts):
 
 X86RegAddrRef::~X86RegAddrRef() {
 	free();
+}
+
+shared_ptr<X86RegAddrRef> X86RegAddrRef::save( shared_ptr<X86Program> ) {
+	return shared_from_this();
 }
 
 bool X86RegAddrRef::isLive() {

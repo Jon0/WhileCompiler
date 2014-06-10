@@ -113,9 +113,13 @@ InstrMul::InstrMul(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
 	int toSize = t->typeSize();
 	from = f->place(toSize); to = t->place();
 	type = "q";
+	prefix = "i";
 
 	// TODO use register sizes
-	if (to[1] == 'x') type = "sd";
+	if (to[1] == 'x') {
+		type = "sd";
+		prefix = "";
+	}
 	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
@@ -127,23 +131,9 @@ InstrMul::InstrMul(int f, shared_ptr<X86Reference> t) {
 	if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
-InstrDiv::InstrDiv(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
-	int toSize = t->typeSize();
-	from = f->place(toSize); to = t->place();
+InstrDiv::InstrDiv(shared_ptr<X86Reference> f) {
+	from = f->place();
 	type = "q";
-
-	// TODO use register sizes
-	if (to[1] == 'x') type = "sd";
-	else if (from[1] == 'e' || type[1] == 'e') type = "l";
-}
-
-InstrDiv::InstrDiv(int f, shared_ptr<X86Reference> t) {
-	from = "$"+to_string(f); to = t->place();
-	type = "q";
-
-	// TODO use register sizes
-	if (to[1] == 'x') type = "sd";
-	else if (from[1] == 'e' || type[1] == 'e') type = "l";
 }
 
 } /* namespace std */

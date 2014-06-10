@@ -168,6 +168,19 @@ private:
 	string type, labelStr;
 };
 
+class InstrCdq: public InstrCode {
+public:
+	InstrCdq() {}
+	virtual ~InstrCdq() {}
+
+	virtual string str() {
+		return "\tcdq";
+	}
+
+private:
+	string labelStr;
+};
+
 class InstrMov: public InstrCode {
 public:
 	InstrMov(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
@@ -256,6 +269,7 @@ public:
 	InstrMul(string f, string t) {
 		from = f; to = t;
 		type = "q";
+		prefix = "i";
 
 		// TODO use register sizes
 		if (f[1] == 'e' || t[1] == 'e') type = "l";
@@ -263,40 +277,29 @@ public:
 	InstrMul(string p, string f, string t) {
 		from = f; to = t;
 		type = p;
+		prefix = "i";
 	}
 	virtual ~InstrMul() {}
 
 	virtual string str() {
-		return "\timul"+type+"\t"+from+", "+to;
+		return "\t"+prefix+"mul"+type+"\t"+from+", "+to;
 	}
 
 private:
-	string from, to, type;
+	string from, to, prefix, type;
 };
 
 class InstrDiv: public InstrCode {
 public:
-	InstrDiv(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
-	InstrDiv(int f, shared_ptr<X86Reference> t);
-	InstrDiv(string f, string t) {
-		from = f; to = t;
-		type = "q";
-
-		// TODO use register sizes
-		if (f[1] == 'e' || t[1] == 'e') type = "l";
-	}
-	InstrDiv(string p, string f, string t) {
-		from = f; to = t;
-		type = p;
-	}
+	InstrDiv(shared_ptr<X86Reference> f);
 	virtual ~InstrDiv() {}
 
 	virtual string str() {
-		return "\tidiv"+type+"\t"+from+", "+to;
+		return "\tidiv"+type+"\t"+from;
 	}
 
 private:
-	string from, to, type;
+	string from, type;
 };
 
 class InstrAnd: public InstrCode {
