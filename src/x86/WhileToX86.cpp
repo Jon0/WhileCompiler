@@ -110,8 +110,8 @@ void WhileToX86::accept(shared_ptr<InitStmt> e) {
 	}
 	else {
 		obj = make_obj(out, vtype);
-		obj->putOnStack();
 	}
+	obj->putOnStack(); // is this needed if obj is cloned?
 
 	refs.insert( objmap::value_type(vname, obj) );
 }
