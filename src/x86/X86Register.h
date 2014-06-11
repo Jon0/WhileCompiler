@@ -22,7 +22,9 @@ class X86RegAddrRef;
 
 enum instruction {
 	add,
-	sub
+	sub,
+	mul,
+	idiv
 };
 
 class X86Register: public enable_shared_from_this<X86Register> {
@@ -44,6 +46,7 @@ public:
 	string place(int);	// forced width
 
 	void assign( shared_ptr<X86Reference> );
+	void assign_itof( shared_ptr<X86Reference> );
 	void assignAddrOf( shared_ptr<X86RegAddrRef> );
 
 	// operations

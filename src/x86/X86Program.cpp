@@ -257,6 +257,10 @@ void X86Program::addInstruction( string s, shared_ptr<X86Instruction> i ) {
 
 shared_ptr<X86Reference> X86Program::intdivide( shared_ptr<X86Reference> a, shared_ptr<X86Reference> b, bool rem ) {
 	// push ax and dx
+
+	shared_ptr<X86Register> result = getFreeRegister();
+	result->assign(b);
+
 	addInstruction( "text", make_shared<InstrPush>( ax->ref() ) );
 	addInstruction( "text", make_shared<InstrPush>( dx->ref() ) );
 
@@ -265,9 +269,8 @@ shared_ptr<X86Reference> X86Program::intdivide( shared_ptr<X86Reference> a, shar
 	addInstruction( "text", make_shared<InstrCdq>() );
 
 	// divide by b
-	addInstruction( "text", make_shared<InstrDiv>( b ) );
+	addInstruction( "text", make_shared<InstrDiv>( result->ref() ) );
 
-	shared_ptr<X86Register> result = getFreeRegister();
 	if (rem) {
 		result->assign(dx->ref());
 	}

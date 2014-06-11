@@ -34,6 +34,11 @@ public:
 	X86Reference(int);
 	virtual ~X86Reference();
 
+	// TODO put into register
+	// virtual shared_ptr<X86RegRef> asReg( shared_ptr<X86Program> ) = 0;
+	// OR
+	// void write( shared_ptr<X86Reference> ) = 0; --not for constants
+
 	// save content to memory location
 	virtual shared_ptr<X86RegAddrRef> save( shared_ptr<X86Program> ) = 0;
 

@@ -25,6 +25,16 @@ class WhileObject;
  */
 shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<Type> wt);
 
+shared_ptr<WhileObject> copy_obj_readonly(shared_ptr<WhileObject>);
+
+
+// define the external library functions
+// these get linked with gcc
+static shared_ptr<X86Function> printFunc = make_shared<X86Function>("print", false, true);
+static shared_ptr<X86Function> equivFunc = make_shared<X86Function>("equiv", true, true);
+static shared_ptr<X86Function> cloneFunc = make_shared<X86Function>("clone", true, true);
+static shared_ptr<X86Function> appendFunc = make_shared<X86Function>("append", true, true);
+
 /*
  * 16 byte object headers are too big for registers
  *
@@ -32,12 +42,17 @@ shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<Type> wt);
  * call putOnStack() to position on stack or
  * setLocation() for addr relative to another register
  */
-class WhileObject {
+class WhileObject: public enable_shared_from_this<WhileObject> {
 public:
+	WhileObject( shared_ptr<WhileObject> );
 	WhileObject( shared_ptr<X86Program>, shared_ptr<Type> );
 	virtual ~WhileObject();
 
-	shared_ptr<Type> getType();
+	shared_ptr<Type> getType() const;
+
+	// read only
+	bool isReadOnly();
+	void setReadOnly();
 
 	void putOnStack();
 	void pushStack();
@@ -62,14 +77,21 @@ public:
 	void assignType( shared_ptr<Type>, bool );
 	void writeMem();
 
-	// direct references
+	// direct references -- use for reading
 	shared_ptr<X86Reference> tagDirect();
 	shared_ptr<X86Reference> valueDirect();
 
-	// address references
-	shared_ptr<X86RegRef> addrRef();
+	// address references  -- use for writing
 	shared_ptr<X86Reference> tagRef();
 	shared_ptr<X86Reference> valueRef();
+
+	// store base address in register
+	shared_ptr<X86RegRef> addrRef();
+
+	void print();
+	shared_ptr<WhileObject> clone();	// create non read only copy
+	shared_ptr<WhileObject> equiv( shared_ptr<WhileObject> );
+	shared_ptr<WhileObject> append( shared_ptr<WhileObject> );
 
 	virtual string debug();
 
@@ -84,7 +106,7 @@ protected:
 
 	// memory space
 	mem_space space;
-	bool initialised;
+	bool read_only, initialised;
 
 	// values
 	shared_ptr<X86Reference> ref;
@@ -99,6 +121,7 @@ protected:
 
 class WhileList: public WhileObject {
 public:
+	WhileList( shared_ptr<WhileList> );
 	WhileList( shared_ptr<X86Program>, shared_ptr<Type> );
 	virtual ~WhileList();
 
@@ -127,6 +150,7 @@ private:
 
 class WhileRecord: public WhileObject {
 public:
+	WhileRecord( shared_ptr<WhileRecord> );
 	WhileRecord( shared_ptr<X86Program>, shared_ptr<Type> );
 	virtual ~WhileRecord();
 

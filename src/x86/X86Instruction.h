@@ -390,6 +390,19 @@ private:
 	string from, to, type;
 };
 
+class InstrCast: public InstrCode {
+public:
+	InstrCast(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t);
+	virtual ~InstrCast() {}
+
+	virtual string str() {
+		return "\tcvtsi2sdq\t"+from+", "+to;
+	}
+
+private:
+	string from, to, type, ext;
+};
+
 class InstrJ: public InstrCode {
 public:
 	InstrJ(string ty, string ta) {

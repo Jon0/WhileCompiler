@@ -73,6 +73,10 @@ void X86Register::assign(shared_ptr<X86Reference> i) {
 	program->addInstruction( "text", make_shared<InstrMov>( check(i), ref() ) );
 }
 
+void X86Register::assign_itof( shared_ptr<X86Reference> i) {
+	program->addInstruction( "text", make_shared<InstrCast>( check(i), ref() ) );
+}
+
 void X86Register::assignAddrOf(shared_ptr<X86RegAddrRef> r) {
 	current_size = 8;
 	program->addInstruction( "text", make_shared<InstrLea>( r, ref() ) );

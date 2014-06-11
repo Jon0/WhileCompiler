@@ -136,4 +136,9 @@ InstrDiv::InstrDiv(shared_ptr<X86Reference> f) {
 	type = "q";
 }
 
+InstrCast::InstrCast(shared_ptr<X86Reference> f, shared_ptr<X86Reference> t) {
+	from = f->place(); to = t->place();
+
+}
+
 } /* namespace std */

@@ -510,6 +510,10 @@ public:
 		v->accept( shared_from_this() );
 	}
 
+	shared_ptr<Expr> getExpr() {
+		return expr;
+	}
+
 private:
 	shared_ptr<Expr> expr;
 };

@@ -80,16 +80,13 @@ private:
 	objstack top;
 	shared_ptr<WhileObject> returnSpace;
 
-	// define the external library functions
-	// these get linked with gcc
-	shared_ptr<X86Function> print, equiv, clone, append;
-
 	// add debug annotations
 	bool debug_out;
 
 	shared_ptr<WhileObject> popRef();
 	shared_ptr<WhileObject> popRefAndCopy();
 	shared_ptr<WhileObject> objFromExpr( shared_ptr<Expr>, bool );
+	shared_ptr<WhileObject> objFromExpr( shared_ptr<Expr> ); // does not modify cloning mode
 
 	// no l0nger using these
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);

@@ -8,47 +8,67 @@
 #include "../lang/Type.h"
 #include "WhileObject.h"
 
+#include "X86Function.h"
 #include "X86Program.h"
 #include "X86Reference.h"
 #include "X86Register.h"
 
 namespace std {
 
+WhileObject::WhileObject( shared_ptr<WhileObject> wo ) {
+	program = wo->program;
+	w_type = wo->w_type;
+	space.ref = wo->space.ref;
+	space.size = wo->space.size;
+	read_only = wo->read_only;
+	initialised = wo->initialised;
+	ref = wo->ref;
+	type = wo->type;
+}
+
 WhileObject::WhileObject( shared_ptr<X86Program> p, shared_ptr<Type> wt ) {
 	program = p;
 	w_type = wt;
-	ref = NULL;
-	type = NULL;
 	space.ref = 0;
 	space.size = 0;
+	read_only = false;
 	initialised = false;
+	ref = NULL;
+	type = NULL;
 }
 
 WhileObject::~WhileObject() {}
 
-shared_ptr<Type> WhileObject::getType() {
+shared_ptr<Type> WhileObject::getType() const {
 	return w_type;
+}
+
+bool WhileObject::isReadOnly() {
+	return read_only;
+}
+
+void WhileObject::setReadOnly() {
+	read_only = true;
 }
 
 void WhileObject::putOnStack() {
 	mem_space newspace = program->allocateStack(16);
 
 	// if the object already has a memory location
-	if (initialised) {
+	//if (initialised) {
 		shared_ptr<X86Reference> r = program->getFreeRegister()->ref();
-		program->addInstruction( "text", make_shared<InstrMov>( tagRef(), r ) );
+		program->addInstruction( "text", make_shared<InstrMov>( tagDirect(), r ) );
 		program->addInstruction( "text", make_shared<InstrMov>( r, newspace.ref ) );
-		program->addInstruction( "text", make_shared<InstrMov>( valueRef(), r ) );
+		program->addInstruction( "text", make_shared<InstrMov>( valueDirect(), r ) );
 		program->addInstruction( "text", make_shared<InstrMov>( r, newspace.ref->index(8) ) );
 		//space.ref->free(); // free any existing register
-	}
+	//}
+
 
 	space = newspace;
-
-	// write stored items
-	if (ref) {
-		writeMem();
-	}
+	ref = NULL;
+	type = NULL;
+	initialised = true;
 }
 
 void WhileObject::pushStack() {
@@ -90,8 +110,6 @@ shared_ptr<X86Register> WhileObject::attachRegister() {
 		}
 	}
 
-
-
 	// if type is real use mmx register
 	shared_ptr<X86Register> r;
 	if (w_type->nameStr() == "real") {
@@ -100,8 +118,6 @@ shared_ptr<X86Register> WhileObject::attachRegister() {
 	else {
 		r = program->getFreeRegister();
 	}
-
-
 
 	attachRegister( r );
 	return r;
@@ -172,6 +188,12 @@ void WhileObject::assign( shared_ptr<X86Reference> other, bool write ) {
 }
 
 void WhileObject::assignType( shared_ptr<Type> t, bool write ) {
+	if (t->nameStr() == "real") {
+		shared_ptr<X86Register> r = program->getFreeMmxRegister();
+		r->assign_itof( valueDirect() );
+		ref = r->ref();
+	}
+
 	w_type = t;
 	type = make_shared<X86ConstRef>(getTypeTag(t));
 
@@ -184,6 +206,7 @@ void WhileObject::writeMem() {
 	shared_ptr<X86Register> reg = program->getFreeRegister();
 	reg->setSize(8);
 
+	// TODO check *type != *tagRef() -- already assigned
 	if (type) {
 		reg->assign( type );
 		program->addInstruction( "text", make_shared<InstrMov>( reg->ref(), tagRef() ) );
@@ -209,32 +232,63 @@ shared_ptr<X86Reference> WhileObject::valueDirect() {
 	else return valueRef();
 }
 
-// function to put address in register
-shared_ptr<X86RegRef> WhileObject::addrRef() {
-	shared_ptr<X86Register> r = program->getFreeRegister();
-	if (!initialised) {
-		//r->assign( program->getSPRegister()->ref() );
-		//r->add( make_shared<X86ConstRef>(-16) );
-		//pushStack();
-
-		putOnStack();
-
-	}
-	//else {
-		r->assignAddrOf(space.ref);
-	//}
-
-	return make_shared<X86RegRef>( r, 8 );
-}
-
 shared_ptr<X86Reference> WhileObject::tagRef() {
 	if (space.ref) return space.ref;
-	else return make_shared<X86ConstRef>(0);
+	else return make_shared<X86ConstRef>(getTypeTag(w_type));
 }
 
 shared_ptr<X86Reference> WhileObject::valueRef() {
 	if (space.ref) return space.ref->index(8);
 	else return make_shared<X86ConstRef>(0);
+}
+
+// function to put address in register
+shared_ptr<X86RegRef> WhileObject::addrRef() {
+	shared_ptr<X86Register> r = program->getFreeRegister();
+	if (!initialised) {
+		putOnStack();
+	}
+
+	r->assignAddrOf(space.ref);
+
+	return make_shared<X86RegRef>( r, 8 );
+}
+
+void WhileObject::print() {
+	program->callFunction(printFunc, arg_list{addrRef()});
+}
+
+shared_ptr<WhileObject> WhileObject::clone() {
+	shared_ptr<WhileObject> obj = make_obj(program, w_type);
+
+	if (w_type->isAtomic() || w_type->isNull()) {
+		obj->assign( shared_from_this(), false );
+	}
+	else {
+		shared_ptr<X86Register> r = program->callFunction(cloneFunc, arg_list{addrRef()});
+		obj->setLocation( r, false );	// object result
+		obj->putOnStack();
+	}
+
+	return obj;
+}
+
+shared_ptr<WhileObject> WhileObject::equiv( shared_ptr<WhileObject> other ) {
+	// use a c function to compare objects
+	shared_ptr<X86Register> r = program->callFunction(equivFunc, arg_list{addrRef(), other->addrRef()});
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(program, boolType); 	// bool result
+	obj->initialise( r->ref(), false );
+	return obj;
+
+}
+
+// only for lists
+shared_ptr<WhileObject> WhileObject::append( shared_ptr<WhileObject> other ) {
+	shared_ptr<X86Register> r = program->callFunction(appendFunc, arg_list{other->addrRef(), addrRef()});
+	shared_ptr<WhileObject> obj = make_obj(program, w_type);
+	obj->setLocation( r, false );	// object result
+
+	return obj;
 }
 
 string WhileObject::debug() {
@@ -276,6 +330,11 @@ int WhileObject::getTypeTag(shared_ptr<Type> t) {
 		return 16;
 	}
 	return 0;
+}
+
+WhileList::WhileList( shared_ptr<WhileList> wo ):
+			WhileObject( wo ) {
+	inner_type = wo->inner_type;
 }
 
 WhileList::WhileList( shared_ptr<X86Program> p, shared_ptr<Type> wt ):
@@ -331,11 +390,15 @@ void WhileList::get(shared_ptr<WhileObject> inout, shared_ptr<X86Reference> ref)
 	r->setSize(8);
 	r->add( valueDirect() );
 	inout->setLocation(r, false);
-	//return make_shared<WhileObject>(program, r, inner_type);
 }
+
+
+WhileRecord::WhileRecord( shared_ptr<WhileRecord> wo ):
+			WhileObject( wo ) {}
 
 WhileRecord::WhileRecord( shared_ptr<X86Program> p, shared_ptr<Type> wt ):
 		WhileObject(p, wt) {}
+
 WhileRecord::~WhileRecord() {}
 
 void WhileRecord::initialise(shared_ptr<X86Reference> v, bool write) {
@@ -365,6 +428,22 @@ shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<Type> wt) 
 	else {
 		return make_shared<WhileObject>(p, wt);
 	}
+}
+
+// TODO use clone instead
+shared_ptr<WhileObject> copy_obj_readonly( shared_ptr<WhileObject> wo) {
+	shared_ptr<WhileObject> copy;
+	if (wo->getType()->isList()) {
+		return make_shared<WhileList>( static_pointer_cast<WhileList, WhileObject>( wo ) );
+	}
+	else if (wo->getType()->isRecord()) {
+		return make_shared<WhileRecord>( static_pointer_cast<WhileRecord, WhileObject>( wo ) );
+	}
+	else {
+		return make_shared<WhileObject>(wo);
+	}
+	copy->setReadOnly();
+	return copy;
 }
 
 } /* namespace std */

@@ -26,10 +26,6 @@ WhileToX86::WhileToX86(shared_ptr<X86Program> o, bool add_debug) {
 	dLabel = -1;
 	tagCount = 1;
 	clone_objs = false;
-	print = make_shared<X86Function>("print", false, true);
-	equiv = make_shared<X86Function>("equiv", true, true);
-	clone = make_shared<X86Function>("clone", true, true);
-	append = make_shared<X86Function>("append", true, true);
 	debug_out = add_debug;
 }
 
@@ -111,7 +107,7 @@ void WhileToX86::accept(shared_ptr<InitStmt> e) {
 	else {
 		obj = make_obj(out, vtype);
 	}
-	obj->putOnStack(); // is this needed if obj is cloned?
+	obj->putOnStack(); // TODO is this needed if obj is cloned?
 
 	refs.insert( objmap::value_type(vname, obj) );
 }
@@ -205,11 +201,7 @@ void WhileToX86::accept(shared_ptr<PrintStmt> e) {
 		cout << "@print" << endl;
 		out->addInstruction( "text", make_shared<InstrComment>( "@print" ) );
 	}
-
-	e->visitChildren( shared_from_this() );
-	shared_ptr<WhileObject> obj = popRef();
-	shared_ptr<X86RegRef> objAddr = obj->addrRef();
-	out->callFunction(print, arg_list{objAddr});
+	objFromExpr( e->getExpr() )->print();
 }
 
 void WhileToX86::accept(shared_ptr<EvalStmt> e) {
@@ -252,7 +244,7 @@ void WhileToX86::accept(shared_ptr<SwitchStmt> e) {
 	}
 
 	e->getSwitch()->visit( shared_from_this() );
-	shared_ptr<X86RegRef> obj1 = popRef()->addrRef();
+	shared_ptr<WhileObject> obj1 = popRef();
 
 	vector<string> labels;
 	string defLabel;
@@ -261,8 +253,8 @@ void WhileToX86::accept(shared_ptr<SwitchStmt> e) {
 	// build jump table
 	for (auto c: e->getCases()) {
 		labels.push_back( ".L"+to_string(tagCount++) );
-		c.first->visit( shared_from_this() );
-		shared_ptr<X86Register> r = out->callFunction(equiv, arg_list{obj1, popRef()->addrRef()});
+		shared_ptr<WhileObject> e_obj = obj1->equiv( objFromExpr(c.first) );
+		shared_ptr<X86Register> r = e_obj->attachRegister();
 		r->compare( make_shared<X86ConstRef>( 0 ) );
 		out->addInstruction( "text", make_shared<InstrJ>( "ne", labels.back() ) );
 	}
@@ -325,8 +317,9 @@ void WhileToX86::accept(shared_ptr<ConstExpr> e) {
 		shared_ptr<WhileList> objl = make_shared<WhileList>(out, v->type());
 		string text = v->asString();
 
+		// TODO shouldnt assume its the first data
 //		dLabel++;
-//		out->addInstruction( "data", make_shared<InstrDirective>( "data" ) );	// TODO shouldnt assume its the first data
+//		out->addInstruction( "data", make_shared<InstrDirective>( "data" ) );
 //		out->addInstruction( "data", make_shared<InstrLabel>( ".LC" + to_string(dLabel) ) );
 //		out->addInstruction( "data", make_shared<InstrDirective>( "string", vector<string>({text}) ) );
 //		obj->initialise( make_shared<X86Reference>( "$.LC" + to_string(dLabel) ), 7, false );
@@ -376,30 +369,20 @@ void WhileToX86::accept(shared_ptr<VariableExpr> e) {
 	}
 
 	shared_ptr<Var> a = e->assignable();
-	if (a) {
-		string vname = a->name();
-		shared_ptr<Type> vtype = a->type();
-		if (refs.count(vname) > 0) {
-
-			if (clone_objs && !vtype->isAtomic()) {
-				shared_ptr<X86Register> r = out->callFunction(clone, arg_list{refs[vname]->addrRef()});
-				shared_ptr<X86Reference> rr = r->ref();
-				shared_ptr<WhileObject> obj = make_obj(out, e->getType());
-				obj->setLocation( r, false );	// object result
-				obj->putOnStack();
-				top.push_back( obj );
-			}
-			else {
-				top.push_back( refs[vname] );
-			}
+	string vname = a->name();
+	shared_ptr<Type> vtype = a->type();
+	if (refs.count(vname) > 0) {
+		if (clone_objs) {
+			// clone list types
+			top.push_back(refs[vname]->clone());
 		}
 		else {
-			cout << "variable not named" << endl;
+			top.push_back( refs[vname] );
 		}
+	} else {
+		throw runtime_error("variable " + vname + " not named");
 	}
-	else {
-		cout << "not a variable" << endl; // ???
-	}
+
 }
 
 void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
@@ -474,7 +457,7 @@ void WhileToX86::accept(shared_ptr<ListLengthExpr> e) {
 	// which list
 	e->getExpr()->visit( shared_from_this() );
 	shared_ptr<WhileList> expr = static_pointer_cast<WhileList, WhileObject>( popRef() );
-	shared_ptr<WhileObject> l = make_shared<WhileObject>(out, e->getType());
+	shared_ptr<WhileObject> l = make_obj(out, e->getType());
 	expr->length(l);
 	top.push_back( l );
 }
@@ -486,18 +469,9 @@ void WhileToX86::accept(shared_ptr<ConcatExpr> e) {
 	}
 
 	e->visitChildren( shared_from_this() );
-	shared_ptr<WhileObject> obj1 = popRef();
-	shared_ptr<X86RegRef> objAddr1 = obj1->addrRef();
-
-	shared_ptr<WhileObject> obj2 = popRef();
-	shared_ptr<X86RegRef> objAddr2 = obj2->addrRef();
-
-	// use a c function to compare objects
-	shared_ptr<X86Register> r = out->callFunction(append, arg_list{objAddr1, objAddr2});
-
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out, e->getType());
-	obj->setLocation( r, false );	// list result
-	top.push_back( obj );
+	shared_ptr<WhileObject> r = popRef();
+	shared_ptr<WhileObject> l = popRef();
+	top.push_back( l->append( r ) );
 }
 
 void WhileToX86::accept(shared_ptr<ListLookupExpr> e) {
@@ -510,14 +484,9 @@ void WhileToX86::accept(shared_ptr<ListLookupExpr> e) {
 	e->getExpr()->visit( shared_from_this() );
 	shared_ptr<WhileList> expr = static_pointer_cast<WhileList, WhileObject>( popRef() );
 
-
-	cout << expr->getType()->nameStr() << endl;
-	cout << expr->debug() << endl;
-
 	// index
 	e->getIndex()->visit( shared_from_this() );
 	shared_ptr<WhileObject> index = popRef();
-
 	top.push_back( expr->get( index->valueDirect() ) );
 }
 
@@ -528,16 +497,19 @@ void WhileToX86::accept(shared_ptr<RecordMemberExpr>) {
 	}
 }
 
+// cannot change between list and non list types
 void WhileToX86::accept(shared_ptr<BasicCastExpr> e) {
 	if (debug_out) {
 		cout << "@cast" << endl;
 		out->addInstruction( "text", make_shared<InstrComment>( "@cast" ) );
 	}
 
-	e->visitChildren( shared_from_this() ); // let result be passed back
+	shared_ptr<WhileObject> inner = objFromExpr( e->getExpr() );
 
-	// TODO modify type
+	// modify type
+	inner->assignType(e->getType(), false);
 
+	top.push_back(inner);
 }
 
 void WhileToX86::accept(shared_ptr<AbstractOpExpr> e) {
@@ -596,13 +568,7 @@ void WhileToX86::accept(shared_ptr<EquivOp> e) {
 	}
 
 	e->visitChildren( shared_from_this() );
-
-	// use a c function to compare objects
-	shared_ptr<X86Register> r = out->callFunction(equiv, arg_list{popRef()->addrRef(), popRef()->addrRef()});
-
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(out, e->getType());
-	obj->initialise( r->ref(), false );	// bool result
-	top.push_back( obj );
+	top.push_back( popRef()->equiv(popRef()) );
 }
 
 void WhileToX86::accept(shared_ptr<NotEquivOp> e) {
@@ -610,16 +576,13 @@ void WhileToX86::accept(shared_ptr<NotEquivOp> e) {
 		cout << "@notequiv" << endl;
 		out->addInstruction( "text", make_shared<InstrComment>( "@notequiv" ) );
 	}
-
 	e->visitChildren( shared_from_this() );
-	shared_ptr<X86Register> r = out->callFunction(equiv, arg_list{popRef()->addrRef(), popRef()->addrRef()});
+	shared_ptr<WhileObject> obj = popRef()->equiv(popRef());
 
 	// negate r
+	shared_ptr<X86Register> r = obj->attachRegister();
 	r->compare( make_shared<X86ConstRef>( 0 ) );
 	r->setFromFlags("e"); // equal to zero
-
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>( out, e->getType() );
-	obj->initialise( r->ref(), false );	// retype as bool
 	top.push_back( obj );
 }
 
@@ -691,6 +654,11 @@ shared_ptr<WhileObject>  WhileToX86::objFromExpr( shared_ptr<Expr> e, bool clone
 	clone_objs = clone;
 	e->visit( shared_from_this() );
 	clone_objs = false;
+	return popRef();
+}
+
+shared_ptr<WhileObject>  WhileToX86::objFromExpr( shared_ptr<Expr> e ) {
+	e->visit( shared_from_this() );
 	return popRef();
 }
 

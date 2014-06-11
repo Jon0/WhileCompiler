@@ -94,7 +94,7 @@ void print(void *f) {
 	printf("%s\n", strobj(f));
 }
 
-int equiv(void *a, void *b) {
+long equiv(void *a, void *b) {
 	long *la = a;
 	long *lb = b;
 	int i, offset;
