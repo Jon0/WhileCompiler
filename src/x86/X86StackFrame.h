@@ -35,7 +35,9 @@ public:
 
 		// modify initial
 		if (initial) {
-			initial->modifyLHS("$"+to_string(size));
+			// increase to next multiple of 16
+			int size16 = size + 16 - (size % 16);
+			initial->modifyLHS("$"+to_string(size16));
 		}
 
 

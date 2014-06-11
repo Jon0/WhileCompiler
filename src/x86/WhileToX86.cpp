@@ -378,9 +378,10 @@ void WhileToX86::accept(shared_ptr<VariableExpr> e) {
 	shared_ptr<Var> a = e->assignable();
 	if (a) {
 		string vname = a->name();
+		shared_ptr<Type> vtype = a->type();
 		if (refs.count(vname) > 0) {
 
-			if (clone_objs) {
+			if (clone_objs && !vtype->isAtomic()) {
 				shared_ptr<X86Register> r = out->callFunction(clone, arg_list{refs[vname]->addrRef()});
 				shared_ptr<X86Reference> rr = r->ref();
 				shared_ptr<WhileObject> obj = make_obj(out, e->getType());
@@ -409,10 +410,10 @@ void WhileToX86::accept(shared_ptr<FuncCallExpr> f) {
 
 	obj_list ol;
 	for (shared_ptr<Expr> e: f->getArgs()) {
-		e->visit( shared_from_this() );
-		ol.push_back( popRef() );
+		//e->visit( shared_from_this() );
+		//ol.push_back( popRef() );
 
-		//ol.push_back( objFromExpr( e, true ) ); // clone items
+		ol.push_back( objFromExpr( e, true ) ); // clone items
 	}
 
 	string fname = f->getFunc()->name();
