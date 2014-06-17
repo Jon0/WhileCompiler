@@ -262,6 +262,9 @@ void WhileToX86::accept(shared_ptr<SwitchStmt> e) {
 		defLabel = ".L"+to_string(tagCount++);
 		out->addInstruction( "text", make_shared<InstrJ>( "mp", defLabel ) );
 	}
+	else {
+		out->addInstruction( "text", make_shared<InstrJ>( "mp", loopbreak ) );
+	}
 
 	// label targets
 	int lcount = 0;
