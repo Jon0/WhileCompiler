@@ -236,10 +236,6 @@ short ConstantPool::size() {
 	return constant_pool.size();
 }
 
-shared_ptr<Constant> ConstantPool::makeMethodRef( shared_ptr<Func> ) {
-	// TODO
-}
-
 void ConstantPool::accept(shared_ptr<Type>) {}
 void ConstantPool::accept(shared_ptr<Value>) {}
 

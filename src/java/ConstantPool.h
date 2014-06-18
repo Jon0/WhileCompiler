@@ -166,8 +166,6 @@ public:
 	short lookupType(string, string);
 	short size();
 
-	shared_ptr<Constant> makeMethodRef( shared_ptr<Func> );
-
 	virtual void accept(shared_ptr<Type>);
 	virtual void accept(shared_ptr<Value>);
 	virtual void accept(shared_ptr<Func>);

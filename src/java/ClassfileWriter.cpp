@@ -10,7 +10,14 @@
 namespace std {
 
 ClassfileWriter::ClassfileWriter(string name): outfile(name, ofstream::binary){
+	/* version */
+	version_major = 49;
+	version_minor = 0;
 
+	/* file header */
+	write_u4(0xCAFEBABE);
+	write_u2(version_minor);
+	write_u2(version_major);
 }
 
 ClassfileWriter::~ClassfileWriter() {

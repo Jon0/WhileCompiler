@@ -33,9 +33,6 @@ public:
 private:
 	string class_name;
 	shared_ptr<Program> program;
-
-	unsigned short version_major, version_minor;
-
 	ConstantPool cp;
 };
 

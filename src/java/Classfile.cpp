@@ -16,9 +16,6 @@ namespace std {
 
 Classfile::Classfile(shared_ptr<Program> p){
 	program = p;
-
-	version_major = 49;
-	version_minor = 0;
 }
 
 Classfile::~Classfile() {
@@ -30,11 +27,6 @@ void Classfile::read(string fname) {}
 void Classfile::write() {
 	cout << "writing file " << program->getProgramName() << ".class" << endl;
 	ClassfileWriter out( program->getProgramName()+ ".class" );
-
-	/* file header */
-	out.write_u4(0xCAFEBABE);
-	out.write_u2(version_minor);
-	out.write_u2(version_major);
 
 	shared_ptr<ConstantPool> cp = make_shared<ConstantPool>();
 	program->visit(cp);

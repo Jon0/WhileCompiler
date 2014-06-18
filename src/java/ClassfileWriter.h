@@ -25,6 +25,7 @@ public:
 
 private:
 	ofstream outfile;
+	unsigned short version_major, version_minor;
 };
 
 } /* namespace std */
