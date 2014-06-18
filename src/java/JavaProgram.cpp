@@ -5,21 +5,27 @@
  *      Author: asdf
  */
 
+#include "Classfile.h"
 #include "JavaProgram.h"
 
 namespace std {
 
 JavaProgram::JavaProgram() {
-	// TODO Auto-generated constructor stub
-
+	classfile = make_shared<Classfile>();
 }
 
-JavaProgram::~JavaProgram() {
-	// TODO Auto-generated destructor stub
+JavaProgram::~JavaProgram() {}
+
+string JavaProgram::getName() {
+	return classfile->classname();
 }
 
-void JavaProgram::initialise() {
+shared_ptr<Classfile> JavaProgram::getClassfile() {
+	return classfile;
+}
 
+void JavaProgram::beginFunction( string s ) {
+	classfile->beginFunction(s);
 }
 
 } /* namespace std */

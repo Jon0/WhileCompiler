@@ -27,7 +27,7 @@ string JavaDescriptor(shared_ptr<Func>);
 class Constant {
 public:
 	virtual ~Constant() {}
-	virtual void writeByteCode(ClassfileWriter &) = 0;
+	virtual void writeByteCode(Classfile &) = 0;
 	virtual string lookupStr() = 0;
 	virtual string typeStr() = 0;
 };
@@ -38,7 +38,7 @@ public:
 		str = c;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -52,7 +52,7 @@ public:
 		ind = c;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -67,7 +67,7 @@ public:
 		descriptor_index  = d;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -84,7 +84,7 @@ public:
 		nametype_index  = d;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -99,7 +99,7 @@ public:
 		nametype_index  = d;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -115,7 +115,7 @@ public:
 		utf8_index = n;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -131,7 +131,7 @@ public:
 		value = n;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 	int getValue();
@@ -146,7 +146,7 @@ public:
 		value = n;
 	}
 
-	virtual void writeByteCode(ClassfileWriter &);
+	virtual void writeByteCode(Classfile &);
 	virtual string lookupStr();
 	virtual string typeStr();
 
@@ -159,7 +159,7 @@ public:
 	ConstantPool();
 	virtual ~ConstantPool();
 
-	void writeByteCode(ClassfileWriter &);
+	void writeByteCode(Classfile &);
 	void add(shared_ptr<Constant>);
 	short lookup(int);
 	short lookup(string);

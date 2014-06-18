@@ -8,14 +8,27 @@
 #ifndef JAVAPROGRAM_H_
 #define JAVAPROGRAM_H_
 
+#include <string>
+#include <memory>
+#include <vector>
+
 namespace std {
+
+class Classfile;
 
 class JavaProgram {
 public:
 	JavaProgram();
 	virtual ~JavaProgram();
 
-	void initialise();
+	string getName();
+	shared_ptr<Classfile> getClassfile();
+
+	void beginFunction( string );
+
+private:
+	shared_ptr<Classfile> classfile;
+
 };
 
 } /* namespace std */

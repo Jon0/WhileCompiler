@@ -11,6 +11,9 @@
 
 #include "../io/Pipe.h"
 
+#include "../java/Classfile.h"
+#include "../java/ClassfileWriter.h"
+
 #include "../x86/WhileObject.h"
 #include "../x86/X86Function.h"
 #include "../x86/X86Program.h"
@@ -25,7 +28,9 @@ InterfaceTest::InterfaceTest() {
 	// define the external print function
 	print = make_shared<X86Function>("print", false, true);
 
-	test2();
+	//test2();
+
+	test3();
 }
 
 InterfaceTest::~InterfaceTest() {
@@ -107,6 +112,24 @@ void InterfaceTest::test2() {
 	// run program record output
 	Pipe pipe;
 	string outStr = pipe.exec("./"+writer->filepath());
+	cout << "output:" << endl;
+	cout << outStr << endl;
+}
+
+void InterfaceTest::test3() {
+	cout << "java test" << endl;
+
+	shared_ptr<Classfile> program = make_shared<Classfile>();
+	//program->beginFunction("main");
+
+	shared_ptr<ClassfileWriter> writer = make_shared<ClassfileWriter>(program, "bin/", "");
+	writer->writeClassfile();
+
+	Pipe pipe;
+	//string cmd = "java -cp "+writer->dirctoryname() + " " + writer->filename();
+	string cmd = "javap -c "+writer->filepath();
+	cout << cmd << endl;
+	string outStr = pipe.exec( cmd );
 	cout << "output:" << endl;
 	cout << outStr << endl;
 }
