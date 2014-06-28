@@ -13,6 +13,7 @@
 
 #include "../java/Classfile.h"
 #include "../java/ClassfileWriter.h"
+#include "../java/Constant.h"
 
 #include "../x86/WhileObject.h"
 #include "../x86/X86Function.h"
@@ -27,8 +28,6 @@ namespace std {
 InterfaceTest::InterfaceTest() {
 	// define the external print function
 	print = make_shared<X86Function>("print", false, true);
-
-	//test2();
 
 	test3();
 }
@@ -91,8 +90,6 @@ void InterfaceTest::test2() {
 	obj2->putOnStack();
 	obj2->initialise( make_shared<X86RealRef>(0.5634973452), true );
 
-
-
 	//shared_ptr<X86Register> r2 = make_shared<X86Register>(p, "xmm1");
 	//r2->assign( make_shared<X86RealRef>(0.555) );
 
@@ -117,21 +114,45 @@ void InterfaceTest::test2() {
 }
 
 void InterfaceTest::test3() {
-	cout << "java test" << endl;
-
 	shared_ptr<Classfile> program = make_shared<Classfile>();
-	//program->beginFunction("main");
+	program->beginFunction("main");
+	program->call();
 
 	shared_ptr<ClassfileWriter> writer = make_shared<ClassfileWriter>(program, "bin/", "");
 	writer->writeClassfile();
 
 	Pipe pipe;
-	//string cmd = "java -cp "+writer->dirctoryname() + " " + writer->filename();
 	string cmd = "javap -c "+writer->filepath();
 	cout << cmd << endl;
+	cout << "--------------" << endl;
 	string outStr = pipe.exec( cmd );
-	cout << "output:" << endl;
 	cout << outStr << endl;
+
+	cmd = "java -cp "+writer->dirctoryname() + " " + writer->filename();
+	cout << cmd << endl;
+	cout << "--------------" << endl;
+	outStr = pipe.exec( cmd );
+	cout << outStr << endl;
+
+	cout << program->getConstPool()->debug() << endl;
+}
+
+void InterfaceTest::test4() {
+	shared_ptr<ConstantPool> cp = make_shared<ConstantPool>();
+
+	shared_ptr<JClass> c1 = make_shared<JClass>("rubbish1");
+	shared_ptr<JClass> c2 = make_shared<JClass>("rubbish2");
+	shared_ptr<JClass> c3 = make_shared<JClass>("rubbish2");
+
+	cout << "1: " << (*c1 == *c2) << endl;
+	cout << "2: " << (*c2 == *c3) << endl;
+
+	short i = cp->use( make_shared<JClass>("rubbish") );
+	short j = cp->use( make_shared<JClass>("rubbish") );
+
+	cout << "index: " << i << ", " << j << endl;
+
+	cout << cp->debug() << endl;
 }
 
 } /* namespace std */

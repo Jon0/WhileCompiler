@@ -18,15 +18,20 @@ JavaInstruction::~JavaInstruction() {
 	// TODO Auto-generated destructor stub
 }
 
-vector<char> JavaInstruction::toBytecode() {
-	vector<char> b;
-
-	switch (name) {
-	case ifeq:
-		b.push_back(0x99);
-		break;
+short JavaInstruction::size() {
+	short total = 1;
+	for (auto ap: args) {
+		total += ap->size();
 	}
+	return total;
+}
 
+bytecode JavaInstruction::toBytecode() {
+	bytecode b;
+	write_u1(b, name);
+	for (shared_ptr<JavaReference> jr: args) {
+		write_list(b, jr->toByteCode());
+	}
 	return b;
 }
 

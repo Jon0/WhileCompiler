@@ -22,6 +22,11 @@ namespace std {
 
 class SyntaxElem;
 
+enum access_flag {
+	access_public = 1,
+	access_static = 8
+};
+
 class Classfile: public enable_shared_from_this<Classfile> {
 public:
 	Classfile();
@@ -29,23 +34,23 @@ public:
 	virtual ~Classfile();
 
 	void beginFunction( string );
+	void call();
 
+	// no longer used
 	void read(string);
 	void write();
 
 	string classname();
 	shared_ptr<ConstantPool> getConstPool();
 	vector<unsigned char> getBytes();
-	void write_u4(unsigned int i);
-	void write_u2(unsigned short i);
-	void write_u1(unsigned char i);
-	void write_str(string i);
 
 private:
 	string class_name;
 	shared_ptr<Program> program;
 	shared_ptr<ConstantPool> cp;
 	vector<unsigned char> bytes;
+
+	short superclass, thisclass;
 
 	map<string, shared_ptr<JavaFunction>> functions;
 

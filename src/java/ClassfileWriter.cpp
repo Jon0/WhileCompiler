@@ -53,7 +53,7 @@ void ClassfileWriter::writeClassfile() {
 	for (unsigned char c: bytes) {
 		write_u1( c );
 	}
-
+	outfile.close();
 }
 
 void ClassfileWriter::write_u4(unsigned int i) {

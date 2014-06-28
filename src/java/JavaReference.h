@@ -8,6 +8,8 @@
 #ifndef JAVAREFERENCE_H_
 #define JAVAREFERENCE_H_
 
+#include "Bytecode.h"
+
 namespace std {
 
 /*
@@ -17,6 +19,25 @@ class JavaReference {
 public:
 	JavaReference();
 	virtual ~JavaReference();
+
+	virtual unsigned char size() = 0;
+
+	virtual bytecode toByteCode() = 0;
+};
+
+class ConstReference: public JavaReference {
+public:
+	ConstReference(short);
+	ConstReference(short, unsigned char);
+	virtual ~ConstReference();
+
+	virtual unsigned char size();
+
+	virtual bytecode toByteCode();
+
+private:
+	unsigned char ref_size;
+	short addr;
 };
 
 } /* namespace std */

@@ -15,7 +15,7 @@
 #include "../io/Parser.h"
 #include "../lang/Common.h"
 
-#include "../java/Bytecode.h"
+#include "../java/WhileToJava.h"
 #include "../java/Classfile.h"
 #include "../java/ClassfileWriter.h"
 #include "../java/ConstantPool.h"

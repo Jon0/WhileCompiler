@@ -8,25 +8,32 @@
 #ifndef JAVAINSTRUCTION_H_
 #define JAVAINSTRUCTION_H_
 
+#include <memory>
+#include <string>
 #include <vector>
 
+#include "Bytecode.h"
 #include "JavaReference.h"
 
 namespace std {
 
 enum IName {
-	ifeq,
-	ldc
+	getstatic = 0xb2,
+	ifeq = 0x99,
+	invoke = 0xb6,
+	ldc = 0x12,
+	ret = 0xb1
 };
 
-typedef vector<JavaReference> IArgs;
+typedef vector<shared_ptr<JavaReference>> IArgs;
 
 class JavaInstruction {
 public:
 	JavaInstruction(IName, IArgs);
 	virtual ~JavaInstruction();
 
-	vector<char> toBytecode();
+	short size();
+	bytecode toBytecode();
 
 private:
 	IName name;

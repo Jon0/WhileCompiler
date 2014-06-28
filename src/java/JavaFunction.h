@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include "JavaInstruction.h"
+
 namespace std {
 
 class Classfile;
@@ -19,7 +21,12 @@ public:
 	JavaFunction();
 	virtual ~JavaFunction();
 
-	void writeByteCode( shared_ptr<Classfile> );
+	unsigned int codeSize();
+	void addInstruction(JavaInstruction);
+	bytecode writeByteCode( shared_ptr<Classfile> );
+
+private:
+	vector<JavaInstruction> inst_list;
 };
 
 } /* namespace std */

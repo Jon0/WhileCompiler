@@ -7,27 +7,37 @@
 
 #include <iostream>
 
+#include "Bytecode.h"
 #include "Classfile.h"
 #include "JavaFunction.h"
 
 namespace std {
 
-JavaFunction::JavaFunction() {
-	// TODO Auto-generated constructor stub
+JavaFunction::JavaFunction() {}
 
+JavaFunction::~JavaFunction() {}
+
+unsigned int JavaFunction::codeSize() {
+	unsigned int total = 0;
+	for (JavaInstruction ji: inst_list) {
+		total += ji.size();
+	}
+	return total;
 }
 
-JavaFunction::~JavaFunction() {
-	// TODO Auto-generated destructor stub
+void JavaFunction::addInstruction(JavaInstruction ji) {
+	inst_list.push_back(ji);
 }
 
-void JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
-	out->write_u2(9); // access = public static
+bytecode JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
+	bytecode b;
 
-	out->write_u2( out->getConstPool()->lookup( "main" ) );
+	write_u2(b, 9); // access = public static
+
+	write_u2(b, out->getConstPool()->lookup( "main" ));
 
 //	if ( f->name() == "main" ) {
-	out->write_u2( out->getConstPool()->lookup("([Ljava/lang/String;)V") ); // descriptor
+	write_u2(b, out->getConstPool()->lookup("([Ljava/lang/String;)V")); // descriptor
 
 	int num_locals = 1; // 1 argument to the main method
 	//local_type.push_back( NULL ); // reserve for unused argument
@@ -48,7 +58,7 @@ void JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
 //			num_locals += 1;
 //		}
 //	}
-	out->write_u2(1); // number of attributes - currently only code
+	write_u2(b, 1); // number of attributes - currently only code
 
 	// visit function code
 	//f->getStmt()->visit(shared_from_this());
@@ -56,38 +66,29 @@ void JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
 	//	addInstruction(0xb1); // add return
 	//}
 
-	int codesize = 1; //stackSize();
+	unsigned int codesize = codeSize();
 	cout << "code length = " << codesize << endl;
 
 	//	Code_attribute {
-	out->write_u2( out->getConstPool()->lookup("Code") ); // "Code"
-	out->write_u4( codesize + 12 ); // size of following block
+	write_u2(b, out->getConstPool()->lookup("Code")); // "Code"
+	write_u4(b, codesize + 12); // size of following block
 
 	//	u2 max_stack;
-	out->write_u2(20); // just guessing
+	write_u2(b, 20); // just guessing
 	cout << "max stack = 20" << endl;
 
 	//	u2 max_locals;
-	out->write_u2(num_locals);
+	write_u2(b, num_locals);
 	cout << "max locals = " << num_locals << endl;
 
 	//	u4 code_length;
-	out->write_u4( codesize );
-	 // return
-	//	u1 code[code_length];
-//	for (Instruction &i: istack) {
-//		for (char b: i.bytes) {
-//			out->write_u1(b);
-//		}
-//	}
-	out->write_u1(0xb1); // ret
-
-//	istack.clear();
-//	local_map.clear();
-//	local_type.clear();
+	write_u4(b, codesize);
+	for (JavaInstruction ji: inst_list) {
+		write_list(b, ji.toBytecode());
+	}
 
 	//	u2 exception_table_length;
-	out->write_u2(0);
+	write_u2(b, 0);
 
 //	{
 //	u2 start_pc;
@@ -98,10 +99,11 @@ void JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
 
 
 //	u2 attributes_count;
-	out->write_u2(0);
+	write_u2(b, 0);
 
 //	attribute_info attributes[attributes_count];
 //	}
+	return b;
 }
 
 } /* namespace std */
