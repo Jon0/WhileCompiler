@@ -9,11 +9,24 @@
 
 #include "Bytecode.h"
 #include "Classfile.h"
+#include "Constant.h"
+#include "ConstantPool.h"
 #include "JavaFunction.h"
 
 namespace std {
 
-JavaFunction::JavaFunction() {}
+JavaFunction::JavaFunction( shared_ptr<ConstantPool> pool ) {
+	num_locals = 1; // 1 argument to the main method
+	name = pool->use( make_shared<UTF8>("main") );
+	descriptor = pool->use( make_shared<UTF8>("([Ljava/lang/String;)V") );
+	code_string = pool->use( make_shared<UTF8>("Code") );
+
+	cout << "fuction main" << endl;
+	cout << "code length = " << codeSize() << endl;
+	cout << "max stack = 20" << endl;
+	cout << "max locals = " << num_locals << endl;
+	cout << endl;
+}
 
 JavaFunction::~JavaFunction() {}
 
@@ -25,23 +38,23 @@ unsigned int JavaFunction::codeSize() {
 	return total;
 }
 
-void JavaFunction::addInstruction(JavaInstruction ji) {
+unsigned int JavaFunction::numLocals() {
+	return num_locals;
+}
+
+void JavaFunction::add(JavaInstruction ji) {
 	inst_list.push_back(ji);
 }
 
-bytecode JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
+bytecode JavaFunction::writeByteCode() {
 	bytecode b;
+	write_u2(b, access_public + access_static); // access = public static
+	write_u2(b, name);
+	write_u2(b, descriptor);
 
-	write_u2(b, 9); // access = public static
-
-	write_u2(b, out->getConstPool()->lookup( "main" ));
 
 //	if ( f->name() == "main" ) {
-	write_u2(b, out->getConstPool()->lookup("([Ljava/lang/String;)V")); // descriptor
-
-	int num_locals = 1; // 1 argument to the main method
 	//local_type.push_back( NULL ); // reserve for unused argument
-
 //	}
 //	else {
 //		string desc = JavaDescriptor( f );
@@ -66,20 +79,17 @@ bytecode JavaFunction::writeByteCode( shared_ptr<Classfile> out ) {
 	//	addInstruction(0xb1); // add return
 	//}
 
-	unsigned int codesize = codeSize();
-	cout << "code length = " << codesize << endl;
 
 	//	Code_attribute {
-	write_u2(b, out->getConstPool()->lookup("Code")); // "Code"
+	unsigned int codesize = codeSize();
+	write_u2(b, code_string); // "Code"
 	write_u4(b, codesize + 12); // size of following block
 
 	//	u2 max_stack;
 	write_u2(b, 20); // just guessing
-	cout << "max stack = 20" << endl;
 
 	//	u2 max_locals;
 	write_u2(b, num_locals);
-	cout << "max locals = " << num_locals << endl;
 
 	//	u4 code_length;
 	write_u4(b, codesize);

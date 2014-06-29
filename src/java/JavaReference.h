@@ -8,9 +8,13 @@
 #ifndef JAVAREFERENCE_H_
 #define JAVAREFERENCE_H_
 
+#include <memory>
+
 #include "Bytecode.h"
 
 namespace std {
+
+class JavaInstruction;
 
 /*
  * reference constant pool or other bytecode args
@@ -38,6 +42,19 @@ public:
 private:
 	unsigned char ref_size;
 	short addr;
+};
+
+class JumpReference: public JavaReference {
+public:
+	JumpReference(shared_ptr<JavaInstruction>);
+	virtual ~JumpReference();
+
+	virtual unsigned char size();
+
+	virtual bytecode toByteCode();
+
+private:
+	shared_ptr<JavaInstruction> target;
 };
 
 } /* namespace std */

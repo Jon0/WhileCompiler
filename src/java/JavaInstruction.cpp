@@ -9,6 +9,16 @@
 
 namespace std {
 
+JavaInstruction::JavaInstruction(IName n) {
+	name = n;
+	args = IArgs{};
+}
+
+JavaInstruction::JavaInstruction(IName n, shared_ptr<JavaReference> ref) {
+	name = n;
+	args = IArgs{ref};
+}
+
 JavaInstruction::JavaInstruction(IName n, IArgs a) {
 	name = n;
 	args = a;

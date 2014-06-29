@@ -181,6 +181,10 @@ public:
 	virtual string typeStr();
 	int getValue();
 
+	virtual string toString() const {
+		return "Integer " + to_string(value);
+	}
+
 private:
 	int value;
 };
@@ -195,6 +199,10 @@ public:
 	virtual bytecode writeByteCode() const;
 	virtual string lookupStr();
 	virtual string typeStr();
+
+	virtual string toString() const {
+		return "Float " + to_string(value);
+	}
 
 private:
 	float value;

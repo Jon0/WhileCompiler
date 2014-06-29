@@ -45,12 +45,10 @@ bytecode Constant::writeByteCode() const {
 }
 
 bool UTF8::operator==( const Constant &other ) const {
-
 	if (other.getType() == getType()) {
 		UTF8 &u = (UTF8 &)other;
 		return u.str == str;
 	}
-
 	return false;
 }
 
@@ -124,11 +122,14 @@ string JString::typeStr() {
 }
 
 bool JInteger::operator==( const Constant &other ) const {
-	return true;
+	if (other.getType() == getType()) {
+		JInteger &u = (JInteger &)other;
+		return u.value == value;
+	}
+	return false;
 }
 
 bytecode JInteger::writeByteCode() const {
-	//outfile.write_u1(3); // done outside now
 	bytecode b;
 	write_u4(b, value);
 	return b;

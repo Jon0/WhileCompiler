@@ -19,6 +19,7 @@ namespace std {
 
 enum IName {
 	getstatic = 0xb2,
+	iadd = 0x60,
 	ifeq = 0x99,
 	invoke = 0xb6,
 	ldc = 0x12,
@@ -29,7 +30,9 @@ typedef vector<shared_ptr<JavaReference>> IArgs;
 
 class JavaInstruction {
 public:
+	JavaInstruction(IName);
 	JavaInstruction(IName, IArgs);
+	JavaInstruction(IName, shared_ptr<JavaReference>);
 	virtual ~JavaInstruction();
 
 	short size();

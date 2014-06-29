@@ -30,15 +30,10 @@ enum access_flag {
 class Classfile: public enable_shared_from_this<Classfile> {
 public:
 	Classfile();
-	Classfile(shared_ptr<Program>);
 	virtual ~Classfile();
 
 	void beginFunction( string );
 	void call();
-
-	// no longer used
-	void read(string);
-	void write();
 
 	string classname();
 	shared_ptr<ConstantPool> getConstPool();

@@ -35,4 +35,19 @@ bytecode ConstReference::toByteCode() {
 	return b;
 }
 
+JumpReference::JumpReference(shared_ptr<JavaInstruction> t) {
+	target = t;
+}
+
+JumpReference::~JumpReference() {}
+
+unsigned char JumpReference::size() {
+	return 1;
+}
+
+bytecode JumpReference::toByteCode() {
+	bytecode b;
+	return b;
+}
+
 } /* namespace std */

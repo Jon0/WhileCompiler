@@ -118,6 +118,8 @@ void InterfaceTest::test3() {
 	program->beginFunction("main");
 	program->call();
 
+	cout << program->getConstPool()->debug() << endl;
+
 	shared_ptr<ClassfileWriter> writer = make_shared<ClassfileWriter>(program, "bin/", "");
 	writer->writeClassfile();
 
@@ -133,8 +135,6 @@ void InterfaceTest::test3() {
 	cout << "--------------" << endl;
 	outStr = pipe.exec( cmd );
 	cout << outStr << endl;
-
-	cout << program->getConstPool()->debug() << endl;
 }
 
 void InterfaceTest::test4() {

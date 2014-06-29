@@ -14,19 +14,25 @@
 
 namespace std {
 
-class Classfile;
+class ConstantPool;
 
 class JavaFunction {
 public:
-	JavaFunction();
+	JavaFunction( shared_ptr<ConstantPool> );
 	virtual ~JavaFunction();
 
 	unsigned int codeSize();
-	void addInstruction(JavaInstruction);
-	bytecode writeByteCode( shared_ptr<Classfile> );
+	unsigned int numLocals();
+
+	void add(JavaInstruction);
+	bytecode writeByteCode();
 
 private:
 	vector<JavaInstruction> inst_list;
+
+	unsigned short name, descriptor, code_string;
+
+	unsigned int num_locals;
 };
 
 } /* namespace std */
