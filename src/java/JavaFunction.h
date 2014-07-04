@@ -25,6 +25,9 @@ public:
 	unsigned int numLocals();
 
 	void add(JavaInstruction);
+	void pushConst(short);
+	void branch();
+
 	bytecode writeByteCode();
 
 private:

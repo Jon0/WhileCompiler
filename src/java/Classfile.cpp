@@ -12,6 +12,7 @@
 #include "Bytecode.h"
 #include "Classfile.h"
 #include "Constant.h"
+#include "JavaObject.h"
 
 namespace std {
 
@@ -28,31 +29,21 @@ void Classfile::beginFunction( string s ) {
 }
 
 void Classfile::call() {
-	// push output stream
-	short addr = cp->use( make_shared<JFieldRef>("java/lang/System", "out", "Ljava/io/PrintStream;") );
-	functions["main"]->add(JavaInstruction(getstatic, make_shared<ConstReference>(addr, 2)));
+	shared_ptr<JavaFunction> func = functions["main"];
 
-	// push value to print
-	//addr = cp->use(make_shared<JString>( "Hello" ));
-	addr = cp->use(make_shared<JInteger>( 12 ));
-	functions["main"]->add(JavaInstruction(ldc, make_shared<ConstReference>(addr, 1)));
+	func->branch();
 
-	addr = cp->use(make_shared<JInteger>( 5 ));
-	functions["main"]->add(JavaInstruction(ldc, make_shared<ConstReference>(addr, 1)));
+	shared_ptr<JavaNumber> n1 = make_shared<JavaNumber>(func, cp, 1);
+	shared_ptr<JavaNumber> n5 = make_shared<JavaNumber>(func, cp, 5);
+	shared_ptr<JavaNumber> n12 = make_shared<JavaNumber>(func, cp, 12);
 
-	functions["main"]->add(JavaInstruction(iadd));
+	// print addition
+	n1->add(n5)->add(n12)->print();
 
-	addr = cp->use(make_shared<JInteger>( 1 ));
-	functions["main"]->add(JavaInstruction(ldc, make_shared<ConstReference>(addr, 1)));
+	shared_ptr<JavaString> str = make_shared<JavaString>(func, cp);
+	str->print();
 
-	functions["main"]->add(JavaInstruction(iadd));
-
-	// invoke println for str
-	//addr = cp->use(make_shared<JMethodRef>( "java/io/PrintStream", "println", "(Ljava/lang/String;)V" ));
-	addr = cp->use(make_shared<JMethodRef>( "java/io/PrintStream", "println", "(I)V" ));
-	functions["main"]->add(JavaInstruction(invoke, make_shared<ConstReference>(addr, 2)));
-
-	functions["main"]->add(JavaInstruction(ret));
+	func->add(JavaInstruction(ret));
 }
 
 string Classfile::classname() {
