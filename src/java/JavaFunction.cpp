@@ -46,6 +46,16 @@ void JavaFunction::add(JavaInstruction ji) {
 	inst_list.push_back(ji);
 }
 
+void JavaFunction::pushConst(short addr) {
+	add(JavaInstruction(ldc, make_shared<ConstReference>(addr, 1)));
+}
+
+void JavaFunction::branch() {
+	add(JavaInstruction(ldc, make_shared<ConstReference>(21, 1)));
+	add(JavaInstruction(ldc, make_shared<ConstReference>(21, 1)));
+	add(JavaInstruction(ifeq, make_shared<ConstReference>(21-4, 2)));
+}
+
 bytecode JavaFunction::writeByteCode() {
 	bytecode b;
 	write_u2(b, access_public + access_static); // access = public static
