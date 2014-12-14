@@ -1,7 +1,9 @@
 WhileCompiler
 =============
 
-cmake -G"Eclipse CDT4 - Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_ARG1=-std=c++11 <path/to/src>
+Compiler for the while language.
 
+Can produce x86 assembly or java classfiles.
 
-do not copy
+cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug <path/to/src>
+
