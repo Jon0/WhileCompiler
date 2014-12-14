@@ -1,10 +1,3 @@
-/*
- * Var.h
- *
- *  Created on: 17/03/2014
- *      Author: remnanjona
- */
-
 #ifndef VAR_H_
 #define VAR_H_
 
@@ -15,20 +8,30 @@
 #include "Common.h"
 #include "Type.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 /*
- * a type and name
+ * a type and name pair
  */
 class Var {
 public:
 	Var();
-	Var(shared_ptr<Type>, Token);
-	Var(shared_ptr<Type>, Var);
+
+	/**
+	 * creates a type name pair
+	 */
+	Var(shared_ptr<Type> type, io::parser::Token name);
+
+	/**
+	 * takes a token from given variable
+	 * to do same as above
+	 */
+	Var(shared_ptr<Type> type, Var name);
 	virtual ~Var();
 
 	string name() const;
-	Token token() const;
+	io::parser::Token token() const;
 	shared_ptr<Type> type() const;
 
 	// TODO type check breaks casting
@@ -38,7 +41,7 @@ public:
 
 private:
 	shared_ptr<Type> type_info;
-	Token in_token;
+	io::parser::Token in_token;
 };
 
 struct VarCompare {
@@ -50,6 +53,6 @@ struct VarCompare {
 typedef map<Var, shared_ptr<Value>, VarCompare> VarMap;
 typedef AbstractType<Var> RecordType;
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* VAR_H_ */

@@ -10,7 +10,8 @@
 #include "Func.h"
 #include "Stmt.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 Func::Func( string name, shared_ptr<Type> t, vector<Var> a, shared_ptr<Stmt> s ): r_type(t) {
 	name_str = name;

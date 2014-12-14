@@ -8,7 +8,9 @@
 
 #include "Token.h"
 
-namespace std {
+namespace io {
+namespace parser {
+using namespace std;
 
 /*
  *	break a file into a stream of tokens
@@ -49,6 +51,7 @@ private:
 	void skipRestOfComment();
 };
 
-} /* namespace std */
+} /* namespace parser */
+} /* namespace io */
 
 #endif /* LEXER_H_ */

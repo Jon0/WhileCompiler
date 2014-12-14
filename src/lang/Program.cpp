@@ -7,7 +7,8 @@
 
 #include "Program.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 Program::Program( FuncMap f, string pn ) {
 	funcs = f;
@@ -48,4 +49,4 @@ void Program::visitFunc(string s, shared_ptr<SyntaxVisitor> v) {
 	}
 }
 
-} /* namespace std */
+} /* namespace lang */

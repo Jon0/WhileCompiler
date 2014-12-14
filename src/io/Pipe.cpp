@@ -12,20 +12,17 @@
 
 #include "Pipe.h"
 
-namespace std {
+namespace io {
 
-Pipe::Pipe() {
-	// TODO Auto-generated constructor stub
+Pipe::Pipe() {}
 
-}
+Pipe::~Pipe() {}
 
-Pipe::~Pipe() {
-	// TODO Auto-generated destructor stub
-}
-
-string Pipe::exec(string cmd) {
+std::string Pipe::exec(std::string cmd) {
     FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe) return "ERROR";
+
+    // copy output to a std::string
     char buffer[128];
     std::string result = "";
     while(!feof(pipe)) {
@@ -36,4 +33,4 @@ string Pipe::exec(string cmd) {
     return result;
 }
 
-} /* namespace std */
+} /* namespace io */

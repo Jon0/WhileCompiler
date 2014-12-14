@@ -11,7 +11,8 @@
 #include "Stmt.h"
 #include "SyntaxElem.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 BlockStmt::BlockStmt( vector<shared_ptr<Stmt>> b ) {
 	block = b;
@@ -59,7 +60,7 @@ void InitStmt::typeCheck( CheckState &cs ) {
 	if (expr) {
 		expr->typeCheck(cs);
 		if (!var.type()->contains(*expr->getType())) {
-			throw TokenException(expr->getTokens(), "expected type "+var.type()->aliasStr()+", found "+expr->getType()->aliasStr());
+			throw io::parser::TokenException(expr->getTokens(), "expected type "+var.type()->aliasStr()+", found "+expr->getType()->aliasStr());
 		}
 	}
 	AssignState as{expr != NULL, var.type()};
@@ -102,7 +103,7 @@ void AssignStmt::typeCheck( CheckState &cs ) {
 	}
 	rhs->typeCheck(cs);
 	if (!lhs->getType()->contains( *rhs->getType() )) {
-		throw TokenException(rhs->getTokens(),
+		throw io::parser::TokenException(rhs->getTokens(),
 				"expected type " + lhs->getType()->nameStr() + ", found "
 						+ rhs->getType()->nameStr());
 	}
@@ -348,7 +349,7 @@ void ReturnStmt::typeCheck( CheckState &s ) {
 	if (expr) {
 		expr->typeCheck(s);
 		if (!s.to_return->contains(*expr->getType())) {
-			throw TokenException(expr->getTokens(),
+			throw io::parser::TokenException(expr->getTokens(),
 					"expected type " + s.to_return->aliasStr() + ", found "
 							+ expr->getType()->aliasStr());
 		}
@@ -458,4 +459,4 @@ void SwitchStmt::visit(shared_ptr<SyntaxVisitor> v) {
 }
 
 
-} /* namespace std */
+} /* namespace lang */

@@ -145,7 +145,7 @@ shared_ptr<X86Register> X86Program::callFunction( shared_ptr<X86Function> f, arg
 	return nr;
 }
 
-shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, shared_ptr<Type> rt, obj_list args ) {
+shared_ptr<WhileObject> X86Program::callFunction( shared_ptr<X86Function> f, shared_ptr<lang::Type> rt, obj_list args ) {
 
 	// push args and return space to stack -- before saving
 	if (f->hasReturn()) {

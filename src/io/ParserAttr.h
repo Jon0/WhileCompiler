@@ -8,8 +8,12 @@
 #include "Lexer.h"
 #include "../lang/Var.h"
 
-namespace std {
+namespace io {
+namespace parser {
 
+/**
+ * matches tokens from a stream of tokens
+ */
 class ParserInput {
 public:
 	ParserInput(Lexer &lexer) {
@@ -31,7 +35,7 @@ public:
 		return t;
 	}
 
-	Token match(string s) {
+	Token match(std::string s) {
 		Token top = tokens.front();
 		if ( s != top.text() ) {
 			throw TokenException(top, "mismatch "+top.text()+", expected "+s);
@@ -39,8 +43,8 @@ public:
 		return pop();
 	}
 
-	bool canMatch(string s) {
-		string top = tokens.front().text();
+	bool canMatch(std::string s) {
+		std::string top = tokens.front().text();
 		if ( s == top ) {
 			tokens.pop();
 			return true;
@@ -50,39 +54,52 @@ public:
 
 
 private:
-	queue<Token> tokens;
+	std::queue<Token> tokens;
 };
 
+/**
+ * determines if a token is a known variable in the current scope
+ */
 class ParserContext {
 public:
 	bool isVar(Token t) {
 		return vars.count(t) > 0;
 	}
 
-	Var copyVar(Token t) {
+	/**
+	 * use token to find a name and type pair
+	 */
+	lang::Var copyVar(Token t) {
 		if (var_types.count(t) == 0) {
 			throw TokenException(t, t.text()+" not a variable");
 		}
 		return var_types[t];
 	}
 
-	shared_ptr<Type> getType(Token t) {
+	/**
+	 * gets only the type of a known variable
+	 */
+	std::shared_ptr<lang::Type> getType(Token t) {
 		if (var_types.count(t) == 0) {
 			throw TokenException(t, t.text()+" not a variable");
 		}
 		return var_types[t].type();
 	}
 
-	void initialise(shared_ptr<Type> t, Token name) {
+	/**
+	 * add a new variable to the current context
+	 */
+	void initialise(std::shared_ptr<lang::Type> t, Token name) {
 		vars.insert(name);
-		var_types[name] = Var(t, name);
+		var_types[name] = lang::Var(t, name);
 	}
 
 private:
-	unordered_set<Token, TokenHash> vars;
-	map<Token, Var, TokenCompare> var_types;
+	std::unordered_set<Token, TokenHash> vars;
+	std::map<Token, lang::Var, TokenCompare> var_types;
 };
 
-} /* namespace std */
+} /* namespace parser */
+} /* namespace io */
 
 #endif /* PARSERATTR_H_ */

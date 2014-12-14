@@ -1,10 +1,3 @@
-/*
- * InterfaceTest.cpp
- *
- *  Created on: 30/05/2014
- *      Author: remnanjona
- */
-
 #include <iostream>
 
 #include "../lang/Type.h"
@@ -47,7 +40,7 @@ void InterfaceTest::test1() {
 	reg->assign( number1 );
 	reg->add( make_shared<X86ConstRef>(4) );
 
-	shared_ptr<WhileList> obj = make_shared<WhileList>(p, make_shared<ListType>(intType));
+	auto obj = make_shared<WhileList>(p, make_shared<lang::ListType>(lang::intType));
 	obj->putOnStack();
 	obj->initialise( reg->ref(), true );
 
@@ -68,7 +61,7 @@ void InterfaceTest::test1() {
 	writer->writeExecutable();
 
 	// run program record output
-	Pipe pipe;
+	io::Pipe pipe;
 	string outStr = pipe.exec("./"+writer->filepath());
 
 	cout << outStr << endl;
@@ -81,12 +74,12 @@ void InterfaceTest::test2() {
 
 
 
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(p, realType);
+	auto obj = make_shared<WhileObject>(p, lang::realType);
 	obj->putOnStack();
 	obj->initialise( make_shared<X86RealRef>(0.5), true );
 
 
-	shared_ptr<WhileObject> obj2 = make_shared<WhileObject>(p, realType);
+	auto obj2 = make_shared<WhileObject>(p, lang::realType);
 	obj2->putOnStack();
 	obj2->initialise( make_shared<X86RealRef>(0.5634973452), true );
 
@@ -107,7 +100,7 @@ void InterfaceTest::test2() {
 	writer->writeExecutable();
 
 	// run program record output
-	Pipe pipe;
+	io::Pipe pipe;
 	string outStr = pipe.exec("./"+writer->filepath());
 	cout << "output:" << endl;
 	cout << outStr << endl;
@@ -115,6 +108,7 @@ void InterfaceTest::test2() {
 
 void InterfaceTest::test3() {
 	shared_ptr<Classfile> program = make_shared<Classfile>();
+	program->initialise("Test");
 	program->beginFunction("main");
 	program->call();
 
@@ -123,7 +117,7 @@ void InterfaceTest::test3() {
 	shared_ptr<ClassfileWriter> writer = make_shared<ClassfileWriter>(program, "bin/", "");
 	writer->writeClassfile();
 
-	Pipe pipe;
+	io::Pipe pipe;
 	string cmd = "javap -c "+writer->filepath();
 	cout << cmd << endl;
 	cout << "--------------" << endl;

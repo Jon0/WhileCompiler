@@ -52,7 +52,7 @@ string X86Writer::writeExecutable() {
 	string assemblyPath = writeAssembly();
 
 	// use gcc to compile
-	Pipe p;
+	io::Pipe p;
 	string out = p.exec( "gcc lib/lib.c "+assemblyPath+" -o "+directory+filename );
 
 	return assemblyPath;

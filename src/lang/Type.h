@@ -18,7 +18,8 @@
 #include "TypeIntf.h"
 #include "Value.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 class UnknownType;
 
@@ -124,6 +125,8 @@ class VoidType: public Type {
 	}
 };
 
+static shared_ptr<VoidType> voidType = make_shared<VoidType>();
+
 class NullType: public Type {
 
 	virtual shared_ptr<Value> createValue( shared_ptr<Value> v ) {
@@ -160,6 +163,8 @@ class NullType: public Type {
 		return "null";
 	}
 };
+
+static shared_ptr<NullType> nullType = make_shared<NullType>();
 
 template<class T> class AtomicType: public Type {
 public:
@@ -574,6 +579,6 @@ private:
 	map<string, T> elem_type;
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* TYPE_H_ */

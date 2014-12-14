@@ -8,156 +8,89 @@
 #include "../lang/Program.h"
 #include "../lang/Stmt.h"
 #include "../lang/Type.h"
+#include "OpParser.h"
 #include "ParserAttr.h"
 
-namespace std {
+namespace io {
+namespace parser {
 
-typedef pair<shared_ptr<Expr>, shared_ptr<Expr>> ExprPair;
-
-template<class I, class O> class ZeroParser {
+class WhileParser {
 public:
-	static O func( shared_ptr<Type> in ) {
-		shared_ptr<Value> v = shared_ptr<Value>(new TypedValue<I>(in, (I)0));
-		return shared_ptr<Expr>(new ConstExpr(v));
-	}
-};
+	WhileParser(Lexer &);
+	virtual ~WhileParser();
 
-template<class I, class O> class AddParser {
-public:
-	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, AddOp<I>>(in.first, in.second, true) );
-	}
-};
-
-template<class I, class O> class SubParser {
-public:
-	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, SubOp<I>>(in.first, in.second, true) );
-	}
-};
-
-template<class I, class O> class MulParser {
-public:
-	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, MulOp<I>>(in.first, in.second, true) );
-	}
-};
-
-template<class I, class O> class DivParser {
-public:
-	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, DivOp<I>>(in.first, in.second, true) );
-	}
-};
-
-template<class I, class O> class ModParser {
-public:
-	static O func( ExprPair in ) {
-		return shared_ptr<Expr>( new OpExpr<I, I, ModOp<I>>(in.first, in.second, true) );
-	}
-};
-
-template<class I, class O> class GreaterParser {
-public:
-	static O func(ExprPair in) {
-		return shared_ptr<Expr>(
-				new OpExpr<bool, I, GreaterOp<I>>(
-						shared_ptr<Type>(new AtomicType<bool>("bool")),
-						in.first, in.second));
-	}
-};
-
-template<class I, class O> class GreaterEqualParser {
-public:
-	static O func(ExprPair in) {
-		return shared_ptr<Expr>(
-				new OpExpr<bool, I, GreaterEqualOp<I>>(
-						shared_ptr<Type>(new AtomicType<bool>("bool")),
-						in.first, in.second));
-	}
-};
-
-template<class I, class O> class LessParser {
-public:
-	static O func(ExprPair in) {
-		return shared_ptr<Expr>(
-				new OpExpr<bool, I, LessOp<I>>(
-						shared_ptr<Type>(new AtomicType<bool>("bool")),
-						in.first, in.second));
-	}
-};
-
-template<class I, class O> class LessEqualParser {
-public:
-	static O func(ExprPair in) {
-		return shared_ptr<Expr>(
-				new OpExpr<bool, I, LessEqualOp<I>>(
-						shared_ptr<Type>(new AtomicType<bool>("bool")),
-						in.first, in.second));
-	}
-};
-
-class Parser {
-public:
-	Parser(Lexer &);
-	virtual ~Parser();
-
-	shared_ptr<Program> read();
+	std::shared_ptr<lang::Program> read();
 
 private:
 	string classname;
 	ParserInput in;
 
 	// list global functions and types
-	FuncMap functions;
-	map<string, shared_ptr<Type>> dectypes;
-	map<string, shared_ptr<Expr>> constvals;
+	lang::FuncMap functions;
+	std::map<std::string, std::shared_ptr<lang::Type>> dectypes;
+	std::map<std::string, std::shared_ptr<lang::Expr>> constvals;
 
-	vector<shared_ptr<Var>> unresolved;
+	std::vector<std::shared_ptr<lang::Var>> unresolved;
 
-	shared_ptr<Func> readFunc();
+	std::shared_ptr<lang::Func> readFunc();
 
-	shared_ptr<Expr> readExpr(ParserContext &);
-	shared_ptr<Expr> readExprCmpr(ParserContext &);
-	shared_ptr<Expr> readExprList(ParserContext &);
+	std::shared_ptr<lang::Expr> readExpr(ParserContext &);
 
-	shared_ptr<Expr> readExprAdd(ParserContext &);
-	shared_ptr<Expr> readExprMul(ParserContext &);
-	shared_ptr<Expr> readExprTerm(ParserContext &);
-	shared_ptr<Expr> readExprTermInner(ParserContext &);
+	/**
+	 * comparison expressions
+	 */
+	std::shared_ptr<lang::Expr> readExprCmpr(ParserContext &);
 
-	shared_ptr<Expr> readExprPrimary(ParserContext &);
+	/**
+	 * list expressions
+	 */
+	std::shared_ptr<lang::Expr> readExprList(ParserContext &);
+
+	/** 
+	 * math expresions
+	 */
+	std::shared_ptr<lang::Expr> readExprAdd(ParserContext &);
+	std::shared_ptr<lang::Expr> readExprMul(ParserContext &);
+
+	/**
+	 * list expressions
+	 */
+	std::shared_ptr<lang::Expr> readExprTerm(ParserContext &);
+	std::shared_ptr<lang::Expr> readExprTermInner(ParserContext &);
+
+	std::shared_ptr<lang::Expr> readExprPrimary(ParserContext &);
 
 	// char and numerical parsing
-	shared_ptr<Expr> readConstExpr();
+	std::shared_ptr<lang::Expr> readConstExpr();
 
 	// creates unresolved var type
-	shared_ptr<Var> unresolvedVar(Token);
+	std::shared_ptr<lang::Var> unresolvedVar(Token);
 
-	shared_ptr<Stmt> readStmtBlock(ParserContext &);
-	shared_ptr<Stmt> readStmt(ParserContext &);
-	shared_ptr<Type> readType();
-	shared_ptr<Type> readTypeInner();
+	std::shared_ptr<lang::Stmt> readStmtBlock(ParserContext &);
+	std::shared_ptr<lang::Stmt> readStmt(ParserContext &);
+	std::shared_ptr<lang::Type> readType();
+	std::shared_ptr<lang::Type> readTypeInner();
 
 
-	shared_ptr<Stmt> readVariableAssign(ParserContext &);
+	std::shared_ptr<lang::Stmt> readVariableAssign(ParserContext &);
 
 	/*
-	 * const
+	 * TODO make static
 	 */
-	shared_ptr<Expr> intzero;
-	shared_ptr<Expr> realzero;
-	shared_ptr<Expr> unknownzero;
+	std::shared_ptr<lang::Expr> intzero;
+	std::shared_ptr<lang::Expr> realzero;
+	std::shared_ptr<lang::Expr> unknownzero;
 
-	shared_ptr<Type> stringtype;
-	shared_ptr<Type> nulltype;
-	shared_ptr<Type> booltype;
+	std::shared_ptr<lang::Type> stringtype;
+	std::shared_ptr<lang::Type> nulltype;
+	std::shared_ptr<lang::Type> booltype;
 
-	shared_ptr<Value> nullvalue;
-	shared_ptr<Value> truevalue;
-	shared_ptr<Value> falsevalue;
+	std::shared_ptr<lang::Value> nullvalue;
+	std::shared_ptr<lang::Value> truevalue;
+	std::shared_ptr<lang::Value> falsevalue;
 };
 
-} /* namespace std */
+} /* namespace parser */
+} /* namespace io */
 
 #endif /* PARSER_H_ */

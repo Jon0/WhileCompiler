@@ -26,7 +26,7 @@ WhileObject::WhileObject( shared_ptr<WhileObject> wo ) {
 	type = wo->type;
 }
 
-WhileObject::WhileObject( shared_ptr<X86Program> p, shared_ptr<Type> wt ) {
+WhileObject::WhileObject( shared_ptr<X86Program> p, shared_ptr<lang::Type> wt ) {
 	program = p;
 	w_type = wt;
 	space.ref = 0;
@@ -39,7 +39,7 @@ WhileObject::WhileObject( shared_ptr<X86Program> p, shared_ptr<Type> wt ) {
 
 WhileObject::~WhileObject() {}
 
-shared_ptr<Type> WhileObject::getType() const {
+shared_ptr<lang::Type> WhileObject::getType() const {
 	return w_type;
 }
 
@@ -187,7 +187,7 @@ void WhileObject::assign( shared_ptr<X86Reference> other, bool write ) {
 	}
 }
 
-void WhileObject::assignType( shared_ptr<Type> t, bool write ) {
+void WhileObject::assignType( shared_ptr<lang::Type> t, bool write ) {
 	if (t->nameStr() == "real") {
 		shared_ptr<X86Register> r = program->getFreeMmxRegister();
 		r->assign_itof( valueDirect() );
@@ -276,7 +276,7 @@ shared_ptr<WhileObject> WhileObject::clone() {
 shared_ptr<WhileObject> WhileObject::equiv( shared_ptr<WhileObject> other ) {
 	// use a c function to compare objects
 	shared_ptr<X86Register> r = program->callFunction(equivFunc, arg_list{addrRef(), other->addrRef()});
-	shared_ptr<WhileObject> obj = make_shared<WhileObject>(program, boolType); 	// bool result
+	shared_ptr<WhileObject> obj = make_shared<WhileObject>(program, lang::boolType); 	// bool result
 	obj->initialise( r->ref(), false );
 	return obj;
 
@@ -299,12 +299,12 @@ string WhileObject::debug() {
 		return result;
 }
 
-int WhileObject::getTypeSize(shared_ptr<Type> t) {
+int WhileObject::getTypeSize(shared_ptr<lang::Type> t) {
 	// all while types are 8+8 bytes
 	return 16;
 }
 
-int WhileObject::getTypeTag(shared_ptr<Type> t) {
+int WhileObject::getTypeTag(shared_ptr<lang::Type> t) {
 	if ( t->nameStr() == "null") {
 		return 1;
 	}
@@ -337,11 +337,12 @@ WhileList::WhileList( shared_ptr<WhileList> wo ):
 	inner_type = wo->inner_type;
 }
 
-WhileList::WhileList( shared_ptr<X86Program> p, shared_ptr<Type> wt ):
+WhileList::WhileList( shared_ptr<X86Program> p, shared_ptr<lang::Type> wt ):
 		WhileObject(p, wt) {
-	shared_ptr<ListType> n = static_pointer_cast<ListType, Type>( wt );
+	auto n = static_pointer_cast<lang::ListType, lang::Type>( wt );
 	inner_type = n->innerType();
 }
+
 WhileList::~WhileList() {}
 
 void WhileList::initialise(shared_ptr<X86Reference> v, bool write) {
@@ -357,7 +358,7 @@ void WhileList::initialise(shared_ptr<X86Reference> v, bool write) {
 
 
 	// set length
-	shared_ptr<WhileObject> l = make_shared<WhileObject>(program, intType);
+	shared_ptr<WhileObject> l = make_shared<WhileObject>(program, lang::intType);
 	length(l);
 	program->addInstruction( "text", make_shared<InstrMov>( make_shared<X86ConstRef>(4), l->tagRef() ) );
 	program->addInstruction( "text", make_shared<InstrMov>( v, l->valueRef() ) );
@@ -396,7 +397,7 @@ void WhileList::get(shared_ptr<WhileObject> inout, shared_ptr<X86Reference> ref)
 WhileRecord::WhileRecord( shared_ptr<WhileRecord> wo ):
 			WhileObject( wo ) {}
 
-WhileRecord::WhileRecord( shared_ptr<X86Program> p, shared_ptr<Type> wt ):
+WhileRecord::WhileRecord( shared_ptr<X86Program> p, shared_ptr<lang::Type> wt ):
 		WhileObject(p, wt) {}
 
 WhileRecord::~WhileRecord() {}
@@ -418,7 +419,7 @@ void WhileRecord::initialise(shared_ptr<X86Reference> v, bool write) {
 	}
 }
 
-shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<Type> wt) {
+shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<lang::Type> wt) {
 	if (wt->isList()) {
 		return make_shared<WhileList>(p, wt);
 	}

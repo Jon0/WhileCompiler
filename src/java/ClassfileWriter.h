@@ -16,6 +16,9 @@ namespace std {
 
 class Classfile;
 
+/**
+ * saves a classfile to a file
+ */
 class ClassfileWriter {
 public:
 	ClassfileWriter(shared_ptr<Classfile>, string, string);

@@ -15,7 +15,8 @@
 #include "Func.h"
 #include "SyntaxElem.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 typedef map<string, shared_ptr<Func>> FuncMap;
 
@@ -43,6 +44,6 @@ private:
 
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* PROGRAM_H_ */

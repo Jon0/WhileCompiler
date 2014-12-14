@@ -17,7 +17,7 @@
 
 namespace std {
 
-string JavaDescriptor(shared_ptr<Type> t) {
+string JavaDescriptor(shared_ptr<lang::Type> t) {
 	if (t->nameStr() == "int") {
 		return "I";
 	}
@@ -31,7 +31,7 @@ string JavaDescriptor(shared_ptr<Type> t) {
 		return "D";
 	}
 	else if (t->isList()) {
-		shared_ptr<ListType> lt = static_pointer_cast<ListType, Type>( t );
+		auto lt = static_pointer_cast<lang::ListType, lang::Type>( t );
 
 		return "["+JavaDescriptor(lt->innerType());
 	}
@@ -41,7 +41,7 @@ string JavaDescriptor(shared_ptr<Type> t) {
 	return "Unknown";
 }
 
-string JavaDescriptor(shared_ptr<Func> f) {
+string JavaDescriptor(shared_ptr<lang::Func> f) {
 	string desc = "(";
 	for (int i = 0; i < f->numArgs(); ++i) {
 		desc += JavaDescriptor( f->argType(i) );
@@ -52,40 +52,7 @@ string JavaDescriptor(shared_ptr<Func> f) {
 }
 
 ConstantPool::ConstantPool() {
-	add(NULL);	// reserve
-//	add(make_shared<UTF8>("java/lang/Object"));		// #1
-//	add(make_shared<UTF8>("rubbish"));				// #2
-//	add(make_shared<JClass>(1));					// #3
-//	add(make_shared<JClass>(2));					// #4
-//
-//	add(make_shared<UTF8>("Code"));
-//
-//	// //FieldRef(Class(Utf8("java/lang/System")), NameType(Utf8("out"), Utf8("Ljava/io/PrintStream;")))
-//	add(make_shared<UTF8>("java/lang/System")); 	// #6
-//	add(make_shared<JClass>(6));					// #7
-//	add(make_shared<UTF8>("out"));						// #8
-//	add(make_shared<UTF8>("Ljava/io/PrintStream;"));	// #9
-//	add(make_shared<JNameType>(8, 9));				// #10
-//	add(make_shared<JFieldRef>(7, 10));					// #11
-//
-//	//MethodRef(Class(Utf8("java/io/PrintStream")), NameType(Utf8("println"), Utf8("(Ljava/lang/String;)V")))
-//	add(make_shared<UTF8>("java/io/PrintStream")); 	// #12
-//	add(make_shared<JClass>(12));					// #13
-//	add(make_shared<UTF8>("println"));					// #14
-//	add(make_shared<UTF8>("(Ljava/lang/String;)V"));	// #15
-//	add(make_shared<JNameType>(14, 15));				// #16
-//	add(make_shared<JMethodRef>(13, 16));				// #17
-//
-//	// integer version
-//	add(make_shared<UTF8>("(I)V"));	// #18
-//	add(make_shared<JNameType>(14, 18));				// #19
-//	add(make_shared<JMethodRef>(13, 19));				// #20
-//
-//	// boolean const strings
-//	add(make_shared<UTF8>("true"));						// #21
-//	add(make_shared<JString>(21));						// #22
-//	add(make_shared<UTF8>("false"));					// #23
-//	add(make_shared<JString>(23));						// #24
+	add(NULL);	// reserve as in java spec
 }
 
 ConstantPool::~ConstantPool() {}
@@ -111,7 +78,7 @@ void ConstantPool::add(shared_ptr<Constant> c) {
 
 	if (c) {
 		c->setIndex(constant_pool.size() - 1);
-		table.insert( map<string, int>::value_type( c->lookupStr(), constant_pool.size() - 1 ) );
+		table.insert( {c->lookupStr(), constant_pool.size() - 1} );
 	}
 }
 
@@ -169,7 +136,7 @@ string ConstantPool::debug() {
 short ConstantPool::lookup(int v) {
 	for (short i = 0; i < constant_pool.size(); ++i) {
 		if (constant_pool[i] && constant_pool[i]->typeStr() == "integer" ) {
-			shared_ptr<JInteger> js = static_pointer_cast<JInteger, Constant>( constant_pool[i] );
+			auto js = static_pointer_cast<JInteger, Constant>( constant_pool[i] );
 			if ( js->getValue() == v ) return i;
 		}
 	}
@@ -186,7 +153,7 @@ short ConstantPool::lookupType(string t, string s) {
 	return 0;
 }
 
-void ConstantPool::accept(shared_ptr<Func> f) {
+void ConstantPool::accept(shared_ptr<lang::Func> f) {
 	add(make_shared<UTF8>( f->name() ));
 
 	if ( f->name() == "main" ) {
@@ -202,10 +169,10 @@ void ConstantPool::accept(shared_ptr<Func> f) {
 	//f->getStmt()->visit(shared_from_this());
 }
 
-void ConstantPool::accept(shared_ptr<ConstExpr> ex) {
+void ConstantPool::accept(shared_ptr<lang::ConstExpr> ex) {
 	// const should be a primative type
-	shared_ptr<Value> v = ex->getValue();
-	shared_ptr<Type> t = v->type();
+	auto v = ex->getValue();
+	auto t = v->type();
 
 	if ( t->nameStr() == "string") {
 		string s = ex->getValue()->asString();
@@ -213,7 +180,7 @@ void ConstantPool::accept(shared_ptr<ConstExpr> ex) {
 		add(make_shared<JString>( s ));
 	}
 	else if ( t->nameStr() == "int" || t->nameStr() == "char" ) {
-		shared_ptr<TypedValue<int>> intv = static_pointer_cast<TypedValue<int>, Value>( v );
+		auto intv = static_pointer_cast<lang::TypedValue<int>, lang::Value>( v );
 		int i = intv->value();
 		add(make_shared<JInteger>(i));
 	}

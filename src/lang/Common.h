@@ -13,7 +13,7 @@
 
 #include "SyntaxElem.h"
 
-namespace std {
+namespace lang {
 
 extern bool debug;
 
@@ -28,16 +28,16 @@ struct StmtStatus {
 
 struct AssignState {
 	bool defAssign;
-	shared_ptr<Type> type;
+	std::shared_ptr<Type> type;
 };
 
 struct CheckState {
-	map<string, AssignState> assigned; // TODO scope
-	shared_ptr<Type> to_return;
+	std::map<std::string, AssignState> assigned; // TODO scope
+	std::shared_ptr<Type> to_return;
 	bool returned;
 };
 
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* COMMON_H_ */

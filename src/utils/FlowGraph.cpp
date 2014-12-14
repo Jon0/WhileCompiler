@@ -19,44 +19,44 @@ FlowGraph::~FlowGraph() {
 	// TODO Auto-generated destructor stub
 }
 
-void FlowGraph::accept(shared_ptr<Type>) {}
-void FlowGraph::accept(shared_ptr<Value>) {}
-void FlowGraph::accept(shared_ptr<Func>) {}
+void FlowGraph::accept(shared_ptr<lang::Type>) {}
+void FlowGraph::accept(shared_ptr<lang::Value>) {}
+void FlowGraph::accept(shared_ptr<lang::Func>) {}
 
 /* create flow for each function */
-void FlowGraph::accept(shared_ptr<Program> p) {
-	FuncMap fm = p->getFuncMap();
+void FlowGraph::accept(shared_ptr<lang::Program> p) {
+	auto fm = p->getFuncMap();
 
-	for ( FuncMap::value_type func: fm ) {
+	for ( lang::FuncMap::value_type &func: fm ) {
 		//func.first
 	}
 }
 
-void FlowGraph::accept(shared_ptr<BlockStmt>) {}
-void FlowGraph::accept(shared_ptr<InitStmt>) {}
-void FlowGraph::accept(shared_ptr<AssignStmt>) {}
-void FlowGraph::accept(shared_ptr<IfStmt>) {}
-void FlowGraph::accept(shared_ptr<WhileStmt>) {}
-void FlowGraph::accept(shared_ptr<ForStmt>) {}
-void FlowGraph::accept(shared_ptr<PrintStmt>) {}
-void FlowGraph::accept(shared_ptr<EvalStmt>) {}
-void FlowGraph::accept(shared_ptr<ReturnStmt>) {}
-void FlowGraph::accept(shared_ptr<BreakStmt>) {}
-void FlowGraph::accept(shared_ptr<SwitchStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::BlockStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::InitStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::AssignStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::IfStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::WhileStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::ForStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::PrintStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::EvalStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::ReturnStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::BreakStmt>) {}
+void FlowGraph::accept(shared_ptr<lang::SwitchStmt>) {}
 
-void FlowGraph::accept(shared_ptr<ConstExpr>) {}
-void FlowGraph::accept(shared_ptr<IsTypeExpr>) {}
-void FlowGraph::accept(shared_ptr<VariableExpr>) {}
-void FlowGraph::accept(shared_ptr<FuncCallExpr>) {}
-void FlowGraph::accept(shared_ptr<RecordExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::ConstExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::IsTypeExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::VariableExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::FuncCallExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::RecordExpr>) {}
 
-void FlowGraph::accept(shared_ptr<ListExpr>) {}
-void FlowGraph::accept(shared_ptr<ListLengthExpr>) {}
-void FlowGraph::accept(shared_ptr<ConcatExpr>) {}
-void FlowGraph::accept(shared_ptr<ListLookupExpr>) {}
-void FlowGraph::accept(shared_ptr<RecordMemberExpr>) {}
-void FlowGraph::accept(shared_ptr<BasicCastExpr>) {}
-void FlowGraph::accept(shared_ptr<AbstractOpExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::ListExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::ListLengthExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::ConcatExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::ListLookupExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::RecordMemberExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::BasicCastExpr>) {}
+void FlowGraph::accept(shared_ptr<lang::AbstractOpExpr>) {}
 
 } /* namespace std */
 

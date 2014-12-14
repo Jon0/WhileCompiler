@@ -9,16 +9,19 @@
 
 #include "Token.h"
 
-namespace std {
+namespace io {
+namespace parser {
+using namespace std;
 
 Token::Token() {}
 
-Token::Token(string s, string fn, int l, string lc, int cn) {
-	input_text = s;
-	filename = fn;
-	line_num = l;
-	line_copy = lc;
-	char_num = cn;
+Token::Token(string primary_value, string file, int line_ind, string context, int char_ind)
+	:
+	input_text {primary_value},
+	filename {file},
+	line_num {line_ind},
+	line_copy {context},
+	char_num {char_ind} {
 }
 
 Token::~Token() {}
@@ -88,9 +91,6 @@ string makeErrorMsgA(vector<Token> &toks, string s) {
 	result += t.lineText();
 	result += "\n";
 
-
-
-
 	int spos = t.charNum() - t.text().length();
 	int epos = t.charNum();
 	for (Token &tt: toks) {
@@ -103,4 +103,5 @@ string makeErrorMsgA(vector<Token> &toks, string s) {
 	return result;
 }
 
-} /* namespace std */
+} /* namespace parser */
+} /* namespace io */

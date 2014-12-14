@@ -12,23 +12,52 @@
 #include <string>
 #include <vector>
 
-namespace std {
+namespace io {
+namespace parser {
+using namespace std;
 
-
-
+/**
+ * token tracks file origin and the line and char indexes
+ */
 class Token {
 public:
 	Token();
-	Token(string, string, int, string, int);
+	Token(std::string primary_value, std::string file, int line_ind, std::string context, int char_ind);
 	virtual ~Token();
 
+	/**
+	 * check for a char in the primary token value
+	 */
 	bool contains(char);
+
+	/**
+	 * returns the primary token value
+	 */
 	string text() const;
+
+	/**
+	 * file from which token was read
+	 */
 	string file() const;
+
+	/**
+	 * line in the file the token occured on
+	 */
 	int lineNum() const;
+
+	/**
+	 * the complete line containing the token for context
+	 */
 	string lineText() const;
+
+	/**
+	 * the character index the token begins on from the complete line
+	 */
 	int charNum() const;
 
+	/**
+	 * compares only the primary token value
+	 */ 
 	bool operator==(const Token &other) const;
 
 private:
@@ -60,6 +89,7 @@ public:
 	TokenException(vector<Token> &t, string s): runtime_error(makeErrorMsgA(t, s)) {}
 };
 
-} /* namespace std */
+} /* namespace parser */
+} /* namespace io */
 
 #endif /* TOKEN_H_ */

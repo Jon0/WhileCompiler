@@ -24,11 +24,11 @@ public:
 	void runTest(string, string);
 
 private:
-	Pipe p;
+	io::Pipe p;
 	int passed, completed, total;
 
-	string runX86(shared_ptr<Program>);
-	string runJava(shared_ptr<Program>);
+	string runX86(shared_ptr<lang::Program>);
+	string runJava(shared_ptr<lang::Program>);
 };
 
 } /* namespace std */

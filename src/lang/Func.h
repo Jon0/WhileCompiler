@@ -16,7 +16,8 @@
 #include "SyntaxElem.h"
 #include "Var.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 class Expr;
 class Stmt;

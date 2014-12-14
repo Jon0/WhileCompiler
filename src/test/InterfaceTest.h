@@ -1,10 +1,3 @@
-/*
- * InterfaceTest.h
- *
- *  Created on: 30/05/2014
- *      Author: remnanjona
- */
-
 #ifndef INTERFACETEST_H_
 #define INTERFACETEST_H_
 

@@ -1,0 +1,6 @@
+void main() {
+	[int] a = [8,4,5];
+	a[0] = a[0] + 9;
+	print a[0];
+	print a[1];
+}

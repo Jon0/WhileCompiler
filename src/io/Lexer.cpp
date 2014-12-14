@@ -5,7 +5,9 @@
 
 #include "Lexer.h"
 
-namespace std {
+namespace io {
+namespace parser {
+using namespace std;
 
 Lexer::Lexer(string s): Lexer(s.c_str()){}
 
@@ -202,4 +204,5 @@ void Lexer::skipRestOfComment() {
 	}
 }
 
-} /* namespace std */
+} /* namespace parser */
+} /* namespace io */

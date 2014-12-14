@@ -1,35 +1,26 @@
-/*
- * Directory.cpp
- *
- *  Created on: 29/05/2014
- *      Author: remnanjona
- */
-
 #include <iostream>
 #include <dirent.h>
 
 #include "Directory.h"
 
-namespace std {
+namespace io {
 
-Directory::Directory(string l) {
-	loc = l;
-
+Directory::Directory(std::string l)
+	:
+	loc {l} {
 }
 
-Directory::~Directory() {
-	// TODO Auto-generated destructor stub
-}
+Directory::~Directory() {}
 
-vector<string> Directory::fileList(string type) {
-	vector<string> names;
+std::vector<std::string> Directory::fileList(std::string type) {
+	std::vector<std::string> names;
 
 	DIR *dir;
 	struct dirent *ent;
 	if ((dir = opendir(loc.c_str())) != NULL) {
 		/* print all the files and directories within directory */
 		while ((ent = readdir(dir)) != NULL) {
-			string filename = ent->d_name;
+			std::string filename = ent->d_name;
 			size_t ind = filename.find(".");
 
 			//cout << "split " << filename.substr(0, ind) << " and " << filename.substr(ind+1) << endl;
@@ -45,4 +36,4 @@ vector<string> Directory::fileList(string type) {
 	return names;
 }
 
-} /* namespace std */
+} /* namespace io */

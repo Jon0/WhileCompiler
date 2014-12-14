@@ -1,10 +1,3 @@
-/*
- * JavaFunction.cpp
- *
- *  Created on: 19/06/2014
- *      Author: remnanjona
- */
-
 #include <iostream>
 
 #include "Bytecode.h"

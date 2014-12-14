@@ -10,16 +10,20 @@
 
 #include <string>
 
-namespace std {
+namespace io {
 
 class Pipe {
 public:
 	Pipe();
 	virtual ~Pipe();
 
-	string exec(string);
+	/**
+	 * executes a command in the current working directory
+	 * and returns the result of the command
+	 */ 
+	std::string exec(std::string);
 };
 
-} /* namespace std */
+} /* namespace io */
 
 #endif /* PIPE_H_ */

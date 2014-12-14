@@ -13,9 +13,12 @@
 #include "X86Program.h"
 #include "X86StackFrame.h"
 
+namespace lang {
+	class Type;
+}
+
 namespace std {
 
-class Type;
 class X86Program;
 class X86Register;
 class WhileObject;
@@ -23,7 +26,7 @@ class WhileObject;
 /*
  * construct correct type - object, list or record
  */
-shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<Type> wt);
+shared_ptr<WhileObject> make_obj(shared_ptr<X86Program> p, shared_ptr<lang::Type> wt);
 
 shared_ptr<WhileObject> copy_obj_readonly(shared_ptr<WhileObject>);
 
@@ -45,10 +48,10 @@ static shared_ptr<X86Function> appendFunc = make_shared<X86Function>("append", t
 class WhileObject: public enable_shared_from_this<WhileObject> {
 public:
 	WhileObject( shared_ptr<WhileObject> );
-	WhileObject( shared_ptr<X86Program>, shared_ptr<Type> );
+	WhileObject( shared_ptr<X86Program>, shared_ptr<lang::Type> );
 	virtual ~WhileObject();
 
-	shared_ptr<Type> getType() const;
+	shared_ptr<lang::Type> getType() const;
 
 	// read only
 	bool isReadOnly();
@@ -74,7 +77,7 @@ public:
 	// ...
 	void assign( shared_ptr<WhileObject>, bool );
 	void assign( shared_ptr<X86Reference>, bool );
-	void assignType( shared_ptr<Type>, bool );
+	void assignType( shared_ptr<lang::Type>, bool );
 	void writeMem();
 
 	// direct references -- use for reading
@@ -95,14 +98,14 @@ public:
 
 	virtual string debug();
 
-	static int getTypeSize(shared_ptr<Type> t);
-	static int getTypeTag(shared_ptr<Type> t);
+	static int getTypeSize(shared_ptr<lang::Type> t);
+	static int getTypeTag(shared_ptr<lang::Type> t);
 
 protected:
 	shared_ptr<X86Program> program;
 
 	// while type of this object
-	shared_ptr<Type> w_type;
+	shared_ptr<lang::Type> w_type;
 
 	// memory space
 	mem_space space;
@@ -122,7 +125,7 @@ protected:
 class WhileList: public WhileObject {
 public:
 	WhileList( shared_ptr<WhileList> );
-	WhileList( shared_ptr<X86Program>, shared_ptr<Type> );
+	WhileList( shared_ptr<X86Program>, shared_ptr<lang::Type> );
 	virtual ~WhileList();
 
 	virtual void initialise(shared_ptr<X86Reference>, bool write);
@@ -145,13 +148,13 @@ public:
 	}
 
 private:
-	shared_ptr<Type> inner_type;
+	shared_ptr<lang::Type> inner_type;
 };
 
 class WhileRecord: public WhileObject {
 public:
 	WhileRecord( shared_ptr<WhileRecord> );
-	WhileRecord( shared_ptr<X86Program>, shared_ptr<Type> );
+	WhileRecord( shared_ptr<X86Program>, shared_ptr<lang::Type> );
 	virtual ~WhileRecord();
 
 	virtual void initialise(shared_ptr<X86Reference>, bool write);

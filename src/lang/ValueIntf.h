@@ -1,7 +1,8 @@
 #ifndef VALUEINTF_H_
 #define VALUEINTF_H_
 
-namespace std {
+namespace lang {
+using namespace std;
 
 class Type;
 
@@ -41,6 +42,6 @@ typedef vector<shared_ptr<Value>> Stack;
 typedef vector<shared_ptr<Value>> ValueList;
 typedef map<string, shared_ptr<Value>> ValueRecord;
 
-}
+} /* namespace lang */
 
 #endif /* VALUEINTF_H_ */

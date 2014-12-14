@@ -1,29 +1,28 @@
-/*
- * Directory.h
- *
- *  Created on: 29/05/2014
- *      Author: remnanjona
- */
-
 #ifndef DIRECTORY_H_
 #define DIRECTORY_H_
 
 #include <string>
 #include <vector>
 
-namespace std {
+namespace io {
 
+/**
+ * A file directory
+ */
 class Directory {
 public:
-	Directory(string);
+	Directory(std::string);
 	virtual ~Directory();
 
-	vector<string> fileList(string);
+	/**
+	 * read all files with a given extension
+	 */
+	std::vector<std::string> fileList(std::string);
 
 private:
-	string loc;
+	std::string loc;
 };
 
-} /* namespace std */
+} /* namespace io */
 
 #endif /* DIRECTORY_H_ */

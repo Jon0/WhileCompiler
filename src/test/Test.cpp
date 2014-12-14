@@ -65,8 +65,8 @@ void Test::runTest(string in, string out) {
 		string cmpExt = ".sysout";
 
 		// read while program
-		Lexer lex(in+inExt);
-		Parser parser(lex);
+		io::parser::Lexer lex(in+inExt);
+		io::parser::WhileParser parser(lex);
 		string outStr = runJava( parser.read() );
 
 		// read expected output
@@ -104,7 +104,7 @@ void Test::runTest(string in, string out) {
 	completed++;
 }
 
-string Test::runX86(shared_ptr<Program> input) {
+string Test::runX86(shared_ptr<lang::Program> input) {
 	// convert to a x86 assembly program
 	shared_ptr<X86Program> x86prog = make_shared<X86Program>();
 	shared_ptr<WhileToX86> converter = make_shared<WhileToX86>(x86prog, true);
@@ -118,7 +118,7 @@ string Test::runX86(shared_ptr<Program> input) {
 	return p.exec("./"+writer->filepath());
 }
 
-string Test::runJava(shared_ptr<Program> program) {
+string Test::runJava(shared_ptr<lang::Program> program) {
 	cout << "writing file " << program->getProgramName() << ".class" << endl;
 	ClassfileWriter out( "bin/" + program->getProgramName()+ ".class" );
 

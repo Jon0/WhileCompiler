@@ -23,8 +23,8 @@ class Constant;
 class Type;
 class Func;
 
-string JavaDescriptor(shared_ptr<Type>);
-string JavaDescriptor(shared_ptr<Func>);
+string JavaDescriptor(shared_ptr<lang::Type>);
+string JavaDescriptor(shared_ptr<lang::Func>);
 
 class ConstantPool: public enable_shared_from_this<ConstantPool> {
 public:
@@ -34,12 +34,24 @@ public:
 	short size();
 
 	/*
-	 * add if not available, returns index
+	 * add if not available, returns index 
+	 * of the existing or added constant
 	 */
 	short use(shared_ptr<Constant>);
 
+	/**
+	 * add without any checks
+	 */
 	void add(shared_ptr<Constant>);
+
+	/**
+	 * find index, return negative when not found
+	 */
 	short find(shared_ptr<Constant>);
+
+	/**
+	 * true if constant is contained
+	 */
 	bool contains(shared_ptr<Constant>);
 
 	bytecode getByteCode();
@@ -52,9 +64,9 @@ public:
 	short lookup(string);
 	short lookupType(string, string);
 
-	void accept(shared_ptr<Func>);
+	void accept(shared_ptr<lang::Func>);
 
-	void accept(shared_ptr<ConstExpr>);
+	void accept(shared_ptr<lang::ConstExpr>);
 
 
 private:

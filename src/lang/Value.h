@@ -1,10 +1,3 @@
-/*
- * Value.h
- *
- *  Created on: 17/03/2014
- *      Author: remnanjona
- */
-
 #ifndef VALUE_H_
 #define VALUE_H_
 
@@ -17,7 +10,8 @@
 #include "TypeIntf.h"
 #include "ValueIntf.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 class NullValue: public Value {
 public:
@@ -166,6 +160,6 @@ template<class T> shared_ptr<Value> makeValue(shared_ptr<Type> t, T in) {
 	return shared_ptr<Value>(new TypedValue<T>( t, in ));
 }
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* VALUE_H_ */

@@ -1,10 +1,3 @@
-/*
- * Bytecode.cpp
- *
- *  Created on: 19/04/2014
- *      Author: asdf
- */
-
 #include <iostream>
 
 #include "../lang/Program.h"
@@ -16,11 +9,12 @@
 
 namespace std {
 
-WhileToJava::WhileToJava(ClassfileWriter &o, ConstantPool &v): out(o), constant_pool(v) {}
+WhileToJava::WhileToJava(shared_ptr<Classfile> prog, bool debug)
+	:
+	classfile(prog), 
+	constant_pool(*prog->getConstPool()) {}
 
-WhileToJava::~WhileToJava() {
-	// TODO Auto-generated destructor stub
-}
+WhileToJava::~WhileToJava() {}
 
 int WhileToJava::stackSize() {
 	int total = 0;
@@ -61,24 +55,28 @@ void WhileToJava::addInstruction4(unsigned char code, unsigned int arg) {
 	istack.push_back(i);
 }
 
-void WhileToJava::accept(shared_ptr<Type>) {}
-void WhileToJava::accept(shared_ptr<Value>) {}
+void WhileToJava::accept(shared_ptr<lang::Type>) {}
+void WhileToJava::accept(shared_ptr<lang::Value>) {}
 
-void WhileToJava::accept(shared_ptr<Program> p) {
+void WhileToJava::accept(shared_ptr<lang::Program> p) {
+	classfile->initialise( p->getProgramName() );
 
+	// go to functions
+	p->visitChildren( shared_from_this() );
 }
 
-void WhileToJava::accept(shared_ptr<Func> f) {
-
+void WhileToJava::accept(shared_ptr<lang::Func> f) {
+	classfile->beginFunction("main");
+	classfile->call();
 }
 
-void WhileToJava::accept(shared_ptr<BlockStmt> bs) {
-	for (shared_ptr<Stmt> s: bs->getStmt()) {
+void WhileToJava::accept(shared_ptr<lang::BlockStmt> bs) {
+	for (shared_ptr<lang::Stmt> s: bs->getStmt()) {
 		s->visit(shared_from_this());
 	}
 }
 
-void WhileToJava::accept(shared_ptr<InitStmt> is) {
+void WhileToJava::accept(shared_ptr<lang::InitStmt> is) {
 	// map name to store number
 	local_map.insert( map<string, int>::value_type(is->getVar().name(), num_locals) );
 	local_type.push_back( is->getVar().type() );
@@ -104,12 +102,12 @@ void WhileToJava::accept(shared_ptr<InitStmt> is) {
 	num_locals += 1;
 }
 
-void WhileToJava::accept(shared_ptr<AssignStmt> as) {
+void WhileToJava::accept(shared_ptr<lang::AssignStmt> as) {
 	// find name being assigned to
-	shared_ptr<Expr> e = as->getLHS();
-	shared_ptr<Var> var = e->assignable();
+	auto e = as->getLHS();
+	auto var = e->assignable();
 	int ind = local_map[var->name()];
-	shared_ptr<Type> t = local_type[ind];
+	auto t = local_type[ind];
 
 	as->getRHS()->visit( shared_from_this() );	// pushes value
 
@@ -123,7 +121,7 @@ void WhileToJava::accept(shared_ptr<AssignStmt> as) {
 }
 
 
-void WhileToJava::accept(shared_ptr<IfStmt> is) {
+void WhileToJava::accept(shared_ptr<lang::IfStmt> is) {
 	is->getExpr()->visit( shared_from_this() );
 	int instructionNo = istack.size();
 	int marker = stackSize();
@@ -150,7 +148,7 @@ void WhileToJava::accept(shared_ptr<IfStmt> is) {
 	}
 }
 
-void WhileToJava::accept(shared_ptr<WhileStmt> ws) {
+void WhileToJava::accept(shared_ptr<lang::WhileStmt> ws) {
 	int marker1 = stackSize();
 	ws->getExpr()->visit( shared_from_this() );
 
@@ -165,7 +163,7 @@ void WhileToJava::accept(shared_ptr<WhileStmt> ws) {
 	istack[instructionNo].modifyArg2(stackSize() - marker2);
 }
 
-void WhileToJava::accept(shared_ptr<ForStmt> fs) {
+void WhileToJava::accept(shared_ptr<lang::ForStmt> fs) {
 	fs->getInit()->visit( shared_from_this() );
 
 	int marker1 = stackSize();
@@ -182,11 +180,11 @@ void WhileToJava::accept(shared_ptr<ForStmt> fs) {
 	istack[instructionNo].modifyArg2(stackSize() - marker2);
 }
 
-void WhileToJava::accept(shared_ptr<PrintStmt> ps) {
+void WhileToJava::accept(shared_ptr<lang::PrintStmt> ps) {
 	addInstruction2(0xb2, 11); // push output stream
 
 	ps->getExpr()->visit(shared_from_this()); // should add item to print
-	shared_ptr<Type> inner_type = ps->getExpr()->getType();
+	auto inner_type = ps->getExpr()->getType();
 
 	if ( inner_type->nameStr() == "int" || inner_type->nameStr() == "char") {
 		addInstruction2(0xb6, 20); // invoke println for int or char
@@ -203,15 +201,15 @@ void WhileToJava::accept(shared_ptr<PrintStmt> ps) {
 	}
 }
 
-void WhileToJava::accept(shared_ptr<EvalStmt> es) {
+void WhileToJava::accept(shared_ptr<lang::EvalStmt> es) {
 	es->visitChildren( shared_from_this() );
 }
 
-void WhileToJava::accept(shared_ptr<ReturnStmt> r) {
+void WhileToJava::accept(shared_ptr<lang::ReturnStmt> r) {
 	r->visitChildren( shared_from_this() );
 
 	if ( r->hasExpr() ) {
-		shared_ptr<Type> rtype = r->getExpr()->getType();
+		auto rtype = r->getExpr()->getType();
 
 		if (rtype->nameStr() == "string") {
 			addInstruction(0xb0); // areturn
@@ -226,11 +224,11 @@ void WhileToJava::accept(shared_ptr<ReturnStmt> r) {
 }
 
 
-void WhileToJava::accept(shared_ptr<BreakStmt>) {}
-void WhileToJava::accept(shared_ptr<SwitchStmt>) {}
+void WhileToJava::accept(shared_ptr<lang::BreakStmt>) {}
+void WhileToJava::accept(shared_ptr<lang::SwitchStmt>) {}
 
-void WhileToJava::accept(shared_ptr<ConstExpr> ex) {
-	shared_ptr<Value> v = ex->getValue();
+void WhileToJava::accept(shared_ptr<lang::ConstExpr> ex) {
+	auto v = ex->getValue();
 	t_const = v->type();
 	int ind = 0;
 	if ( t_const->nameStr() == "string") {
@@ -238,12 +236,12 @@ void WhileToJava::accept(shared_ptr<ConstExpr> ex) {
 		ind = constant_pool.lookupType("string", s);
 	}
 	else if ( t_const->nameStr() == "int") {
-		shared_ptr<TypedValue<int>> intv = static_pointer_cast<TypedValue<int>, Value>( v );
+		auto intv = static_pointer_cast<lang::TypedValue<int>, lang::Value>( v );
 		int i = intv->value();
 		ind = constant_pool.lookup(i);
 	}
 	else if ( t_const->nameStr() == "bool") {
-		shared_ptr<TypedValue<bool>> intv = static_pointer_cast<TypedValue<bool>, Value>( v );
+		auto intv = static_pointer_cast<lang::TypedValue<bool>, lang::Value>( v );
 		bool i = intv->value();
 		if (i) {
 			addInstruction(0x4); // iconst_1
@@ -262,11 +260,11 @@ void WhileToJava::accept(shared_ptr<ConstExpr> ex) {
 }
 
 
-void WhileToJava::accept(shared_ptr<IsTypeExpr>) {}
+void WhileToJava::accept(shared_ptr<lang::IsTypeExpr>) {}
 
-void WhileToJava::accept(shared_ptr<VariableExpr> v) {
+void WhileToJava::accept(shared_ptr<lang::VariableExpr> v) {
 	int ind = local_map[v->getVar()->name()];
-	shared_ptr<Type> t = local_type[ind];
+	auto t = local_type[ind];
 
 	if ( t->nameStr() == "int" || t->nameStr() == "bool" ) {
 		addInstruction1(0x15, ind); // iload
@@ -276,7 +274,7 @@ void WhileToJava::accept(shared_ptr<VariableExpr> v) {
 	}
 }
 
-void WhileToJava::accept(shared_ptr<FuncCallExpr> f) {
+void WhileToJava::accept(shared_ptr<lang::FuncCallExpr> f) {
 	string mname = f->getFunc()->name();
 	int ind = constant_pool.lookupType("methodref", mname);
 	if (ind == 0) {
@@ -284,17 +282,17 @@ void WhileToJava::accept(shared_ptr<FuncCallExpr> f) {
 	}
 
 	// push args
-	vector<shared_ptr<Expr>> args = f->getArgs();
-	for (shared_ptr<Expr> e: args) {
+	auto args = f->getArgs();
+	for (shared_ptr<lang::Expr> e: args) {
 		e->visit(shared_from_this());
 	}
 
 	addInstruction2(0xb8, ind); // invokestatic
 }
 
-void WhileToJava::accept(shared_ptr<RecordExpr>) {}
+void WhileToJava::accept(shared_ptr<lang::RecordExpr>) {}
 
-void WhileToJava::accept(shared_ptr<ListExpr> l) {
+void WhileToJava::accept(shared_ptr<lang::ListExpr> l) {
 	addInstruction1(0x10, l->size()); // bipush length
 
 	addInstruction1(0xbc, 10); // newarray int
@@ -310,26 +308,26 @@ void WhileToJava::accept(shared_ptr<ListExpr> l) {
 }
 
 
-void WhileToJava::accept(shared_ptr<ListLengthExpr> l) {
+void WhileToJava::accept(shared_ptr<lang::ListLengthExpr> l) {
 	l->visitChildren( shared_from_this() );
 	addInstruction(0xbe); // arraylength
 
 	t_const = l->getType();
 }
 
-void WhileToJava::accept(shared_ptr<ConcatExpr>) {}
+void WhileToJava::accept(shared_ptr<lang::ConcatExpr>) {}
 
-void WhileToJava::accept(shared_ptr<ListLookupExpr> ll) {
+void WhileToJava::accept(shared_ptr<lang::ListLookupExpr> ll) {
 	ll->getExpr()->visit( shared_from_this() );
 	ll->getIndex()->visit( shared_from_this() );
 	addInstruction(0x2e); // iaload
 }
 
 
-void WhileToJava::accept(shared_ptr<RecordMemberExpr>) {}
-void WhileToJava::accept(shared_ptr<BasicCastExpr>) {}
+void WhileToJava::accept(shared_ptr<lang::RecordMemberExpr>) {}
+void WhileToJava::accept(shared_ptr<lang::BasicCastExpr>) {}
 
-void WhileToJava::accept(shared_ptr<AbstractOpExpr> oe) {
+void WhileToJava::accept(shared_ptr<lang::AbstractOpExpr> oe) {
 	oe->getLHS()->visit( shared_from_this() );
 	oe->getRHS()->visit( shared_from_this() );
 
@@ -376,24 +374,24 @@ void WhileToJava::accept(shared_ptr<AbstractOpExpr> oe) {
 
 }
 
-void WhileToJava::accept(shared_ptr<EquivOp>) {}
-void WhileToJava::accept(shared_ptr<NotEquivOp>) {}
+void WhileToJava::accept(shared_ptr<lang::EquivOp>) {}
+void WhileToJava::accept(shared_ptr<lang::NotEquivOp>) {}
 
-void WhileToJava::accept(shared_ptr<AndExpr> oe) {
+void WhileToJava::accept(shared_ptr<lang::AndExpr> oe) {
 	oe->getLHS()->visit( shared_from_this() );
 	oe->getRHS()->visit( shared_from_this() );
 	addInstruction(0x7e); // iand
 }
 
 
-void WhileToJava::accept(shared_ptr<OrExpr> oe) {
+void WhileToJava::accept(shared_ptr<lang::OrExpr> oe) {
 	oe->getLHS()->visit( shared_from_this() );
 	oe->getRHS()->visit( shared_from_this() );
 	addInstruction(0x80); // ior
 }
 
 
-void WhileToJava::accept(shared_ptr<NotExpr> ne) {
+void WhileToJava::accept(shared_ptr<lang::NotExpr> ne) {
 	ne->getExpr()->visit( shared_from_this() );
 
 	addInstruction2(0x99, 7); // ifeq

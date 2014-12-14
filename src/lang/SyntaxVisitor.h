@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace std {
+namespace lang {
 
 class Type;
 class Value;
@@ -42,49 +42,51 @@ class AndExpr;
 class OrExpr;
 class NotExpr;
 
+/**
+ * visits elements in the abstract syntax tree
+ */
 class SyntaxVisitor {
 public:
 	virtual ~SyntaxVisitor() {}
-	virtual void accept(shared_ptr<Type>) = 0;
-	virtual void accept(shared_ptr<Value>) = 0;
+	virtual void accept(std::shared_ptr<Type>) = 0;
+	virtual void accept(std::shared_ptr<Value>) = 0;
 
-	virtual void accept(shared_ptr<Func>) = 0;
-	virtual void accept(shared_ptr<Program>) = 0;
+	virtual void accept(std::shared_ptr<Func>) = 0;
+	virtual void accept(std::shared_ptr<Program>) = 0;
 
-	virtual void accept(shared_ptr<BlockStmt>) = 0;
-	virtual void accept(shared_ptr<InitStmt>) = 0;
-	virtual void accept(shared_ptr<AssignStmt>) = 0;
-	virtual void accept(shared_ptr<IfStmt>) = 0;
-	virtual void accept(shared_ptr<WhileStmt>) = 0;
-	virtual void accept(shared_ptr<ForStmt>) = 0;
-	virtual void accept(shared_ptr<PrintStmt>) = 0;
-	virtual void accept(shared_ptr<EvalStmt>) = 0;
-	virtual void accept(shared_ptr<ReturnStmt>) = 0;
-	virtual void accept(shared_ptr<BreakStmt>) = 0;
-	virtual void accept(shared_ptr<SwitchStmt>) = 0;
+	virtual void accept(std::shared_ptr<BlockStmt>) = 0;
+	virtual void accept(std::shared_ptr<InitStmt>) = 0;
+	virtual void accept(std::shared_ptr<AssignStmt>) = 0;
+	virtual void accept(std::shared_ptr<IfStmt>) = 0;
+	virtual void accept(std::shared_ptr<WhileStmt>) = 0;
+	virtual void accept(std::shared_ptr<ForStmt>) = 0;
+	virtual void accept(std::shared_ptr<PrintStmt>) = 0;
+	virtual void accept(std::shared_ptr<EvalStmt>) = 0;
+	virtual void accept(std::shared_ptr<ReturnStmt>) = 0;
+	virtual void accept(std::shared_ptr<BreakStmt>) = 0;
+	virtual void accept(std::shared_ptr<SwitchStmt>) = 0;
 
-	virtual void accept(shared_ptr<ConstExpr>) = 0;
-	virtual void accept(shared_ptr<IsTypeExpr>) = 0;
-	virtual void accept(shared_ptr<VariableExpr>) = 0;
-	virtual void accept(shared_ptr<FuncCallExpr>) = 0;
+	virtual void accept(std::shared_ptr<ConstExpr>) = 0;
+	virtual void accept(std::shared_ptr<IsTypeExpr>) = 0;
+	virtual void accept(std::shared_ptr<VariableExpr>) = 0;
+	virtual void accept(std::shared_ptr<FuncCallExpr>) = 0;
 
-	virtual void accept(shared_ptr<ListExpr>) = 0;
-	virtual void accept(shared_ptr<ListLengthExpr>) = 0;
-	virtual void accept(shared_ptr<ConcatExpr>) = 0;
-	virtual void accept(shared_ptr<ListLookupExpr>) = 0;
-	virtual void accept(shared_ptr<RecordMemberExpr>) = 0;
-	virtual void accept(shared_ptr<BasicCastExpr>) = 0;
-	virtual void accept(shared_ptr<RecordExpr>) = 0;
-	virtual void accept(shared_ptr<AbstractOpExpr>) = 0;
-	virtual void accept(shared_ptr<EquivOp>) = 0;
-	virtual void accept(shared_ptr<NotEquivOp>) = 0;
-	virtual void accept(shared_ptr<AndExpr>) = 0;
-	virtual void accept(shared_ptr<OrExpr>) = 0;
-	virtual void accept(shared_ptr<NotExpr>) = 0;
-
+	virtual void accept(std::shared_ptr<ListExpr>) = 0;
+	virtual void accept(std::shared_ptr<ListLengthExpr>) = 0;
+	virtual void accept(std::shared_ptr<ConcatExpr>) = 0;
+	virtual void accept(std::shared_ptr<ListLookupExpr>) = 0;
+	virtual void accept(std::shared_ptr<RecordMemberExpr>) = 0;
+	virtual void accept(std::shared_ptr<BasicCastExpr>) = 0;
+	virtual void accept(std::shared_ptr<RecordExpr>) = 0;
+	virtual void accept(std::shared_ptr<AbstractOpExpr>) = 0;
+	virtual void accept(std::shared_ptr<EquivOp>) = 0;
+	virtual void accept(std::shared_ptr<NotEquivOp>) = 0;
+	virtual void accept(std::shared_ptr<AndExpr>) = 0;
+	virtual void accept(std::shared_ptr<OrExpr>) = 0;
+	virtual void accept(std::shared_ptr<NotExpr>) = 0;
 
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* VISITOR_H_ */

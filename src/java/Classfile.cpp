@@ -1,10 +1,3 @@
-/*
- * Classfile.cpp
- *
- *  Created on: 2/05/2014
- *      Author: remnanjona
- */
-
 #include <iostream>
 
 #include "../lang/Program.h"
@@ -16,16 +9,19 @@
 
 namespace std {
 
-Classfile::Classfile(){
-	cp = make_shared<ConstantPool>();
-	thisclass = cp->use( make_shared<JClass>("rubbish") );
-	superclass = cp->use( make_shared<JClass>("java/lang/Object") );
-}
+Classfile::Classfile(){}
 
 Classfile::~Classfile() {}
 
-void Classfile::beginFunction( string s ) {
-	functions.insert( map<string, shared_ptr<JavaFunction>>::value_type(s, make_shared<JavaFunction>(cp) ) );
+void Classfile::initialise( string class_name ) {
+	class_name_str = class_name;
+	cp = make_shared<ConstantPool>();
+	thisclass = cp->use( make_shared<JClass>(class_name_str) );
+	superclass = cp->use( make_shared<JClass>("java/lang/Object") );
+}
+
+void Classfile::beginFunction( string func_name ) {
+	functions.insert( map<string, shared_ptr<JavaFunction>>::value_type(func_name, make_shared<JavaFunction>(cp) ) );
 }
 
 void Classfile::call() {
@@ -47,7 +43,7 @@ void Classfile::call() {
 }
 
 string Classfile::classname() {
-	return "rubbish";
+	return class_name_str;
 }
 
 shared_ptr<ConstantPool> Classfile::getConstPool() {

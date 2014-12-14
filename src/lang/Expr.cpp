@@ -1,14 +1,15 @@
 #include "Expr.h"
 #include "Func.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 /*
  * throw error if expr is not boolean
  */
 void boolCheck(shared_ptr<Expr> expr) {
 	if (expr->getType()->nameStr() != "bool") {
-		throw TokenException(expr->getTokens(),
+		throw io::parser::TokenException(expr->getTokens(),
 				"expected type bool, found "
 						+ expr->getType()->aliasStr());
 	}
@@ -41,7 +42,7 @@ shared_ptr<Type> findListType(vector<shared_ptr<Expr>> e) {
 	}
 }
 
-FuncCallExpr::FuncCallExpr( Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Expr( tok, f->returnType() ) {
+FuncCallExpr::FuncCallExpr( io::parser::Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a ): Expr( tok, f->returnType() ) {
 	func = f;
 	args = a;
 	for (shared_ptr<Expr> e: args) {
@@ -79,14 +80,14 @@ shared_ptr<Value> FuncCallExpr::eval( Stack &s, VarMap &m, shared_ptr<Value> **p
 
 void FuncCallExpr::typeCheck( CheckState &cs ) {
 	if (func->numArgs() != args.size()) {
-		throw TokenException(getTokens(), "Incorrect number of arguments");
+		throw io::parser::TokenException(getTokens(), "Incorrect number of arguments");
 	}
 
 	int i = 0;
 	for (shared_ptr<Expr> ep: args) {
 		ep->typeCheck(cs);
 		if ( !func->argType(i)->contains( *ep->getType() )) {
-			throw TokenException(ep->getTokens(), "expected type "+func->argType(i)->aliasStr()+", found "+ep->getType()->aliasStr());
+			throw io::parser::TokenException(ep->getTokens(), "expected type "+func->argType(i)->aliasStr()+", found "+ep->getType()->aliasStr());
 		}
 
 		i++;
@@ -94,4 +95,4 @@ void FuncCallExpr::typeCheck( CheckState &cs ) {
 	// TODO check arg types match function
 }
 
-} /* namespace std */
+} /* namespace lang */

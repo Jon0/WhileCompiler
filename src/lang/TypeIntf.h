@@ -10,8 +10,11 @@
 #include "SyntaxElem.h"
 #include "ValueIntf.h"
 
-namespace std {
+namespace lang {
 
+/**
+ * a type which gets determines how variables get used
+ */
 class Type: public SyntaxElem, public enable_shared_from_this<Type> {
 public:
 	virtual ~Type() {}
@@ -31,8 +34,14 @@ public:
 	 */
 	virtual shared_ptr<Type> makeAlias(string) const = 0;
 
+	/**
+	 * the user specified name of the type
+	 */
 	virtual string nameStr() const = 0;
 
+	/**
+	 * the internal name of the type
+	 */
 	virtual string aliasStr() const {
 		if (alias.length() > 0) {
 			return alias;
@@ -82,6 +91,6 @@ private:
 
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* TYPEINTF_H_ */

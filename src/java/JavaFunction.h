@@ -1,10 +1,3 @@
-/*
- * JavaFunction.h
- *
- *  Created on: 19/06/2014
- *      Author: remnanjona
- */
-
 #ifndef JAVAFUNCTION_H_
 #define JAVAFUNCTION_H_
 

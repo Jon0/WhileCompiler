@@ -1,10 +1,3 @@
-/*
- * Classfile.h
- *
- *  Created on: 2/05/2014
- *      Author: remnanjona
- */
-
 #ifndef CLASSFILE_H_
 #define CLASSFILE_H_
 
@@ -27,12 +20,23 @@ enum access_flag {
 	access_static = 8
 };
 
+/**
+ * a java classfile contains compiled bytecode
+ */
 class Classfile: public enable_shared_from_this<Classfile> {
 public:
 	Classfile();
 	virtual ~Classfile();
 
-	void beginFunction( string );
+	/**
+	 * called once to set program name and setup classfile
+	 */
+	void initialise( string class_name );
+
+	/**
+	 * create a function in the classfile
+	 */
+	void beginFunction( string func_name );
 	void call();
 
 	string classname();
@@ -40,8 +44,8 @@ public:
 	vector<unsigned char> getBytes();
 
 private:
-	string class_name;
-	shared_ptr<Program> program;
+	string class_name_str;
+	shared_ptr<lang::Program> program;
 	shared_ptr<ConstantPool> cp;
 	vector<unsigned char> bytes;
 

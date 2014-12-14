@@ -26,46 +26,46 @@ typedef vector<shared_ptr<WhileObject>> objstack;
 class X86Function;
 class X86Program;
 
-class WhileToX86: public SyntaxVisitor, public enable_shared_from_this<WhileToX86> {
+class WhileToX86: public lang::SyntaxVisitor, public enable_shared_from_this<WhileToX86> {
 public:
 	WhileToX86(shared_ptr<X86Program>, bool);
 	virtual ~WhileToX86();
 
-	virtual void accept(shared_ptr<Type>);
-	virtual void accept(shared_ptr<Value>);
-	virtual void accept(shared_ptr<Func>);
-	virtual void accept(shared_ptr<Program>);
+	virtual void accept(shared_ptr<lang::Type>);
+	virtual void accept(shared_ptr<lang::Value>);
+	virtual void accept(shared_ptr<lang::Func>);
+	virtual void accept(shared_ptr<lang::Program>);
 
-	virtual void accept(shared_ptr<BlockStmt>);
-	virtual void accept(shared_ptr<InitStmt>);
-	virtual void accept(shared_ptr<AssignStmt>);
-	virtual void accept(shared_ptr<IfStmt>);
-	virtual void accept(shared_ptr<WhileStmt>);
-	virtual void accept(shared_ptr<ForStmt>);
-	virtual void accept(shared_ptr<PrintStmt>);
-	virtual void accept(shared_ptr<EvalStmt>);
-	virtual void accept(shared_ptr<ReturnStmt>);
-	virtual void accept(shared_ptr<BreakStmt>);
-	virtual void accept(shared_ptr<SwitchStmt>);
+	virtual void accept(shared_ptr<lang::BlockStmt>);
+	virtual void accept(shared_ptr<lang::InitStmt>);
+	virtual void accept(shared_ptr<lang::AssignStmt>);
+	virtual void accept(shared_ptr<lang::IfStmt>);
+	virtual void accept(shared_ptr<lang::WhileStmt>);
+	virtual void accept(shared_ptr<lang::ForStmt>);
+	virtual void accept(shared_ptr<lang::PrintStmt>);
+	virtual void accept(shared_ptr<lang::EvalStmt>);
+	virtual void accept(shared_ptr<lang::ReturnStmt>);
+	virtual void accept(shared_ptr<lang::BreakStmt>);
+	virtual void accept(shared_ptr<lang::SwitchStmt>);
 
-	virtual void accept(shared_ptr<ConstExpr>);
-	virtual void accept(shared_ptr<IsTypeExpr>);
-	virtual void accept(shared_ptr<VariableExpr>);
-	virtual void accept(shared_ptr<FuncCallExpr>);
-	virtual void accept(shared_ptr<RecordExpr>);
+	virtual void accept(shared_ptr<lang::ConstExpr>);
+	virtual void accept(shared_ptr<lang::IsTypeExpr>);
+	virtual void accept(shared_ptr<lang::VariableExpr>);
+	virtual void accept(shared_ptr<lang::FuncCallExpr>);
+	virtual void accept(shared_ptr<lang::RecordExpr>);
 
-	virtual void accept(shared_ptr<ListExpr>);
-	virtual void accept(shared_ptr<ListLengthExpr>);
-	virtual void accept(shared_ptr<ConcatExpr>);
-	virtual void accept(shared_ptr<ListLookupExpr>);
-	virtual void accept(shared_ptr<RecordMemberExpr>);
-	virtual void accept(shared_ptr<BasicCastExpr>);
-	virtual void accept(shared_ptr<AbstractOpExpr>);
-	virtual void accept(shared_ptr<EquivOp>);
-	virtual void accept(shared_ptr<NotEquivOp>);
-	virtual void accept(shared_ptr<AndExpr>);
-	virtual void accept(shared_ptr<OrExpr>);
-	virtual void accept(shared_ptr<NotExpr>);
+	virtual void accept(shared_ptr<lang::ListExpr>);
+	virtual void accept(shared_ptr<lang::ListLengthExpr>);
+	virtual void accept(shared_ptr<lang::ConcatExpr>);
+	virtual void accept(shared_ptr<lang::ListLookupExpr>);
+	virtual void accept(shared_ptr<lang::RecordMemberExpr>);
+	virtual void accept(shared_ptr<lang::BasicCastExpr>);
+	virtual void accept(shared_ptr<lang::AbstractOpExpr>);
+	virtual void accept(shared_ptr<lang::EquivOp>);
+	virtual void accept(shared_ptr<lang::NotEquivOp>);
+	virtual void accept(shared_ptr<lang::AndExpr>);
+	virtual void accept(shared_ptr<lang::OrExpr>);
+	virtual void accept(shared_ptr<lang::NotExpr>);
 
 private:
 	shared_ptr<X86Program> out;
@@ -85,13 +85,13 @@ private:
 
 	shared_ptr<WhileObject> popRef();
 	shared_ptr<WhileObject> popRefAndCopy();
-	shared_ptr<WhileObject> objFromExpr( shared_ptr<Expr>, bool );
-	shared_ptr<WhileObject> objFromExpr( shared_ptr<Expr> ); // does not modify cloning mode
+	shared_ptr<WhileObject> objFromExpr( shared_ptr<lang::Expr>, bool );
+	shared_ptr<WhileObject> objFromExpr( shared_ptr<lang::Expr> ); // does not modify cloning mode
 
 	// no l0nger using these
 	shared_ptr<X86Register> refIntoReg(shared_ptr<X86Reference>);
-	int getTypeSize(shared_ptr<Type>);
-	int getTypeTag(shared_ptr<Type>);
+	int getTypeSize(shared_ptr<lang::Type>);
+	int getTypeTag(shared_ptr<lang::Type>);
 };
 
 } /* namespace std */

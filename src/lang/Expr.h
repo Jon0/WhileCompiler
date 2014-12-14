@@ -1,10 +1,3 @@
-/*
- * Expr.h
- *
- *  Created on: 17/03/2014
- *      Author: remnanjona
- */
-
 #ifndef EXPR_H_
 #define EXPR_H_
 
@@ -16,7 +9,8 @@
 #include "Value.h"
 #include "Var.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 class Expr;
 class Func;
@@ -27,7 +21,7 @@ class Expr: public SyntaxElem {
 public:
 	Expr(shared_ptr<Type> ty): type(ty) {}
 
-	Expr(Token tok, shared_ptr<Type> ty): type(ty) {
+	Expr(io::parser::Token tok, shared_ptr<Type> ty): type(ty) {
 		addToken(tok);
 	}
 
@@ -62,7 +56,7 @@ public:
 		const_value = c;
 	}
 
-	ConstExpr(Token tok, shared_ptr<Value> c): Expr( tok, c->type() ) {
+	ConstExpr(io::parser::Token tok, shared_ptr<Value> c): Expr( tok, c->type() ) {
 		const_value = c;
 	}
 
@@ -91,7 +85,7 @@ private:
  */
 class IsTypeExpr: public Expr, public enable_shared_from_this<IsTypeExpr> {
 public:
-	IsTypeExpr( Token tok, shared_ptr<Expr> e, shared_ptr<Type> t): Expr( tok, boolType  ) {
+	IsTypeExpr( io::parser::Token tok, shared_ptr<Expr> e, shared_ptr<Type> t): Expr( tok, boolType  ) {
 		to_check = e;
 		type = t;
 		addChild(to_check);
@@ -122,7 +116,7 @@ private:
 
 class VariableExpr: public Expr, public enable_shared_from_this<VariableExpr> {
 public:
-	VariableExpr(Token tok, shared_ptr<Var> v): Expr( tok, v->type() ) {
+	VariableExpr(io::parser::Token tok, shared_ptr<Var> v): Expr( tok, v->type() ) {
 		var = v;
 	}
 
@@ -139,7 +133,7 @@ public:
 	void typeCheck( CheckState &cs ) {
 		map<string, AssignState>::iterator i = cs.assigned.find( var->name() );
 		if ( i == cs.assigned.end() || !(*i).second.defAssign ) {
-			throw TokenException(getTokens(), "variable "+var->name()+" is not definitely assigned");
+			throw io::parser::TokenException(getTokens(), "variable "+var->name()+" is not definitely assigned");
 		}
 	}
 
@@ -165,7 +159,7 @@ private:
 
 class RecordExpr: public Expr, public enable_shared_from_this<RecordExpr> {
 public:
-	RecordExpr( Token tok, shared_ptr<Type> t, map<string, shared_ptr<Expr>> r ): Expr(tok, t) {
+	RecordExpr( io::parser::Token tok, shared_ptr<Type> t, map<string, shared_ptr<Expr>> r ): Expr(tok, t) {
 		rec = r;
 	}
 
@@ -198,7 +192,7 @@ shared_ptr<Type> findListType(vector<shared_ptr<Expr>> e);
 class ListExpr: public Expr, public enable_shared_from_this<ListExpr> {
 public:
 	// TODO generate list type if int and bool are contained, type is bool|int
-	ListExpr( Token tok, vector<shared_ptr<Expr>> l ): Expr( tok, findListType(l) ) {
+	ListExpr( io::parser::Token tok, vector<shared_ptr<Expr>> l ): Expr( tok, findListType(l) ) {
 		list = l;
 
 		for (shared_ptr<Expr> e: list) {
@@ -222,7 +216,7 @@ public:
 		for ( shared_ptr<Expr> ex: list ) {
 			ex->typeCheck(cs);
 			if (!ltype->innerType()->contains(*ex->getType())) {
-				throw TokenException(getTokens(), "list of "+getType()->aliasStr()+" cannot contain "+ex->getType()->aliasStr());
+				throw io::parser::TokenException(getTokens(), "list of "+getType()->aliasStr()+" cannot contain "+ex->getType()->aliasStr());
 			}
 		}
 	}
@@ -245,7 +239,7 @@ private:
 
 class ListLengthExpr: public Expr, public enable_shared_from_this<ListLengthExpr> {
 public:
-	ListLengthExpr( Token tok, shared_ptr<Expr> v ): Expr( tok, intType ) {
+	ListLengthExpr( io::parser::Token tok, shared_ptr<Expr> v ): Expr( tok, intType ) {
 		e = v;
 		addChild(e);
 	}
@@ -258,7 +252,7 @@ public:
 
 	void typeCheck( CheckState & ) {
 		if ( !e->getType()->isList() ) {
-			throw TokenException(getTokens(), "expected instance of list or string, found "+e->getType()->aliasStr());
+			throw io::parser::TokenException(getTokens(), "expected instance of list or string, found "+e->getType()->aliasStr());
 		}
 	}
 
@@ -276,7 +270,7 @@ private:
 
 class ConcatExpr: public Expr, public enable_shared_from_this<ConcatExpr> {
 public:
-	ConcatExpr( Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( tok, t ) { // result type is list
+	ConcatExpr( io::parser::Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b  ): Expr( tok, t ) { // result type is list
 		first = a;
 		second = b;
 		copyTokens(*a);
@@ -325,14 +319,14 @@ public:
 	void typeCheck( CheckState &cs ) {
 		// check first is a list type
 		if (!first->getType()->isList()) {
-			throw TokenException(getTokens(), "concat used on non list type");
+			throw io::parser::TokenException(getTokens(), "concat used on non list type");
 		}
 		else {
 			shared_ptr<ListType> list_t = static_pointer_cast<ListType, Type>(
 					first->getType());
 			if (!(getType()->nameStr() == "string" || list_t->innerType()->contains(*second->getType())
 					|| list_t->contains(*second->getType()))) {
-				throw TokenException(getTokens(),
+				throw io::parser::TokenException(getTokens(),
 						"operands must have identical types, found "
 								+ first->getType()->aliasStr() + " and "
 								+ second->getType()->aliasStr());
@@ -359,7 +353,7 @@ private:
  */
 class ListLookupExpr: public Expr, public enable_shared_from_this<ListLookupExpr> {
 public:
-	ListLookupExpr( Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( tok, t ) {
+	ListLookupExpr( io::parser::Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, shared_ptr<Expr> i ): Expr( tok, t ) {
 		v_expr = v;
 		index = i;
 		copyTokens(*i);
@@ -387,7 +381,7 @@ public:
 		v_expr->typeCheck(c);
 		index->typeCheck(c);
 		if (index->getType()->nameStr() != "int") {
-			throw TokenException(index->getTokens(),
+			throw io::parser::TokenException(index->getTokens(),
 					"expected type int, found " + index->getType()->aliasStr());
 		}
 	}
@@ -422,7 +416,7 @@ private:
  */
 class RecordMemberExpr: public Expr, public enable_shared_from_this<RecordMemberExpr> {
 public:
-	RecordMemberExpr( Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, string m_name ): Expr( tok, t ) {
+	RecordMemberExpr( io::parser::Token tok, shared_ptr<Expr> v, shared_ptr<Type> t, string m_name ): Expr( tok, t ) {
 		v_expr = v;
 		member_name = m_name;
 	}
@@ -464,7 +458,7 @@ private:
 
 class FuncCallExpr: public Expr, public enable_shared_from_this<FuncCallExpr> {
 public:
-	FuncCallExpr( Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a );
+	FuncCallExpr( io::parser::Token tok, shared_ptr<Func> f, vector<shared_ptr<Expr>> a );
 
 	shared_ptr<Value> eval( Stack &, VarMap &m, shared_ptr<Value> **p );
 
@@ -489,7 +483,7 @@ private:
 
 class BasicCastExpr: public Expr, public enable_shared_from_this<BasicCastExpr> {
 public:
-	BasicCastExpr( Token tok, shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( tok, t ) {
+	BasicCastExpr( io::parser::Token tok, shared_ptr<Type> t, shared_ptr<Expr> e ): Expr( tok, t ) {
 		expr = e;
 		addChild(e);
 	}
@@ -629,10 +623,10 @@ public:
 		first->typeCheck(cs);
 		second->typeCheck(cs);
 		if (*first->getType() != *second->getType() ) {
-			throw TokenException(getTokens(), "operands must have identical types, found "+first->getType()->aliasStr()+" and "+second->getType()->aliasStr());
+			throw io::parser::TokenException(getTokens(), "operands must have identical types, found "+first->getType()->aliasStr()+" and "+second->getType()->aliasStr());
 		}
 		if ( numbersOnly && first->getType()->nameStr() == "bool" ) {
-			throw TokenException(getTokens(), "expected instance of int or real, found "+second->getType()->aliasStr());
+			throw io::parser::TokenException(getTokens(), "expected instance of int or real, found "+second->getType()->aliasStr());
 		}
 	}
 
@@ -683,7 +677,7 @@ public:
 
 class EquivOp: public Expr, public enable_shared_from_this<EquivOp> {
 public:
-	EquivOp(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
+	EquivOp(io::parser::Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
 		addChild(a);
@@ -719,7 +713,7 @@ private:
 
 class NotEquivOp: public Expr, public enable_shared_from_this<NotEquivOp> {
 public:
-	NotEquivOp(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
+	NotEquivOp(io::parser::Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
 		addChild(a);
@@ -755,7 +749,7 @@ private:
 
 class AndExpr: public Expr, public enable_shared_from_this<AndExpr> {
 public:
-	AndExpr(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
+	AndExpr(io::parser::Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
 		addChild(a);
@@ -806,7 +800,7 @@ private:
 
 class OrExpr: public Expr, public enable_shared_from_this<OrExpr> {
 public:
-	OrExpr(Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
+	OrExpr(io::parser::Token tok, shared_ptr<Type> t, shared_ptr<Expr> a, shared_ptr<Expr> b): Expr( tok, t ) {
 		first = a;
 		second = b;
 		addChild(a);
@@ -857,7 +851,7 @@ private:
 
 class NotExpr: public Expr, public enable_shared_from_this<NotExpr> {
 public:
-	NotExpr(Token tok, shared_ptr<Expr> a): Expr( tok, a->getType() ) {
+	NotExpr(io::parser::Token tok, shared_ptr<Expr> a): Expr( tok, a->getType() ) {
 		first = a;
 		addChild(a);
 	}
@@ -886,6 +880,6 @@ private:
 	shared_ptr<Expr> first;
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* EXPR_H_ */

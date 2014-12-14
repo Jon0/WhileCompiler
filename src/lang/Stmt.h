@@ -14,7 +14,8 @@
 #include "SyntaxElem.h"
 #include "Var.h"
 
-namespace std {
+namespace lang {
+using namespace std;
 
 class Expr;
 class Type;
@@ -211,6 +212,6 @@ private:
 
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* STMT_H_ */

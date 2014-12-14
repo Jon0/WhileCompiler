@@ -1,9 +1,4 @@
-/*
- * ClassfileWriter.cpp
- *
- *  Created on: 9/05/2014
- *      Author: remnanjona
- */
+#include <iostream>
 
 #include "Classfile.h"
 #include "ClassfileWriter.h"
@@ -42,6 +37,7 @@ ClassfileWriter::~ClassfileWriter() {
 }
 
 void ClassfileWriter::writeClassfile() {
+	cout << "saving to " << filepath() << endl;
 	outfile.open( filepath() );
 
 	/* file header */

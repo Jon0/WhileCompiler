@@ -1,10 +1,3 @@
-/*
- * JavaStack.h
- *
- *  Created on: 1/07/2014
- *      Author: asdf
- */
-
 #ifndef JAVASTACK_H_
 #define JAVASTACK_H_
 

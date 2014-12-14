@@ -10,8 +10,8 @@
 #include "Type.h"
 #include "Var.h"
 
-namespace std {
-
+namespace lang {
+using namespace std;
 
 bool ListType::contains( const Type &other ) const {
 	if ( elem_type && other.isList() ) {
@@ -86,4 +86,4 @@ vector<shared_ptr<Type>> UnionType::normalise( const vector<shared_ptr<Type>> ty
 	return sets;
 }
 
-} /* namespace std */
+} /* namespace lang */

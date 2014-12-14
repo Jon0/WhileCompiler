@@ -8,20 +8,27 @@
 
 #include "SyntaxVisitor.h"
 
-namespace std {
+namespace lang {
 
 class Value;
 
+/**
+ * a parsed syntax element, and the corresponding tokens
+ * read from the source file which are used to report errors
+ */
 class SyntaxElem {
 public:
 	SyntaxElem() {}
 	virtual ~SyntaxElem() {}
 
-	void addToken(Token t) {
+	/**
+	 * add token used in produced error messages
+	 */
+	void addToken(io::parser::Token t) {
 		tok.push_back(t);
 	}
 
-	vector<Token> &getTokens() {
+	std::vector<io::parser::Token> &getTokens() {
 		return tok;
 	}
 
@@ -34,25 +41,25 @@ public:
 	}
 
 	/* */
-	virtual void visit(shared_ptr<SyntaxVisitor> v) = 0;
+	virtual void visit(std::shared_ptr<SyntaxVisitor> v) = 0;
 
-	void visitChildren(shared_ptr<SyntaxVisitor> v) {
-		for (shared_ptr<SyntaxElem> e: children) {
+	void visitChildren(std::shared_ptr<SyntaxVisitor> v) {
+		for (std::shared_ptr<SyntaxElem> e: children) {
 			e->visit(v);
 		}
 	}
 
 protected:
-	void addChild(shared_ptr<SyntaxElem> e) {
+	void addChild(std::shared_ptr<SyntaxElem> e) {
 		children.push_back(e);
 	}
 
 private:
-	vector<Token> tok;
+	std::vector<io::parser::Token> tok;
 
-	vector<shared_ptr<SyntaxElem>> children;
+	std::vector<std::shared_ptr<SyntaxElem>> children;
 };
 
-} /* namespace std */
+} /* namespace lang */
 
 #endif /* SYNTAX_H_ */
